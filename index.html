@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 /* ===== TOKENS ===== */
 
@@ -2053,7 +2054,26 @@ main {
       <div class="field"><label>Tahun</label><input id="tahun" type="number" min="2024" max="2040" value="2026"></div>
       <div class="field"><label>Nama Pengisi</label><input id="namaPengisi" placeholder="Nama lengkap"></div>
       <div class="field"><label>Jabatan Pengisi</label><input id="jabatanPengisi" placeholder="Jabatan"></div>
-      <div class="field full"><label>API Key Operator</label><input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off"><div class="scenario-hint">Diberikan oleh admin sistem per operator. Wajib untuk menyimpan/mengubah data. Akan diingat otomatis di perangkat ini setelah berhasil disimpan.</div></div>
+      <div class="field full">
+        <label>Login Operator</label>
+        <div id="googleLoginBox" style="display:flex;flex-direction:column;gap:8px;">
+          <div id="gsiButton"></div>
+          <div id="loginStatus" class="scenario-hint"></div>
+          <div id="registerForm" style="display:none;border:1px solid var(--line);border-radius:9px;padding:12px;background:#f8fafc;">
+            <div style="font-weight:800;color:var(--navy);margin-bottom:8px;font-size:12px;">Daftar sebagai pengisi DPRK</div>
+            <div class="formgrid">
+              <div class="field"><label>Nama Lengkap</label><input id="regNamaLengkap" placeholder="Nama lengkap Anda"></div>
+              <div class="field"><label>Jabatan</label><input id="regJabatan" placeholder="Jabatan Anda"></div>
+            </div>
+            <div class="scenario-hint" style="margin-top:8px;">Operator/entitas mengikuti pilihan pada form di atas. Pastikan sudah dipilih sebelum mendaftar.</div>
+            <button type="button" class="btn primary" style="margin-top:10px;" onclick="submitOperatorRegistration()">Ajukan Pendaftaran</button>
+          </div>
+        </div>
+        <div class="scenario-hint" style="margin-top:8px;">Login dengan akun Google institusi Anda. Jika belum terdaftar, isi form pendaftaran yang muncul — admin akan menyetujui sebelum Anda bisa menyimpan data. <b>Alternatif:</b> pakai API Key lama jika sudah punya: <a href="#" onclick="toggleApiKeyFallback();return false;">tampilkan field API Key</a>.</div>
+        <div id="apiKeyFallback" style="display:none;margin-top:8px;">
+          <input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off">
+        </div>
+      </div>
       <div class="field"><label>Tanggal Pengesahan</label><input id="tanggalPengesahan" type="date"><div class="scenario-hint">Diisi sesuai tanggal pengesahan dokumen DPRK.</div></div>
       <div class="field"><label>Email Pemilik Risiko</label><input id="emailRiskOwner" type="email" placeholder="email@instansi.go.id"></div>
       <div class="field full"><label>Link File DPRK</label><input id="linkDprk" placeholder="https://drive.google.com/..."></div>
@@ -2144,6 +2164,65 @@ main {
 (function(){
 "use strict";
 var GAS_URL="https://script.google.com/macros/s/AKfycbyY6BLRyTqZSSlDS3o9nkWms_ky6saoxdYsELZoSv1fw_I0f0eENMb8T-ICphAtHwahrA/exec";
+var GOOGLE_CLIENT_ID = "762850112328-g8i7gj2e2m2t9jvh6t03cpfdaka8hpch.apps.googleusercontent.com";
+var authState = { idToken: "", email: "", activeOperators: [], pendingOperators: [] };
+function initGoogleLogin(){
+  if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGoogleLogin, 300); return; }
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse, auto_select: false });
+  var box = $("gsiButton");
+  if(box) google.accounts.id.renderButton(box, { theme: "outline", size: "medium", text: "signin_with", locale: "id" });
+}
+function handleCredentialResponse(response){
+  authState.idToken = response.credential || "";
+  if(!authState.idToken) return;
+  var status = $("loginStatus");
+  if(status) status.textContent = "Memeriksa status login...";
+  get("whoami&idToken=" + encodeURIComponent(authState.idToken)).then(function(res){
+    if(!res.ok){
+      if(status) status.textContent = "Login gagal: " + (res.error || "coba lagi.");
+      authState.idToken = "";
+      return;
+    }
+    authState.email = res.email;
+    authState.activeOperators = res.active || [];
+    authState.pendingOperators = res.pending || [];
+    renderLoginState();
+  }).catch(function(){ if(status) status.textContent = "Gagal menghubungi server untuk verifikasi login."; });
+}
+function renderLoginState(){
+  var status = $("loginStatus"), regForm = $("registerForm");
+  if(!status) return;
+  var e = readEntity();
+  var matchActive = e && authState.activeOperators.some(function(o){ return String(o.operatorId) === String(e.operatorId); });
+  var matchPending = e && authState.pendingOperators.some(function(o){ return String(o.operatorId) === String(e.operatorId); });
+  if(matchActive){
+    status.innerHTML = "Login sebagai <b>" + esc(authState.email) + "</b> — terverifikasi untuk operator ini.";
+    if(regForm) regForm.style.display = "none";
+  } else if(matchPending){
+    status.innerHTML = "Login sebagai <b>" + esc(authState.email) + "</b> — pendaftaran untuk operator ini masih menunggu persetujuan admin.";
+    if(regForm) regForm.style.display = "none";
+  } else if(authState.email){
+    status.innerHTML = "Login sebagai <b>" + esc(authState.email) + "</b> — belum terdaftar untuk operator yang sedang dipilih. Lengkapi pendaftaran di bawah.";
+    if(regForm) regForm.style.display = e ? "block" : "none";
+  }
+}
+function submitOperatorRegistration(){
+  var e = readEntity();
+  if(!e || !e.operatorId){ alert("Pilih operator/entitas pada form di atas terlebih dahulu."); return; }
+  if(!authState.idToken){ alert("Login dengan Google terlebih dahulu."); return; }
+  var namaLengkap = $("regNamaLengkap").value.trim(), jabatan = $("regJabatan").value.trim();
+  if(!namaLengkap || !jabatan){ alert("Nama lengkap dan jabatan wajib diisi."); return; }
+  post({ action: "registerOperatorUser", googleIdToken: authState.idToken, operatorId: e.operatorId, namaLengkap: namaLengkap, jabatan: jabatan }).then(function(res){
+    if(!res.ok){ alert(res.error || "Gagal mendaftar."); return; }
+    alert(res.message || "Pendaftaran diajukan. Menunggu persetujuan admin.");
+    handleCredentialResponse({ credential: authState.idToken });
+  });
+}
+function toggleApiKeyFallback(){
+  var box = $("apiKeyFallback");
+  if(box) box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
 var AIRPORT_REGIONS={"TJQ":["Kepulauan Bangka Belitung","Kabupaten Belitung"],"DJB":["Jambi","Kota Jambi"],"BKS":["Bengkulu","Kota Bengkulu"],"PDG":["Sumatera Barat","Kabupaten Padang Pariaman"],"UPG":["Sulawesi Selatan","Kabupaten Maros"],"BDJ":["Kalimantan Selatan","Kota Banjarbaru"],"SOC":["Jawa Tengah","Kabupaten Boyolali"],"DHX":["Jawa Timur","Kabupaten Kediri"],"TNJ":["Kepulauan Riau","Kota Tanjung Pinang"],"SRG":["Jawa Tengah","Kota Semarang"],"SUB":["Jawa Timur","Kabupaten Sidoarjo"],"BTJ":["Aceh","Kabupaten Aceh Besar"],"BDO":["Jawa Barat","Kota Bandung"]};
 function airportRegion(a){
  var i=String(a&&a[3]||"").toUpperCase();
@@ -2212,6 +2291,7 @@ function renderTypes(){
 }
 function renderEntityArea(){
  var a=$("entityArea");
+ if(typeof renderLoginState==="function")renderLoginState();
  if(!state.type){a.innerHTML='<div class="notice">Pilih salah satu dari 4 jenis operator untuk melanjutkan.</div>';return}
  if(state.type==="Bandar Udara"){
   a.innerHTML='<div class="field"><label>Nama Bandar Udara</label><input id="entitySearch" placeholder="Ketik nama bandara atau kota..."><div id="entityResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div></div><div id="entitySelected"></div>';
@@ -2415,8 +2495,9 @@ function validateForm(e,cat,sc,a,k,c){
  var link=$("linkDprk")?$("linkDprk").value.trim():"";
  var catalogId=$("riskCatalog")?$("riskCatalog").value:"";
  var apiKey=$("apiKey")?$("apiKey").value.trim():"";
+ var loggedInForThisOperator=e&&authState.activeOperators.some(function(o){return String(o.operatorId)===String(e.operatorId)});
  if(!e)errors.push("Identitas entitas/operator belum dipilih atau diisi.");
- if(!apiKey)errors.push("API Key operator wajib diisi. Hubungi admin sistem bila belum memiliki kunci akses.");
+ if(!apiKey&&!loggedInForThisOperator)errors.push("Login dengan Google (dan pastikan sudah disetujui admin), atau isi API Key operator.");
  if(!state.type)errors.push("Jenis operator belum dipilih.");
  if(state.edit&&state.edit.originalOperatorId&&e&&String(e.operatorId||"")!==String(state.edit.originalOperatorId))errors.push("Identitas operator pada mode edit tidak boleh berubah. Buat pengisian baru bila risiko akan dipindahkan ke operator lain.");
  if(state.edit&&state.edit.originalJenisOperator&&e&&String(e.jenisOperator||"")!==String(state.edit.originalJenisOperator))errors.push("Jenis operator pada mode edit tidak boleh berubah. Buat pengisian baru untuk jenis operator lain.");
@@ -2469,7 +2550,7 @@ function save(){
     state.pendingCreateFingerprint=fingerprint;
    }
   }
-  var p={action:wasEdit?"update":"create",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
+  var p={action:wasEdit?"update":"create",googleIdToken:authState.idToken||"",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
   $("saveBtn").textContent=wasEdit?"Memperbarui...":"Menyimpan...";$("formNotice").innerHTML="";
   return post(p).then(function(res){
    if(!res.ok){
@@ -2709,6 +2790,7 @@ function draw(id,labels,vals,title){
  ctx.fillStyle="#0f2a45";ctx.font="700 11px Inter, Arial";ctx.fillText(String(vals[vals.length-1]),px(vals.length-1)-8,py(vals[vals.length-1])-8);
 }
 init();
+initGoogleLogin();
 })();
 </script>
 </body>
