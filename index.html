@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Dashboard monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK Keamanan Penerbangan Nasional.">
+<title>Dashboard Monitoring DPRK Keamanan Penerbangan Nasional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ===== TOKENS ===== */
+
+:root {
+  --navy:#0f2a45;
+  --navy2:#17466f;
+  --blue:#2c6e9e;
+  --gold:#c9902f;
+  --bg:#f3f6fa;
+  --card:#fff;
+  --line:#dfe6ee;
+  --muted:#607080;
+  --text:#182632;
+  --low:#5b9e5e;
+  --ml:#8fb86a;
+  --mid:#e0b341;
+  --mh:#dd8a42;
+  --high:#cf4a42;
+  --r:14px;
+  --shadow:0 5px 18px rgba(15,42,69,.07);
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-7:32px;
+  --content-max:1320px;
+}
+
+
+
+/* ===== GLOBAL ===== */
+
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.45 var(--font);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+:focus-visible {
+  outline:2.5px solid var(--gold);
+  outline-offset:2px;
+  border-radius:4px;
+}
+
+a {
+  color:var(--blue);
+}
+
+::selection {
+  background:#cfe3f2;
+}
+
+button,input,select,textarea {
+  font:inherit;
+}
+
+
+
+/* ===== MISC ===== */
+
+.app {
+  max-width:1380px;
+  margin:auto;
+  padding-bottom:50px;
+}
+
+
+
+/* ===== HEADER ===== */
+
+.brand {
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+
+.brandmark {
+  width:44px;
+  height:44px;
+  border-radius:11px;
+  background:rgba(255,255,255,.12);
+  display:grid;
+  place-items:center;
+  font-size:22px;
+}
+
+.eyebrow {
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  opacity:.7;
+}
+
+.brand h1 {
+  margin:2px 0 0;
+  font-size:22px;
+}
+
+.subtitle {
+  margin:6px 0 22px;
+  color:rgba(255,255,255,.72);
+}
+
+.nav-wrap {
+  position:relative;
+}
+
+.nav {
+  display:flex;
+  gap:6px;
+  overflow:auto;
+  scrollbar-width:none;
+}
+
+.nav::-webkit-scrollbar {
+  display:none;
+}
+
+.nav button {
+  border:0;
+  background:transparent;
+  color:rgba(255,255,255,.7);
+  padding:12px 16px;
+  cursor:pointer;
+  border-bottom:3px solid transparent;
+  font-weight:700;
+  white-space:nowrap;
+  border-radius:8px 8px 0 0;
+  transition:color .15s ease,background .15s ease;
+}
+
+.nav button:hover {
+  color:#fff;
+  background:rgba(255,255,255,.06);
+}
+
+.nav button.active {
+  color:#fff;
+  border-color:var(--gold);
+}
+
+.nav-wrap:after {content:"";position:absolute;top:0;right:0;bottom:3px;width:26px;background:linear-gradient(90deg,transparent,rgba(15,42,69,.35));pointer-events:none;display:none;}
+
+
+
+/* ===== KPI ===== */
+
+.kpis {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(130px,1fr));
+  gap:12px;
+}
+
+.kpi,.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  transition:box-shadow .15s ease,transform .15s ease;
+}
+
+.kpi {
+  padding:16px;
+}
+
+.kpi .l {
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.kpi:hover {
+  box-shadow:0 9px 22px rgba(15,42,69,.11);
+  transform:translateY(-1px);
+}
+
+.kpi .n.is-loading {
+  color:transparent;
+  background:linear-gradient(90deg,#eef2f6 25%,#f7f9fb 37%,#eef2f6 63%);
+  background-size:400% 100%;
+  border-radius:6px;
+  animation:kpiPulse 1.3s ease infinite;
+  display:inline-block;
+  min-width:34px;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.card {
+  padding:18px;
+}
+
+.card h2 {
+  font-size:16px;
+  color:var(--navy);
+  margin:0 0 5px;
+}
+
+
+
+/* ===== MISC ===== */
+
+.sub {
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+
+.opmeta {
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  color:var(--muted);
+  margin-top:5px;
+}
+
+.bar {
+  height:13px;
+  background:#edf1f5;
+  border-radius:99px;
+  overflow:hidden;
+}
+
+.bar i {
+  display:block;
+  height:100%;
+  background:var(--blue);
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:12.5px;
+}
+
+th {
+  background:#e8eff6;
+  color:var(--navy);
+  text-align:left;
+  padding:9px;
+  position:sticky;
+  top:0;
+  font-size:11px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+td {
+  padding:9px;
+  border-top:1px solid #edf1f5;
+  vertical-align:top;
+}
+
+tbody tr:nth-child(even) {
+  background:#f8fafc;
+}
+
+tbody tr:hover {
+  background:#eef5fa;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.pill {
+  display:inline-block;
+  color:#fff;
+  border-radius:99px;
+  padding:3px 8px;
+  font-size:10.5px;
+  font-weight:800;
+}
+
+.pill-status {
+  display:inline-block;
+  border-radius:99px;
+  padding:3px 9px;
+  font-size:10.5px;
+  font-weight:800;
+}
+
+.pill-status.filled {
+  background:#edf8ee;
+  color:#2e6332;
+}
+
+.pill-status.unfilled {
+  background:#f1f3f6;
+  color:var(--muted);
+}
+
+
+
+/* ===== FORMS ===== */
+
+.toolbar {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+
+.toolbar>* {
+  min-width:150px;
+  flex:1;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+input,select,textarea {
+  border:1.5px solid var(--line);
+  border-radius:9px;
+  padding:9px 10px;
+  background:#fff;
+  color:var(--text);
+}
+
+textarea {
+  min-height:75px;
+  resize:vertical;
+}
+
+.btn {
+  border:0;
+  border-radius:9px;
+  padding:10px 14px;
+  font-weight:800;
+  cursor:pointer;
+  transition:filter .15s ease,transform .1s ease,background .15s ease;
+}
+
+.btn:hover {
+  filter:brightness(1.06);
+}
+
+.btn:active {
+  transform:translateY(1px);
+}
+
+.btn:disabled {
+  opacity:.6;
+  cursor:not-allowed;
+  filter:none;
+  transform:none;
+}
+
+
+
+/* ===== MISC ===== */
+
+.primary {
+  background:var(--gold);
+  color:#fff;
+}
+
+.secondary {
+  background:#fff;
+  border:1.5px solid var(--line);
+  color:var(--navy);
+}
+
+.secondary:hover {
+  background:#f3f7fa;
+  border-color:var(--blue);
+}
+
+
+
+/* ===== FORMS ===== */
+
+.field {
+  min-width:0;
+}
+
+.field textarea {
+  min-height:88px;
+}
+
+
+
+/* ===== MISC ===== */
+
+.full {
+  grid-column:1/-1;
+}
+
+
+
+/* ===== FORMS ===== */
+
+.type.selected {
+  border-color:var(--blue);
+  background:#eef5fa;
+}
+
+.type input {
+  display:none;
+}
+
+.type small {
+  display:block;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+
+
+/* ===== RISK ===== */
+
+.riskgrid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+  margin-top:18px;
+}
+
+.riskbox input {
+  width:100%;
+  font-size:20px;
+  font-weight:900;
+  text-align:center;
+  height:48px;
+}
+
+.riskbox.risk-low {
+  background:#edf8ee;
+  border-color:#b8dbbb;
+}
+
+.riskbox.risk-low input {
+  border-color:#5b9e5e;
+  color:#2e6332;
+}
+
+.riskbox.risk-ml {
+  background:#f1f8e9;
+  border-color:#c8dda9;
+}
+
+.riskbox.risk-ml input {
+  border-color:#8fb86a;
+  color:#55733d;
+}
+
+.riskbox.risk-mid {
+  background:#fff9e8;
+  border-color:#ecd58d;
+}
+
+.riskbox.risk-mid input {
+  border-color:#e0b341;
+  color:#866b0c;
+}
+
+.riskbox.risk-mh {
+  background:#fff2e8;
+  border-color:#edbd92;
+}
+
+.riskbox.risk-mh input {
+  border-color:#dd8a42;
+  color:#9a541f;
+}
+
+.riskbox.risk-high {
+  background:#fff0ef;
+  border-color:#e2aaa6;
+}
+
+.riskbox.risk-high input {
+  border-color:#cf4a42;
+  color:#a7332d;
+}
+
+.risklabel {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+
+.risklabel small {
+  font-size:10px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.riskbox {
+  min-height:112px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  background:#f7f9fb;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+}
+
+.riskbox label {
+  font-weight:800;
+  color:var(--navy);
+}
+
+.risk-total-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.risk-kicker {
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  letter-spacing:.05em;
+}
+
+.risk-total-line {
+  display:flex;
+  align-items:baseline;
+  gap:5px;
+}
+
+
+
+/* ===== MISC ===== */
+
+.risknum {
+  font-size:34px;
+  font-weight:900;
+  color:var(--navy);
+  line-height:1;
+}
+
+
+
+/* ===== RISK ===== */
+
+.risk-max {
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.risk-meter {
+  height:13px;
+  background:linear-gradient(90deg,#edf8ee 0 20%,#f1f8e9 20% 40%,#fff9e8 40% 60%,#fff2e8 60% 80%,#fff0ef 80% 100%);
+  border:1px solid var(--line);
+  border-radius:99px;
+  overflow:hidden;
+  margin-top:12px;
+}
+
+.risk-meter-fill {
+  height:100%;
+  width:0;
+  background:var(--navy);
+  border-radius:99px;
+  transition:width .2s ease;
+}
+
+.risk-scale {
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr 2fr 1fr;
+  font-size:9px;
+  color:var(--muted);
+  margin-top:4px;
+  align-items:center;
+}
+
+.risk-scale span {
+  text-align:center;
+}
+
+.risk-scale span:first-child {
+  text-align:left;
+}
+
+.risk-scale span:last-child {
+  text-align:right;
+}
+
+.riskresult {
+  display:block;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:12px;
+  padding:12px;
+  background:#f7f9fb;
+  border-radius:10px;
+}
+
+.riskresult .pill {
+  padding:6px 12px;
+  font-size:11px;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.local-history {
+  margin-top:12px;
+}
+
+.local-history-list {
+  display:grid;
+  gap:9px;
+}
+
+.local-item {
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:11px;
+  background:#fff;
+}
+
+.local-item-head {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+
+.local-item-title {
+  font-weight:800;
+  color:var(--navy);
+}
+
+.local-item-meta {
+  font-size:11px;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.local-item-actions {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+
+.local-item-actions .btn {
+  padding:7px 10px;
+  font-size:11px;
+}
+
+.local-note {
+  font-size:11px;
+  color:var(--muted);
+  margin-top:8px;
+}
+
+.notice {
+  padding:10px 12px;
+  border-radius:9px;
+  background:#fff7e6;
+  border:1px solid #efd39c;
+  color:#74590f;
+  font-size:12px;
+  margin-bottom:12px;
+}
+
+
+
+/* ===== MISC ===== */
+
+.ok {
+  background:#edf8ee;
+  border-color:#b8dbbb;
+  color:#2e6332;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.empty {
+  padding:28px;
+  text-align:center;
+  color:var(--muted);
+}
+
+
+
+/* ===== MISC ===== */
+
+canvas {
+  width:100%;
+  max-height:330px;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.footer {
+  padding:18px 22px;
+  color:var(--muted);
+  font-size:11px;
+  text-align:center;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.dashboard-intro {display:flex;justify-content:space-between;align-items:center;gap:18px;padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff,#f7faff);box-shadow:var(--shadow);}
+
+.dashboard-eyebrow,.section-kicker {
+  font-size:10px;
+  letter-spacing:.12em;
+  font-weight:900;
+  color:var(--blue);
+}
+
+.dashboard-intro h2 {
+  margin:2px 0 3px;
+  font-size:20px;
+  color:var(--navy);
+}
+
+.dashboard-intro p {
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.live-status {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border:1px solid #d7e4ee;
+  border-radius:11px;
+  background:#fff;
+  white-space:nowrap;
+}
+
+.live-status b {
+  display:block;
+  font-size:10px;
+  color:var(--navy);
+  letter-spacing:.06em;
+}
+
+.live-status small {
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.live-dot {
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#5b9e5e;
+  box-shadow:0 0 0 4px #edf8ee;
+}
+
+
+
+/* ===== MISC ===== */
+
+.executive-kpis .kpi {
+  padding:15px 16px;
+  min-height:126px;
+  position:relative;
+  overflow:hidden;
+}
+
+.executive-kpis .kpi:after {
+  content:"";
+  position:absolute;
+  right:-24px;
+  bottom:-32px;
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  background:rgba(44,110,158,.045);
+}
+
+
+
+/* ===== KPI ===== */
+
+.kpi-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:9px;
+}
+
+.kpi-icon {
+  width:27px;
+  height:27px;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  background:#edf4f9;
+  color:var(--blue);
+  font-weight:900;
+  font-size:13px;
+}
+
+.kpi-tag {
+  font-size:9px;
+  letter-spacing:.09em;
+  color:var(--muted);
+  font-weight:900;
+}
+
+.kpi-primary {
+  border-top:3px solid var(--gold);
+}
+
+.kpi-primary .kpi-icon {
+  background:#fbf3e4;
+  color:#a87820;
+}
+
+.kpi-danger {
+  border-top:3px solid var(--high);
+}
+
+.kpi-danger .kpi-icon {
+  background:#fff0ef;
+  color:var(--high);
+}
+
+.kpi-warning {
+  border-top:3px solid var(--mh);
+}
+
+.kpi-warning .kpi-icon {
+  background:#fff2e8;
+  color:var(--mh);
+}
+
+.kpi-muted {
+  border-top:3px solid #b8c3ce;
+}
+
+.kpi .n {
+  font-size:29px;
+  font-weight:800;
+  color:var(--navy);
+  line-height:1.1;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.dashboard-card {
+  border-radius:16px;
+}
+
+.section-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.section-badge {
+  font-size:9px;
+  font-weight:900;
+  color:var(--navy);
+  background:#eef4f8;
+  border:1px solid #d8e3ec;
+  border-radius:99px;
+  padding:6px 9px;
+  white-space:nowrap;
+}
+
+.operator-section {
+  padding:18px;
+}
+
+.operator-section .operator-cards {
+  margin-top:15px;
+}
+
+.operator-cards {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+
+.opcard {
+  border:1px solid var(--line);
+  border-radius:11px;
+  padding:15px;
+  position:relative;
+  min-height:132px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#fff,#fafcfe);
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+
+.opcard:hover {
+  transform:translateY(-2px);
+  box-shadow:0 9px 22px rgba(15,42,69,.10);
+}
+
+.opcard b {
+  display:block;
+  color:var(--navy);
+  margin-bottom:8px;
+  font-size:12px;
+  letter-spacing:.03em;
+}
+
+.opcard:before {
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:var(--blue);
+}
+
+.opcard:nth-child(1):before {
+  background:var(--gold);
+}
+
+.opcard:nth-child(2):before {
+  background:#2c6e9e;
+}
+
+.opcard:nth-child(3):before {
+  background:#5b7892;
+}
+
+.opcard:nth-child(4):before {
+  background:#7c8b99;
+}
+
+.opcard .opmeta {
+  margin-top:9px;
+}
+
+.opcard .opmeta span:first-child {
+  font-weight:800;
+  color:var(--navy);
+}
+
+
+
+/* ===== RISK ===== */
+
+.risk-donut-wrap {
+  display:grid;
+  grid-template-columns:minmax(210px,270px) 1fr;
+  align-items:center;
+  gap:24px;
+  margin-top:16px;
+}
+
+.risk-donut {
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  margin:auto;
+  display:grid;
+  place-items:center;
+  background:conic-gradient(#dce5ec 0deg 360deg);
+  position:relative;
+  box-shadow:inset 0 0 0 1px rgba(15,42,69,.05);
+}
+
+.risk-donut-hole {
+  width:132px;
+  height:132px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 16px rgba(15,42,69,.07);
+}
+
+.risk-donut-hole span {
+  font-size:10px;
+  color:var(--muted);
+  font-weight:700;
+  margin-top:5px;
+}
+
+.risk-donut-hole small {
+  font-size:10px;
+  color:var(--blue);
+  font-weight:900;
+  margin-top:7px;
+  padding:4px 8px;
+  border-radius:99px;
+  background:#eef5fa;
+  border:1px solid #d8e7f1;
+  white-space:nowrap;
+}
+
+.risk-legend-item:before {
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:5px;
+  border-radius:9px 0 0 9px;
+  background:var(--dot,#8fa5b8);
+}
+
+.risk-legend-item:hover {
+  background:#eef4f8;
+  transform:translateX(1px);
+}
+
+.risk-legend-pct {
+  font-size:10.5px;
+  color:var(--muted);
+  font-weight:700;
+  margin-left:5px;
+}
+
+.risk-dominant b {
+  font-weight:900;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.dashboard-dual-card {
+  min-width:0;
+  display:flex;
+}
+
+.dashboard-dual-card>.dashboard-card {width:100%;height:100%;}
+
+
+
+/* ===== RISK ===== */
+
+.risk-snapshot-card {
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.threat-landscape-card {
+  display:flex;
+  flex-direction:column;
+}
+
+.threat-landscape-card h2 {
+  margin-bottom:3px;
+}
+
+.threat-landscape-card .sub {
+  margin-bottom:12px;
+}
+
+.threat-item .bar i {
+  display:block;
+  height:100%;
+  border-radius:99px;
+  transition:width .3s ease;
+}
+
+.threat-scale i {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  display:inline-block;
+}
+
+#view-dashboard .card h2 {
+  line-height:1.25;
+}
+
+#view-dashboard .section-kicker {
+  margin-bottom:3px;
+}
+
+#view-dashboard .sub {
+  line-height:1.45;
+}
+
+.threat-landscape-card #catbars::-webkit-scrollbar {
+  width:5px;
+}
+
+.threat-landscape-card #catbars::-webkit-scrollbar-thumb {
+  background:#cbd6df;
+  border-radius:99px;
+}
+
+.threat-landscape-card #catbars::-webkit-scrollbar-track {
+  background:transparent;
+}
+
+.dashboard-dual-row {display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:20px;align-items:stretch;}
+
+.dashboard-dual-row .dashboard-card {
+  min-height:460px;
+  padding:20px;
+}
+
+
+
+/* ===== RISK ===== */
+
+.risk-snapshot-card .section-head,
+.threat-landscape-card .section-head {
+  padding-bottom:12px;
+  border-bottom:1px solid #edf1f5;
+}
+
+.risk-snapshot-card .sub,
+.threat-landscape-card .sub {
+  max-width:620px;
+  margin-bottom:0;
+}
+
+.risk-snapshot-card .risk-donut-wrap {
+  flex:1;
+  min-height:300px;
+  margin-top:18px;
+  grid-template-columns:minmax(220px,250px) minmax(0,1fr);
+  gap:26px;
+}
+
+.risk-snapshot-card .risk-donut {
+  width:220px;
+  height:220px;
+  box-shadow:0 8px 24px rgba(15,42,69,.08),inset 0 0 0 1px rgba(15,42,69,.05);
+}
+
+.risk-snapshot-card .risk-donut-hole {
+  width:132px;
+  height:132px;
+}
+
+.risk-donut-hole b {
+  font-size:36px;
+  line-height:1;
+  color:var(--navy);
+}
+
+.risk-legend {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  justify-content:center;
+}
+
+.risk-legend-item {position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;gap:9px;padding:10px 13px 10px 18px;border-radius:9px;background:#fbfcfd;border:1px solid #eef2f6;transition:background .15s ease,transform .1s ease;min-height:43px;box-sizing:border-box;}
+
+.risk-legend-name {
+  font-size:12px;
+  font-weight:800;
+  color:var(--navy);
+}
+
+.risk-legend-value {
+  font-size:16px;
+  font-weight:900;
+  color:var(--navy);
+  white-space:nowrap;
+}
+
+.risk-dominant {
+  margin-top:14px;
+  padding:11px 13px;
+  border-radius:9px;
+  background:#f7fafc;
+  border:1px dashed var(--line);
+  font-size:11.5px;
+  color:var(--navy);
+  text-align:center;
+  font-weight:700;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.threat-landscape-card #catbars {flex:1;overflow:auto;max-height:none;min-height:0;margin-top:6px;padding:4px 8px 2px 0;}
+
+.threat-list {
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+}
+
+.threat-item {
+  padding:3px 0 5px;
+  border-bottom:1px solid #f0f3f6;
+}
+
+.threat-item:last-child {
+  border-bottom:0;
+}
+
+.threat-item-top {
+  display:flex;
+  align-items:baseline;
+  gap:9px;
+  margin-bottom:6px;
+}
+
+.threat-code {
+  flex:none;
+  font-size:9px;
+  font-weight:900;
+  color:#fff;
+  background:var(--navy);
+  border-radius:5px;
+  padding:3px 6px;
+  letter-spacing:.02em;
+  min-width:34px;
+  text-align:center;
+}
+
+.threat-name {
+  flex:1;
+  min-width:0;
+  font-size:11.5px;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:default;
+}
+
+.threat-value {
+  flex:none;
+  font-size:14px;
+  font-weight:900;
+  min-width:44px;
+  text-align:right;
+}
+
+.threat-item .bar {
+  height:9px;
+  background:#edf1f5;
+  border-radius:99px;
+  overflow:hidden;
+}
+
+.threat-scale {
+  display:flex;
+  justify-content:space-between;
+  gap:6px;
+  margin-top:10px;
+  padding-top:11px;
+  border-top:1px solid var(--line);
+  font-size:9px;
+  color:var(--muted);
+  font-weight:700;
+  flex-wrap:wrap;
+}
+
+.threat-scale span {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+
+#view-dashboard .threat-landscape-card #catbars {
+  max-height:345px;
+  overflow:auto;
+}
+
+#view-dashboard .threat-landscape-card {
+  min-height:460px;
+}
+
+#view-dashboard .risk-snapshot-card {
+  min-height:460px;
+}
+
+#view-dashboard .dashboard-dual-card {
+  align-self:stretch;
+}
+
+.view:not(#view-dashboard) h2 {
+  font-size:18px;
+  letter-spacing:-.01em;
+}
+
+.view:not(#view-dashboard) h3 {
+  color:var(--navy);
+}
+
+
+
+/* ===== FORMS ===== */
+
+.step-card {
+  padding:18px 20px;
+}
+
+.step-head {
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-bottom:14px;
+}
+
+.step-no {
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:var(--navy);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  font-size:12px;
+  flex:none;
+}
+
+.step-head h2 {
+  margin:0;
+}
+
+.step-head .sub {
+  margin:2px 0 0;
+}
+
+.typegrid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:8px;
+}
+
+.type {
+  border:1.5px solid var(--line);
+  border-radius:11px;
+  padding:13px;
+  cursor:pointer;
+  min-height:86px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.type b {
+  color:var(--navy);
+  font-size:12px;
+}
+
+.form-actions {
+  position:sticky;
+  bottom:12px;
+  z-index:5;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:16px;
+  padding:10px 12px;
+  border:1px solid #d8e3ec;
+  border-radius:12px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 8px 28px rgba(15,42,69,.12);
+  backdrop-filter:blur(8px);
+}
+
+.form-actions .action-note {
+  font-size:10.5px;
+  color:var(--muted);
+}
+
+.form-actions .toolbar {
+  margin:0;
+  flex:0 0 auto;
+}
+
+.form-actions .btn {
+  min-width:150px;
+}
+
+.formgrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px 18px;
+  margin-top:14px;
+  row-gap:14px;
+}
+
+.field label {
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  margin-bottom:6px;
+}
+
+.field input,.field select,.field textarea {
+  width:100%;
+  display:block;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+
+.field input:focus,.field select:focus,.field textarea:focus {
+  border-color:#8fb6d2;
+  box-shadow:0 0 0 3px rgba(44,110,158,.08);
+  outline:none;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.section-divider {
+  height:1px;
+  background:var(--line);
+  margin:18px 0;
+}
+
+
+
+/* ===== FORMS ===== */
+
+.toolbar-panel {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  align-items:end;
+  margin:14px 0 16px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.toolbar-panel .toolbar-field {
+  min-width:0;
+}
+
+.toolbar-panel label {
+  display:block;
+  font-size:10px;
+  font-weight:800;
+  color:var(--muted);
+  margin:0 0 5px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.toolbar-panel input,.toolbar-panel select {
+  width:100%;
+  min-width:0;
+}
+
+.toolbar-panel .toolbar-action {
+  display:flex;
+  gap:8px;
+}
+
+.toolbar-panel .toolbar-action .btn {
+  width:100%;
+}
+
+.data-summary {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.mini-stat {
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:linear-gradient(180deg,#fff,#fafcfe);
+}
+
+.mini-stat span {
+  display:block;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.mini-stat b {
+  display:block;
+  margin-top:4px;
+  font-size:21px;
+  color:var(--navy);
+}
+
+.tablewrap {
+  overflow:auto;
+  max-height:600px;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+
+.tablewrap table {
+  min-width:760px;
+}
+
+.tablewrap th {
+  z-index:2;
+}
+
+.tablewrap td {
+  font-size:12px;
+}
+
+.tablewrap td small {
+  color:var(--muted);
+}
+
+.status-cell {
+  min-width:110px;
+}
+
+.status-cell .pill-status {
+  font-size:10px;
+}
+
+
+
+/* ===== COMPONENTS ===== */
+
+.empty-row {
+  padding:40px;
+}
+
+
+
+/* ===== RISK ===== */
+
+.risk-filter-panel {
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.risk-table .risk-number {
+  font-weight:900;
+  color:var(--navy);
+  font-size:15px;
+}
+
+.risk-table .risk-cat {
+  max-width:360px;
+  line-height:1.35;
+}
+
+.risk-table .risk-period {
+  white-space:nowrap;
+  color:var(--muted);
+}
+
+
+
+/* ===== FORMS ===== */
+
+.analytics-overview {display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+
+.analytics-stat {
+  padding:15px 16px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.analytics-stat .label {
+  font-size:10px;
+  color:var(--muted);
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.analytics-stat .value {
+  font-size:25px;
+  font-weight:900;
+  color:var(--navy);
+  margin-top:3px;
+}
+
+.analytics-stat .hint {
+  font-size:10px;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.analytics-chart-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+
+.analytics-chart-card {
+  min-height:390px;
+  display:flex;
+  flex-direction:column;
+}
+
+.analytics-chart-card canvas {
+  margin-top:auto;
+}
+
+
+.review-card .sub {
+  margin-bottom:12px;
+}
+
+
+
+/* ===== MISC ===== */
+
+#view-trend .tablewrap {
+  max-height:470px;
+}
+
+
+
+main {
+  padding:var(--space-4) 22px 24px;
+  margin:0;
+}
+
+.header {background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:24px 28px 0;box-shadow:var(--shadow);}
+
+.header .subtitle {
+  margin-bottom:0;
+}
+
+
+
+/* ===== HEADER ===== */
+
+.nav-wrap,.nav {
+  margin:0;
+  padding:0;
+}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.dashboard-filter-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--space-4);
+  width:100%;
+  min-width:0;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.dashboard-filter-bar > div:first-child {
+  min-width:0;
+}
+
+.dashboard-filter-bar b {
+  display:block;
+  margin-top:2px;
+  color:var(--navy);
+  font-size:12px;
+}
+
+.dashboard-filter-bar small {
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.4;
+}
+
+.dashboard-filter-bar select {
+  flex:0 1 260px;
+  min-width:210px;
+}
+
+.dashboard-location-selects {
+  display:flex;
+  flex:0 1 520px;
+  gap:var(--space-2);
+  min-width:0;
+}
+
+.dashboard-location-selects select {
+  flex:1 1 0;
+  min-width:0;
+}
+
+.opcard.dashboard-selectable {
+  cursor:pointer;
+}
+
+.opcard.dashboard-selectable:focus-visible {
+  outline:2.5px solid var(--gold);
+  outline-offset:2px;
+}
+
+.opcard.dashboard-selectable.selected {
+  border-color:#8fb6d2;
+  background:linear-gradient(180deg,#f8fbfd,#eef5fa);
+  box-shadow:0 0 0 2px rgba(44,110,158,.08),0 9px 22px rgba(15,42,69,.10);
+}
+
+.opcard.dashboard-selectable.selected:before {
+  width:5px;
+}
+
+
+
+/* ===== MISC ===== */
+
+.scenario-hint {
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10.5px;
+  line-height:1.4;
+}
+
+
+
+/* ===== FORMS ===== */
+
+.validation-list{margin:7px 0 0 18px;padding:0;}
+.validation-list li{margin:2px 0;}
+
+.form-section-title{margin:0;font-size:14px;}
+
+.formgrid-spaced{margin-top:14px;}
+
+
+
+/* ===== MISC ===== */
+
+.entity-area{margin-top:14px;}
+
+.honeypot-field{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;}
+
+.ref-box{display:none;margin-bottom:12px;}
+
+.edit-panel{background:#f8fafc;}
+
+.panel-title{margin:0 0 6px;font-size:14px;}
+
+
+
+/* ===== FORMS ===== */
+
+.toolbar-top-spaced{margin-top:10px;}
+
+.toolbar-no-bottom{margin-bottom:0;}
+
+.toolbar-fill{flex:1;min-width:0;}
+
+
+
+/* ===== DASHBOARD ===== */
+
+.threat-scale .threat-level-low{background:var(--low);}
+
+.threat-scale .threat-level-ml{background:var(--ml);}
+
+.threat-scale .threat-level-mid{background:var(--mid);}
+
+.threat-scale .threat-level-mh{background:var(--mh);}
+
+.threat-scale .threat-level-high{background:var(--high);}
+
+
+
+/* ===== LAYOUT CONTRACT ===== */
+.view {
+  display:none;
+  width:100%;
+  max-width:var(--content-max);
+  margin:0 auto;
+  padding:0;
+  position:relative;
+  top:auto;
+}
+
+.view.active {
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-4);
+}
+
+.view.active > * {
+  margin-block:0;
+}
+
+@media (max-width:1100px) {
+
+  .operator-cards {grid-template-columns:repeat(2,1fr);}
+
+  .dashboard-dual-row .dashboard-card {min-height:420px;}
+
+
+  .dashboard-dual-row{grid-template-columns:1fr;}
+
+}
+
+
+
+@media (max-width:1000px) {
+
+  .kpis {grid-template-columns:repeat(3,1fr);}
+
+  .operator-cards,.typegrid {grid-template-columns:repeat(2,1fr);}
+
+  .toolbar-panel,.risk-filter-panel {grid-template-columns:repeat(2,minmax(0,1fr));}
+
+  .data-summary {grid-template-columns:repeat(2,1fr);}
+
+  .analytics-chart-grid {grid-template-columns:1fr;}
+
+}
+
+
+
+@media (max-width:900px) {
+
+
+  .nav-wrap:after{display:block;}
+
+}
+
+
+
+@media (max-width:650px) {
+
+  .kpis {grid-template-columns:repeat(2,1fr);}
+
+  .formgrid,.riskgrid {grid-template-columns:1fr;}
+
+  .full {grid-column:auto;}
+
+  .operator-cards,.typegrid {grid-template-columns:1fr;}
+
+  .dashboard-intro {align-items:flex-start;flex-direction:column;}
+
+  .live-status {width:100%;}
+
+  .toolbar-panel,.risk-filter-panel,.data-summary,.analytics-overview {grid-template-columns:1fr;}
+
+  .form-actions {align-items:stretch;flex-direction:column;}
+
+  .form-actions .toolbar {width:100%;}
+
+  .form-actions .btn {width:100%;}
+
+  .step-card {padding:16px;}
+
+  .analytics-chart-card {min-height:340px;}
+
+  main {padding:12px 12px 18px;}
+
+  .dashboard-location-selects {flex-direction:column;}
+
+  .dashboard-location-selects select {width:100%;}
+
+  .risk-donut-wrap {grid-template-columns:1fr;}
+
+  .risk-donut {width:190px;height:190px;}
+
+  .risk-donut-hole {width:116px;height:116px;}
+
+  .dashboard-dual-row .dashboard-card {padding:16px;min-height:auto;}
+
+  .risk-snapshot-card .risk-donut-wrap {grid-template-columns:1fr;gap:16px;}
+
+  .risk-snapshot-card .risk-donut {width:190px;height:190px;}
+
+  .risk-snapshot-card .risk-donut-hole {width:114px;height:114px;}
+
+  .threat-landscape-card #catbars {max-height:none;}
+
+  .dashboard-filter-bar{align-items:stretch;flex-direction:column;}
+
+  .dashboard-filter-bar select,.dashboard-location-selects{flex:1 1 auto;width:100%;}
+
+}
+
+
+
+@media print {
+  .header .nav,
+  .toolbar,
+  .btn,
+  .footer {
+    display:none;
+  }
+
+  body {
+    background:#fff;
+  }
+
+  .card,
+  .kpi {
+    box-shadow:none;
+    break-inside:avoid;
+  }
+
+  main {
+    margin:0;
+  }
+
+  .view {
+    display:block;
+    max-width:none;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+  <div class="brand"><div class="brandmark">✈</div><div><div class="eyebrow">PKRK Nasional</div><h1>DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL</h1></div></div>
+  <div class="subtitle">Monitoring pemenuhan, kondisi risiko, dan perkembangan DPRK nasional — Bandar Udara, Airlines, LPPNPI, dan Regulated Agent.</div>
+  <div class="nav-wrap">
+  <nav class="nav" role="tablist" aria-label="Navigasi dashboard">
+    <button class="active" data-view="dashboard" role="tab" aria-selected="true">Dashboard</button>
+    <button data-view="form" role="tab" aria-selected="false">Pengisian DPRK</button>
+    <button data-view="operator" role="tab" aria-selected="false">Monitoring Operator</button>
+    <button data-view="risk" role="tab" aria-selected="false">Monitoring Risiko</button>
+    <button data-view="trend" role="tab" aria-selected="false">Trend & Analitik</button>
+  </nav>
+  </div>
+</header>
+<main>
+<section id="view-dashboard" class="view active">
+  <div class="dashboard-intro">
+    <div>
+      <div class="dashboard-eyebrow">NATIONAL MONITORING CENTER</div>
+      <h2>Ringkasan Monitoring DPRK</h2>
+      <p>Pantau pemenuhan dokumen, kondisi risiko, dan agenda kaji ulang secara ringkas.</p>
+    </div>
+    <div class="live-status"><span class="live-dot"></span><div><b>LIVE MONITORING</b><small id="dashboardUpdated">Memuat data...</small></div></div>
+  </div>
+  <div class="kpis executive-kpis">
+    <div class="kpi kpi-primary"><div class="kpi-top"><span class="kpi-icon">✓</span><span class="kpi-tag">DPRK</span></div><div class="n is-loading" id="k-filled">—</div><div class="l">Sudah Mengisi</div></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-icon">◌</span><span class="kpi-tag">COVERAGE</span></div><div class="n is-loading" id="k-total">—</div><div class="l">Total Entitas</div></div>
+    <div class="kpi"><div class="kpi-top"><span class="kpi-icon">%</span><span class="kpi-tag">STATUS</span></div><div class="n is-loading" id="k-rate">—</div><div class="l">Completion Rate</div></div>
+    <div class="kpi kpi-danger"><div class="kpi-top"><span class="kpi-icon">!</span><span class="kpi-tag">ATTENTION</span></div><div class="n is-loading" id="k-high">—</div><div class="l">Risiko Tinggi</div></div>
+    <div class="kpi kpi-warning"><div class="kpi-top"><span class="kpi-icon">↻</span><span class="kpi-tag">REVIEW</span></div><div class="n is-loading" id="k-review">—</div><div class="l">Kaji Ulang Mendekat</div></div>
+    <div class="kpi kpi-muted"><div class="kpi-top"><span class="kpi-icon">—</span><span class="kpi-tag">INFO</span></div><div class="n is-loading" id="k-empty">—</div><div class="l">Belum Mengisi</div></div>
+  </div>
+  <div class="card dashboard-card operator-section">
+    <div class="section-head">
+      <div><div class="section-kicker">COVERAGE</div><h2>Status DPRK per Jenis Operator</h2><div class="sub">Jumlah entitas yang sudah memiliki pengisian DPRK. Database pembanding tidak ditampilkan.</div></div>
+      <div class="section-badge">4 JENIS ENTITAS</div>
+    </div>
+    <div id="opcards" class="operator-cards"></div>
+  </div>
+  <div class="dashboard-filter-bar">
+    <div>
+      <div class="section-kicker">ANALYTICS FILTER</div>
+      <b>Analisis Risiko per Jenis Operator</b>
+      <small id="dashboardFilterHint">Menampilkan kondisi risiko seluruh operator.</small>
+    </div>
+    <select id="dashboardOperatorFilter" aria-label="Filter jenis operator dashboard">
+      <option value="">Semua Jenis Operator</option>
+      <option value="Bandar Udara">Bandar Udara</option>
+      <option value="Airlines">Airlines</option>
+      <option value="LPPNPI">LPPNPI</option>
+      <option value="Regulated Agent">Regulated Agent</option>
+    </select>
+  </div>
+  <div class="dashboard-filter-bar dashboard-filter-location-bar">
+    <div><div class="section-kicker">LOCATION FILTER</div><b>Analisis Risiko per Wilayah</b><small id="dashboardLocationHint">Menampilkan kondisi risiko seluruh provinsi dan kabupaten/kota.</small></div>
+    <div class="dashboard-location-selects">
+      <select id="dashboardProvinceFilter" aria-label="Filter provinsi dashboard"><option value="">Semua Provinsi</option></select>
+      <select id="dashboardKabkotaFilter" aria-label="Filter kabupaten kota dashboard"><option value="">Semua Kabupaten/Kota</option></select>
+    </div>
+  </div>
+  <div class="dashboard-dual-row">
+  <div class="dashboard-dual-card"><div class="card dashboard-card risk-snapshot-card">
+      <div class="section-head">
+        <div><div class="section-kicker">RISK SNAPSHOT</div><h2>Kondisi Risiko Nasional</h2><div class="sub">Distribusi seluruh risiko berdasarkan tingkat risikonya.</div></div>
+        <div class="section-badge" id="riskTotalBadge">0 RISIKO</div>
+      </div>
+      <div class="risk-donut-wrap">
+        <div class="risk-donut" id="riskDonut">
+          <div class="risk-donut-hole">
+            <b id="riskDonutOperators">0</b>
+            <span>Operator</span>
+            <small id="riskDonutTotal">0 Total Risiko</small>
+          </div>
+        </div>
+        <div class="risk-legend" id="riskLegend"></div>
+      </div>
+      <div class="risk-dominant" id="riskDominant"></div>
+    </div></div>
+  <div class="dashboard-dual-card"><div class="card dashboard-card threat-landscape-card"><div class="section-head"><div><div class="section-kicker">THREAT LANDSCAPE</div><h2>19 Kategori Ancaman</h2><div class="sub">Rata-rata nilai risiko dari skenario yang telah diisi, diurutkan dari yang tertinggi.</div></div></div><div id="catbars"><div class="threat-list" id="catbarsList"></div></div><div class="threat-scale"><span><i class="threat-level-low"></i>Rendah</span><span><i class="threat-level-ml"></i>Meng.-Rendah</span><span><i class="threat-level-mid"></i>Menengah</span><span><i class="threat-level-mh"></i>Meng.-Tinggi</span><span><i class="threat-level-high"></i>Tinggi</span></div></div></div>
+</div>
+  </div>
+</section>
+
+<section id="view-form" class="view">
+  <div class="card step-card">
+    <div class="step-head"><span class="step-no">01</span><div><h2>Identitas Entitas / Operator</h2><div class="sub">Pilih jenis entitas terlebih dahulu. Bandara tidak menjadi field wajib untuk Airlines, LPPNPI, dan Regulated Agent.</div></div></div>
+    <div class="typegrid" id="types"></div>
+    <div id="entityArea" class="entity-area"></div>
+    <div class="formgrid">
+      <div class="field"><label>Bulan Penilaian</label><select id="bulan"></select></div>
+      <div class="field"><label>Tahun</label><input id="tahun" type="number" min="2024" max="2040" value="2026"></div>
+      <div class="field"><label>Nama Pengisi</label><input id="namaPengisi" placeholder="Nama lengkap"></div>
+      <div class="field"><label>Jabatan Pengisi</label><input id="jabatanPengisi" placeholder="Jabatan"></div>
+      <div class="field full"><label>API Key Operator</label><input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off"><div class="scenario-hint">Diberikan oleh admin sistem per operator. Wajib untuk menyimpan/mengubah data. Akan diingat otomatis di perangkat ini setelah berhasil disimpan.</div></div>
+      <div class="field"><label>Tanggal Pengesahan</label><input id="tanggalPengesahan" type="date"><div class="scenario-hint">Diisi sesuai tanggal pengesahan dokumen DPRK.</div></div>
+      <div class="field"><label>Email Pemilik Risiko</label><input id="emailRiskOwner" type="email" placeholder="email@instansi.go.id"></div>
+      <div class="field full"><label>Link File DPRK</label><input id="linkDprk" placeholder="https://drive.google.com/..."></div>
+    </div>
+  </div>
+  <div class="card step-card">
+    <div class="step-head"><span class="step-no">02</span><div><h2>Skenario & Penilaian Risiko</h2><div class="sub">Katalog skenario merupakan contoh/acuan yang dapat digunakan lintas jenis operator. Sesuaikan dengan kondisi dan DPRK aktual operator.</div></div></div>
+    <div class="formgrid">
+      <div class="field"><label>Kategori Ancaman</label><select id="kategori"></select><div class="scenario-hint">Pilih kategori terlebih dahulu.</div></div>
+      <div class="field"><label>Skenario dari Katalog</label><select id="riskCatalog"></select></div>
+      <div class="field full"><label>Skenario Ancaman / Metode Serangan</label><textarea id="skenario" placeholder="Skenario akan terisi dari katalog dan dapat disesuaikan bila diperlukan."></textarea></div>
+      <div class="field"><label>Area / Lokasi</label><input id="area"></div>
+      <div class="field"><label>Langkah Keamanan Saat Ini</label><textarea id="langkahSaatIni"></textarea></div>
+      <div class="field full"><label>Kerentanan Saat Ini</label><textarea id="kerentananSaatIni"></textarea></div>
+    </div>
+    <div class="section-divider"></div>
+    <h3 class="form-section-title">Penilaian Risiko</h3>
+    <div class="riskgrid">
+      <div class="riskbox" id="riskBoxAncaman"><div class="risklabel"><label>Ancaman</label><small id="ancamanRating">Belum diisi</small></div><input id="ancaman" type="number" min="1" max="10" placeholder="1–10"></div>
+      <div class="riskbox" id="riskBoxKerentanan"><div class="risklabel"><label>Kerentanan</label><small id="kerentananRating">Belum diisi</small></div><input id="kerentanan" type="number" min="1" max="10" placeholder="1–10"></div>
+      <div class="riskbox" id="riskBoxKonsekuensi"><div class="risklabel"><label>Konsekuensi</label><small id="konsekuensiRating">Belum diisi</small></div><input id="konsekuensi" type="number" min="1" max="10" placeholder="1–10"></div>
+    </div>
+    <div class="riskresult">
+      <div class="risk-total-head"><div><div class="risk-kicker">TOTAL RISIKO</div><div class="risk-total-line"><span class="risknum" id="riskNum">—</span><span class="risk-max">/ 30</span></div></div><div id="riskBadge" class="pill">Belum lengkap</div></div>
+      <div class="risk-meter"><div class="risk-meter-fill" id="riskMeterFill"></div></div>
+      <div class="risk-scale"><span>3 • Rendah</span><span>7</span><span>13</span><span>19</span><span>25 • Tinggi</span><span>30</span></div>
+    </div>
+    <div class="formgrid formgrid-spaced">
+      <div class="field"><label>Perlakuan Risiko</label><select id="perlakuan"></select></div>
+      <div class="field"><label>Prioritas Penanganan</label><select id="prioritas"></select></div>
+      <div class="field"><label>Pemilik Risiko (Risk Owner)</label><input id="riskOwner" placeholder="mis. Airport Security Manager"></div>
+      <div class="field"><label>Tanggal Kaji Ulang</label><input id="tanggalKaji" type="date"></div>
+      <div class="field full"><label>Langkah Keamanan Tambahan</label><textarea id="langkahTambahan"></textarea></div>
+      <div class="field full"><label>Keterangan</label><textarea id="keterangan"></textarea></div>
+    </div>
+    <div class="honeypot-field" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+    <div id="formNotice"></div>
+    <div class="form-actions"><span class="action-note">Pastikan identitas, skenario, nilai risiko, dan tanggal kaji ulang telah diperiksa sebelum disimpan.</span><div class="toolbar"><button class="btn primary" id="saveBtn">Simpan Skenario</button><button class="btn secondary" id="clearBtn">Bersihkan</button></div></div>
+    <div id="refBox" class="notice ok ref-box"></div>
+  </div>
+  <div class="card step-card">
+    <div class="step-head"><span class="step-no">03</span><div><h2>Edit & Riwayat</h2><div class="sub">Kelola kembali skenario yang pernah disimpan dari perangkat ini.</div></div></div>
+    <div class="card edit-panel"><h3 class="panel-title">Edit Skenario Tersimpan</h3><div class="sub">Masukkan kode referensi setelah menyimpan: <b>riskId::editToken</b>. Kode ini bersifat rahasia.</div><div class="toolbar toolbar-top-spaced"><input id="editRef" class="toolbar-fill" placeholder="risk-...::TOKEN"><button class="btn secondary" id="loadEditBtn">Muat Data untuk Edit</button></div><div id="editNotice"></div></div>
+    <div class="card edit-panel"><h3 class="panel-title">Kode DPRK (Ganti Perangkat)</h3><div class="sub">Kode ini TIDAK memuat data ke form. Kode ini hanya memberi izin di perangkat/browser ini untuk memperbarui email pemilik risiko, link file DPRK, dan tanggal kaji ulang milik entitas tersebut pada pengisian berikutnya. Dapatkan kode ini dari kotak referensi saat pertama kali entitas diisi, atau dari perangkat sebelumnya.</div><div class="toolbar toolbar-top-spaced"><input id="dprkRef" class="toolbar-fill" placeholder="operatorId|tahun::TOKEN"><button class="btn secondary" id="loadDprkTokenBtn">Simpan Kode DPRK</button></div><div id="dprkTokenNotice"></div></div>
+    <div class="card local-history"><h3 class="panel-title">Riwayat Pengisian Saya (Perangkat Ini)</h3><div class="sub">Riwayat tersimpan otomatis di browser/perangkat ini untuk membantu menemukan kembali data yang pernah Anda simpan.</div><div id="localHistoryList" class="local-history-list"></div><div class="local-note">Jika data browser dihapus, riwayat lokal dapat ikut terhapus. Data utama DPRK tetap tersimpan di Google Sheets.</div><div class="toolbar toolbar-no-bottom"><button class="btn secondary" id="clearLocalHistoryBtn">Hapus Riwayat Lokal</button></div></div>
+  </div>
+</section>
+
+<section id="view-operator" class="view">
+  <div class="card">
+    <div class="data-summary"><div class="mini-stat"><span>Total Ditampilkan</span><b id="opCount">0</b></div><div class="mini-stat"><span>Sudah Mengisi</span><b id="opFilled">0</b></div><div class="mini-stat"><span>Belum Mengisi</span><b id="opUnfilled">0</b></div><div class="mini-stat"><span>Filter Aktif</span><b id="opFilterState">Semua</b></div></div>
+    <div class="toolbar-panel">
+      <div class="toolbar-field"><label>Jenis Operator</label><select id="opFilterType"><option value="">Semua Jenis Operator</option></select></div>
+      <div class="toolbar-field"><label>Provinsi</label><select id="opFilterProv"><option value="">Semua Provinsi</option></select></div>
+      <div class="toolbar-field"><label>Pencarian</label><input id="opSearch" placeholder="Cari nama operator..."></div>
+      <div class="toolbar-action"><button class="btn secondary" id="opRefresh">Muat Ulang Data</button></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Lokasi</th><th>Status DPRK</th><th>Skenario</th><th>Kaji Ulang</th></tr></thead><tbody id="opTbody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="view-risk" class="view">
+  <div class="card">
+    <div class="data-summary"><div class="mini-stat"><span>Total Risiko</span><b id="riskCount">0</b></div><div class="mini-stat"><span>Risiko Tinggi</span><b id="riskHighCount">0</b></div><div class="mini-stat"><span>Rata-rata Nilai</span><b id="riskAvgCount">—</b></div><div class="mini-stat"><span>Filter Aktif</span><b id="riskFilterState">Semua</b></div></div>
+    <div class="toolbar-panel risk-filter-panel">
+      <div class="toolbar-field"><label>Jenis Operator</label><select id="riskType"><option value="">Semua Jenis Operator</option></select></div>
+      <div class="toolbar-field"><label>Rating Risiko</label><select id="riskRating"><option value="">Semua Rating</option></select></div>
+      <div class="toolbar-field"><label>Kategori</label><select id="riskCategory"><option value="">Semua Kategori</option></select></div>
+      <div class="toolbar-field"><label>Pencarian</label><input id="riskSearch" placeholder="Cari entitas/kategori..."></div>
+    </div>
+    <div class="tablewrap risk-table"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Kategori</th><th>Risiko</th><th>Rating</th><th>Periode</th></tr></thead><tbody id="riskTbody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="view-trend" class="view">
+  <div class="analytics-overview"><div class="analytics-stat"><div class="label">Periode Data</div><div class="value" id="trendPeriods">0</div><div class="hint">Jumlah periode yang tersedia</div></div><div class="analytics-stat"><div class="label">Pengisian Terakhir</div><div class="value" id="trendLatestFilled">—</div><div class="hint">Entitas dengan pengisian DPRK</div></div><div class="analytics-stat"><div class="label">Risiko Rata-rata Terakhir</div><div class="value" id="trendLatestRisk">—</div><div class="hint">Nilai rata-rata risiko</div></div></div>
+  <div class="analytics-chart-grid">
+    <div class="card analytics-chart-card"><div class="section-head"><div><div class="section-kicker">COVERAGE TREND</div><h2>Trend Completion</h2><div class="sub">Perkembangan jumlah entitas yang memiliki pengisian DPRK per periode.</div></div></div><canvas id="fillChart2" width="700" height="330"></canvas></div>
+    <div class="card analytics-chart-card"><div class="section-head"><div><div class="section-kicker">RISK TREND</div><h2>Trend Nilai Risiko</h2><div class="sub">Perubahan rata-rata nilai risiko historis per periode.</div></div></div><canvas id="riskChart2" width="700" height="330"></canvas></div>
+  </div>
+  <div class="card review-card"><div class="section-head"><div><div class="section-kicker">REVIEW AGENDA</div><h2>Monitoring Kaji Ulang</h2><div class="sub">Daftar agregat entitas dengan tanggal kaji ulang yang mendekat.</div></div><div class="section-badge">UPCOMING REVIEW</div></div><div class="tablewrap"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Tanggal Kaji</th><th>Status</th></tr></thead><tbody id="reviewTbody"></tbody></table></div></div>
+</section>
+</main>
+<div class="footer">DPRK Nasional V3.27 (Sprint 1: proteksi kepemilikan DPRK, merge master operator, recompute risiko server-side) • Google Sheets + Google Apps Script • Dashboard umum tidak menampilkan detail keamanan internal atau edit token.</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var GAS_URL="https://script.google.com/macros/s/AKfycbyY6BLRyTqZSSlDS3o9nkWms_ky6saoxdYsELZoSv1fw_I0f0eENMb8T-ICphAtHwahrA/exec";
+var AIRPORT_REGIONS={"TJQ":["Kepulauan Bangka Belitung","Kabupaten Belitung"],"DJB":["Jambi","Kota Jambi"],"BKS":["Bengkulu","Kota Bengkulu"],"PDG":["Sumatera Barat","Kabupaten Padang Pariaman"],"UPG":["Sulawesi Selatan","Kabupaten Maros"],"BDJ":["Kalimantan Selatan","Kota Banjarbaru"],"SOC":["Jawa Tengah","Kabupaten Boyolali"],"DHX":["Jawa Timur","Kabupaten Kediri"],"TNJ":["Kepulauan Riau","Kota Tanjung Pinang"],"SRG":["Jawa Tengah","Kota Semarang"],"SUB":["Jawa Timur","Kabupaten Sidoarjo"],"BTJ":["Aceh","Kabupaten Aceh Besar"],"BDO":["Jawa Barat","Kota Bandung"]};
+function airportRegion(a){
+ var i=String(a&&a[3]||"").toUpperCase();
+ var oid="BD-"+String(a&&a[0]||"");
+ var master=(state.operators||[]).filter(function(x){
+   return String(x.operatorId||"")===oid ||
+          (String(x.iata||"").toUpperCase()===i && String(x.jenisOperator||"")==="Bandar Udara");
+ })[0];
+ if(master && (master.provinsi||master.kabkota)){
+   return[String(master.provinsi||""),String(master.kabkota||"")];
+ }
+ return AIRPORT_REGIONS[i]||["",String(a&&a[2]||"")];
+} 
+var AIRPORTS=[["001","A.A. Bere Tallo","Atambua","ABU","G"],["002","Abdul Haris Nasution","Mandailing Natal","JHN","G"],["003","Abdul Rachman Saleh","Malang","MLG","F"],["004","Aboy","Pegunungan Bintang","ABY",""],["005","Aboyaga","Dogiyai","",""],["006","Abresso","Manokwari Selatan","RSK",""],["007","Achmad Yani","Semarang","SRG","C"],["008","Adau Airstrip","Nunukan","",""],["009","Adi Soemarmo","Solo","SOC","C"],["010","Adisutjipto","Yogyakarta","JOG","C"],["011","Aek Godang","Padang Sidempuan","AEG","G"],["012","Akimuga","Akimuga","WABC","H"],["013","Alama","Mimika","","H"],["014","Alas Lauser","Kutacane","LSR","H"],["015","Amahai","Pulau Seram","AHI","H"],["016","Amman Mineral Poto Tano","Sumbawa Barat","PNW","H"],["017","Andi Jemma","Masamba","MXB","H"],["018","Anggi","Anggi","AGD",""],["019","Apalapsili","Yalimo","AAS",""],["020","APT. Pranoto","Samarinda","AAP","C"],["021","Aroanop","Mimika","","H"],["022","Arung Palakka","Bone","ARP","H"],["023","Atung Bungsu","Dempo Selatan","PXA","H"],["024","Ayawasi","Ayawasi","AYW","H"],["025","Babo","Kab. Teluk Bintuni","BXB","G"],["026","Bade","Bade","BXD","H"],["027","Bandaneira","Pulau Banda","NDA","H"],["028","Banyuwangi","Banyuwangi","BWX","C"],["029","Batom","Batom","BXM","H"],["030","Beoga","Beoga Barat","",""],["031","Bersujud Batu Licin","Tanah Bumbu","BTW","G"],["032","Betoambari","Bau-Bau","BUW","G"],["033","Bilai","Intan Jaya","",""],["034","Bilorai","Kab. Intan Jaya","UGU","G"],["035","Binaka","Gunung Sitoli","GNS","F"],["036","Bintuni","Bintuni","NTI","H"],["037","Binuang","Nunukan","",""],["038","Blangkejeren","Gayo Lues","GYO","H"],["039","Bokondini","Bokondini","BUI","H"],["040","Bolaang Mongondow","Bolaang Mongondow","LKM","H"],["041","Bomakia","Bomakia","BXG","H"],["042","Borome","Pegunungan Bintang","",""],["043","Budiarto","Tanggerang","BTO","H"],["044","Buli","Maba","WUB","G"],["045","Cakrabhuwana","Cirebon","CBN","H"],["046","Cut Nyak Dhien","Nagan Raya","MEQ","G"],["047","Dabo","Singkep","SIQ","G"],["048","Dabra","Dabra","DRH","H"],["049","Datah Dawai","Datah Dawai","DTD","H"],["050","David Constantijn Saudale","Rote","RTI","G"],["051","Depati Amir","Pangkal Pinang","PGK","E"],["052","Depati Parbo","Kerinci","KRC","G"],["053","Dewadaru","Karimun Jawa, Kab. Jepara","KWB","H"],["054","Dhoho","Kediri","DHX","C"],["055","Dirung - Puruk Cahu","Murung Raya","","H"],["056","Djalaluddin","Gorontalo","GTO","F"],["057","Dobo","Pulau Aru, Kep. Arusi","DOB","G"],["058","Dofa Benjina Falabisahaya","Mangole","MAL","H"],["059","Domine Eduard Osok","Sorong","SOQ","C"],["060","Douw Aturure","Nabire","NBX","F"],["061","Dr. Ferdinand Lumban Tobing","Sibolga","FLZ","G"],["062","El Tari","Kupang","KOE","C"],["063","Elelim","Kab. Yalimo","ELR","G"],["064","Emalamo","Sanana","SQN","G"],["065","Enarotali","Enarotali","EWI","H"],["066","Enggano","Bengkulu Utara","ENG","H"],["067","Ewer","Ewer","EWE","G"],["068","Fatmawati Soekarno","Padang Kemiling","BKS","F"],["069","Fawi","Puncak Jaya","",""],["070","Frans Kaisiepo","Biak","BIK","C"],["071","Frans Sales Lega","Ruteng","RTG","G"],["072","Frans Seda","Maumere","MOF","F"],["073","Gamarmalamo","Galela","GLX","F"],["074","Gatot Soebroto","Way Kanan","WYK","H"],["075","Gebe","Halmahera Utara","GEB","H"],["076","Gewayantana","Larantuka","LKA","H"],["077","Gusti Syamsir Alam","Kotabaru","KBU","G"],["078","H. Aroeppala","Selayar","KSR","G"],["079","H. Asan","Sampit","SMQ","G"],["080","H. Hasan Aroeboesman","Ende","ENE","G"],["081","H.A.S. Hanandjoeddin","Tanjung Pandan","TJQ","C"],["082","Haji Muhammad Sidik","Muara Teweh","HMS","H"],["083","Halim Perdanakusuma","Jakarta","HLP","C"],["084","Haluoleo","Kendari","KDI","E"],["085","Hang Nadim","Batam","BTH","C"],["086","Harun Thohir","Gresik","BXW","H"],["087","Husein Sastranegara","Bandung","BDO","H"],["088","Ibu Kota Nusantara","Penajam Paser Utara","","C"],["089","Ilaga","Ilaga","ILA","H"],["090","Ilu","Ilu","IUL","H"],["091","IMIP","Morowali","MWS","H"],["092","Inanwatan","Inanwatan","INX","H"],["093","Iskandar","Pangkalan Bun","PKN","F"],["094","Japura","Rengat","RGT","H"],["095","Jenderal Besar Soedirman","Purbalingga","PWL","H"],["096","Jila","Mimika","","H"],["097","Jita","Mimika","","H"],["098","John Becker","Pulau Kisar","JBE","H"],["099","Jos Orno Imsula","Moa","JOE","G"],["100","Juanda","Surabaya","SUB","B"],["101","Juwata","Tarakan","TRK","C"],["102","Kabare","Kabare","KBE",""],["103","Kabir","Tidak tersedia","","H"],["104","Kalimarau","Tanjung Redeb","BEJ","E"],["105","Kambuaya","Kambuaya","KBX","H"],["106","Kamur","Kamur","KCD","H"],["107","Kapiraya","Deiyai","","H"],["108","Karel Sadsuitubun","Langgur","LUV","G"],["109","Karubaga","Karubaga","KBF","H"],["110","Kasiguncu","Poso","PSJ","G"],["111","Kebar","Kebar","KEQ","H"],["112","Kebo","Paniai","",""],["113","Kelila","Mamberamo Tengah","LLN",""],["114","Kenyam","Nduga","",""],["115","Kepi","Kab. Mappi","KEI","H"],["116","Kertajati","Majalengka","KJT","C"],["117","Kimaam","Kimaam","KMM","H"],["118","Kiwirok","Kiwirok","WAJK","H"],["119","Kobakma","Mamberamo Tengah","",""],["120","Kokonau","Kokonau","KOX","H"],["121","Kol. Robert Atty Bessing","Malinau","LNU","H"],["122","Komodo","Labuan Bajo","LBJ","C"],["123","Koroway Batu","Boven Digoel","",""],["124","Kuabang","Kao","KAZ","G"],["125","Kuala Batu","Blang Pidie","KJX","H"],["126","Kuala Kurun","Kuala Kurun","KLG","H"],["127","Kuala Pembuang","Kotawaringin Timur","KLP","H"],["128","Kualanamu","Medan","KNO","B"],["129","Kufar","Kufar","KFR","G"],["130","Lagaligo (BUA)","Palopo","LLO","G"],["131","Larat","Tanimbar Utara","LRT","H"],["132","Lasikin","Sinabang","LKI","G"],["133","Lasondre","Pulau-Pulau Batu","LSE","G"],["134","Letung","Kepulauan Anambas","LMU","G"],["135","LNG Badak","Bontang","BXT","G"],["136","Lombok International Airport (BIL)","Praya","LOP","C"],["137","Long Apung","Malinau","LPU","G"],["138","Long Apung","Long Apung","LPU",""],["139","Maimun Saleh","Sabang","SBG","H"],["140","Mali","Alor","ARD","G"],["141","Malikussaleh","Lhokseumawe","LSW","G"],["142","Malinau Robert Atty Bessing","Malinau","LNU","H"],["143","Mararena","Sarmi","MRF",""],["144","Maratua","Berau","RTU",""],["145","Maratua","Berau","RTU","H"],["146","Marimoi","Kobok","MRM","H"],["147","Marinda/Waisai","Waisai","RJM","H"],["148","Matahora (Wakatobi)","Wangi-Wangi","WNI","G"],["149","Matak","Kep. Anambas","MWK","G"],["150","Mathilda Batlayeri","Saumlaki","SXK","G"],["151","Maulana Prins Mandapar","Banggai Laut","BQR","H"],["152","Melak","Sendawar","MLK","G"],["153","Melonguane","Sangihe Talaud","MNA","G"],["154","mentawai","Sipora","RKI","H"],["155","Merdey","Merdey","RDE","H"],["156","Miangas","Tidak tersedia","MKF","H"],["157","Minangkabau","Padang","PDG","C"],["158","Mindiptana","Kab. Boven Digoel","OMD","H"],["159","Moanamani","Moanamani","ONI","H"],["160","Molof","Keerom","",""],["161","Mopah","Merauke","MKQ","C"],["162","Morowali","Morowali","MOH","G"],["163","Mozes Kilangin","Timika","TIM","F"],["164","Muara Bungo","Muaro Bungo","BUU","G"],["165","Muara Wahau","Kutai Timur","","H"],["166","Mugi","Nduga","",""],["167","Muhammad Taufiq Kiemas","Kab, Pesisir barat","KXI","H"],["168","Muko-Muko","Muko-Muko","MPC","H"],["169","Mulia","Kab. Puncak Jaya","OHI","H"],["170","Mutiara","Palu","PLW","C"],["171","Naha","Tahuna","NAH","G"],["172","Namlea","Pulau Buru","NAM","G"],["173","Namrole","Pulau Buru","NRE","G"],["174","Nanga Pinoh","Nanga Pinoh","NPO","H"],["175","Ngloram","Blora","CPF","H"],["176","Ngurah Rai","Bali (Denpasar)","DPS","A"],["177","Notohadinegoro","Jember","JBB","G"],["178","Numfor","Biak","FOO","H"],["179","Nunukan","Nunukan","NNX","G"],["180","Nusawiru","Ciamis","CJN","H"],["181","Oesman Sadik","Labuha","LAH","G"],["182","Okaba","Okaba","OKQ","H"],["183","Oksibil","Oksibil","OKL","H"],["184","Pagerungan","Sumenep","",""],["185","Pangsuma","Putussibau","PSU","G"],["186","Panua Pohuwato","Pohuwato","PWX","G"],["187","Paro","Nduga","",""],["188","Pasir Pangaraian","Pasir Pangaraian","PPR",""],["189","Pattimura","Ambon","AMQ","C"],["190","Pinang Kampai","Dumai","DUM","G"],["191","Pitu","Morotai","OTI","G"],["192","Pogogul","Buol","UOL","G"],["193","Pondok Cabe","Tanggerang Selatan","PCB","G"],["194","Potowaiburu","Mimika","","H"],["195","Pusako Anak Nagari","Pasaman Barat","","H"],["196","Radin Inten II","Tanjung Karang (Bandar Lampung)","TKG","C"],["197","Rahadi Oesman","Ketapang","KTG","F"],["198","Raja Haji Abdullah","Tanjung Balai Karimun","TJB","H"],["199","Raja Haji Fisabilillah","Tanjung Pinang","TNJ","C"],["200","Raja Sisingamangaraja XII","Siborong-Borong","DTB","C"],["201","Rampi","Rampi","RMP","H"],["202","Ranai","Natuna","NTX","G"],["203","Rembele","Takengon","TXE","G"],["204","Rendani","Manokwari","MKW","E"],["205","Sam Ratulangi","Manado","MDC","C"],["206","Sanggu","Buntok","SGQ","H"],["207","Sangia Nibandera","Kolaka","SQR","G"],["208","Seko","Luwu Utara","SKO","H"],["209","Senggeh","Senggeh","SEH","H"],["210","Senggo","Senggo","ZEG","H"],["211","Sentani","Jayapura","DJJ","C"],["212","Sepinggan","Balikpapan","BPN","C"],["213","Sibisa","Kab. Toba","SIW","H"],["214","Siboru","Fak-Fak","FKQ","G"],["215","Silampari","Lubuk Linggau","LLJ","G"],["216","Sinak","Puncak Jaya","NKD","H"],["217","Singkawang","Singkawang","SKJ","G"],["218","Sitaro","Kep. Siau","","H"],["219","Smart Semelagi","Sambas","",""],["220","Soa","Bajawa","BJW","G"],["221","Sobaham","Mamberamo Raya","",""],["222","Soekarno-Hatta","Cengkareng (Jakarta)","CGK","A"],["223","Sorowako","Luwu Timur","SQR",""],["224","Stevanus Rumbewas","Serui","ZRI","G"],["225","Sugimanuru","Muna","RAQ","G"],["226","Sultan Babullah","Ternate","TTE","F"],["227","Sultan Bantilan","Toli-Toli","TLI","G"],["228","Sultan Hasanuddin","Makassar","UPG","C"],["229","Sultan Iskandar Muda","Banda Aceh","BTJ","C"],["230","Sultan Mahmud Badaruddin II","Palembang","PLM","C"],["231","Sultan Muhammad Kaharuddin","Sumbawa Besar","SWQ","G"],["232","Sultan Muhammad Salahuddin","Bima","BMU","F"],["233","Sultan Syarif Haroen Setia Negara","Pelalawan","RPL","H"],["234","Sultan Syarif Kasim II","Pekanbaru","PKU","C"],["235","Sultan Thaha","Jambi","DJB","E"],["236","Sumarorong","Mamasa","","H"],["237","Supadio","Pontianak","PNK","C"],["238","Syamsudin Noor","Banjarmasin","BDJ","C"],["239","Syekh Hamzah Fansury","Singkil","WIMI","H"],["240","Syukuran Aminuddin Amir","Luwuk","LUW","F"],["241","Taive","Tolikara","",""],["242","Tambelan","Bintan","TBX","H"],["243","Tambolaka","Waikabubak","TMC","G"],["244","Tampa Padang","Mamuju","MJU","G"],["245","Tanah Merah","Tanah Merah","TMH","H"],["246","Tanjung Api Ampana","Ampana","OJU","G"],["247","Tanjung Bara","Kutai Timur","TJC","G"],["248","Tanjung Harapan","Tanjung Selor","TJS","G"],["249","Tanjung Warukin","Tanjung","TJG","H"],["250","Tardamu","Sabu","SAU","H"],["251","Tebelian","Sintang","SQG","G"],["252","Teminabuan","Teminabuan","TXM","H"],["253","Tempuling","Indragiri Hilir","",""],["254","Teraplu","Pengunungan Bintang","",""],["255","Teuku Cut Ali","Tapak Tuan","TPK","H"],["256","Tiom","Tiom","TIO","H"],["257","Tjilik Riwut","Palangkaraya","PKY","F"],["258","Toraja","Tana Toraja","TRT","G"],["259","Torea","Fak-Fak","","G"],["260","Towe Hitam","Keerom","",""],["261","Trunojoyo","Sumenep","SUP","G"],["262","Tsingga","Tsingga","","H"],["263","Tuanku Tambusai","Rokan Hulu","PPR","H"],["264","Tumbang Samba","Kaltingan","TBM","H"],["265","Tunggul Wulung","Cilacap","CXP","H"],["266","Umbu Mehang Kunda","Waingapu","WGP","G"],["267","Utarom","Kaimana","KNG","G"],["268","Waghte","Waghte","WET","H"],["269","Wahai","Pulau Seram","WBA","H"],["270","Wamena","Wamena","WMX","F"],["271","Wangbe","Wangbe","",""],["272","Wasior","Wasior","WSR","G"],["273","Weda Bay","Weda Bay","WED","G"],["274","Werur","Werur","WRR",""],["275","Wiriadinata","Tasikmalaya","TSY","G"],["276","Wonopito","Lewoleba","LWE","G"],["277","Yakuhimo/Nop Goliat Dekai","Dekai","DEK","G"],["278","Yaniruma","Boven Digoel","",""],["279","Yogyakarta International Airport","Kulon Progo","YIA","C"],["280","Yunuf","Keerom","",""],["281","Yuvai Semaring","Long Bawan","LBW","G"]], CATALOG=[["01.01","01","Teroris menyamar sebagai penumpang melakukan bom bunuh diri dengan meletakkan IED di badan dengan bahan peledak berbahan logam/metalic berbentuk padat dengan target pesawat udara","PSCP","Bandar Udara"],["01.02","01","Teroris menyamar sebagai penumpang difasilitasi oleh staf (insider threat) melakukan bom bunuh diri dengan meletakkan IED di badan dengan bahan peledak berbahan logam/metalic berbentuk padat dengan target pesawat udara","SSCP","Bandar Udara"],["01.03","01","Teroris menyamar sebagai penumpang melakukan bom bunuh diri dengan meletakkan di badan bahan peledak berbahan LNMC (Low-Non Metal Component) berbentuk padat dengan target pesawat udara","PSCP","Bandar Udara"],["01.04","01","Teroris menyamar sebagai penumpang difasilitasi oleh staf (insider threat) melakukan bom bunuh diri dengan meletakkan IED di badan berbahan LNMC (Low-Non Metal Component) berbentuk padat dengan target pesawat udara","SSCP","Bandar Udara"],["01.05","01","Teroris menyamar sebagai penumpang menyelundupkan IED di dalam bagasi kabin berbahan logam/metalic berbentuk padat yang dimodifikasi peralatan elektronik dan elektromekanik dengan target pesawat udara","PSCP","Bandar Udara"],["01.06","01","Teroris menyamar sebagai penumpang difasilitasi oleh staf (insider threat) menyelundupkan IED di dalam bagasi kabin berbahan logam/metalic berbentuk padat yang dimodifikasi peralatan elektronik dan elektromekanik dengan target pesawat udara","SSCP","Bandar Udara"],["01.07","01","Teroris menyamar sebagai penumpang menyelundupkan IED di dalam bagasi kabin berbahan LNMC (Low-Non Metal Component) berbentuk padat yang dimodifikasi peralatan elektronik dan elektromekanik dengan target pesawat udara","PSCP","Bandar Udara"],["01.08","01","Teroris menyamar sebagai penumpang difasilitasi oleh staf (insider threat) menyelundupkan IED di dalam bagasi kabin berbahan LNMC (Low-Non Metal Component) berbentuk padat yang dimodifikasi peralatan elektronik dan elektromekanik dengan target pesawat udara","SSCP","Bandar Udara"],["01.09","01","Teroris menyamar sebagai penumpang menyelundupkan bom cair (liquid bomb) di dalam bagasi kabin dengan target pesawat udara","PSCP","Bandar Udara"],["01.10","01","Teroris menyamar sebagai penumpang difasilitasi oleh staf (insider threat) menyelundupkan bom cair (liquid bomb) di dalam bagasi kabin dengan target pesawat udara","SSCP","Bandar Udara"],["01.11","01","Teroris menyamar sebagai penumpang meninggalkan IED yang diselundupkan pada bagasi kabin di kabin pesawat udara","Pesawat udara","Airlines"],["01.12","01","Teroris menyamar sebagai petugas cleaning pesawat menyisipkan IED pada peralatan pembersih untuk menyerang pesawat","SSCP, pesawat udara","SSCP: Bandar Udara; Pesawat Udara: Airlines"],["02.01","02","Pengirim (shipper) menyelundupkan IED pada kargo dengan target pesawat udara","Area pemeriksaan kargo","RA, Jaster"],["02.02","02","Staf kargo (insider threat) menyisipkan IED pada kargo dengan target pesawat udara","Area pemeriksaan orang","RA, Jaster"],["02.03","02","Porter menyusupkan IED pada kargo dengan target pesawat udara","Pesawat udara","Airlines"],["03.01","03","Teroris melakukan serangan menggunakan drone ke pesawat udara","Jalur take off - landing pesawat","Bandar Udara"],["03.02","03","Serangan drone yang diperlengkapi IED ke pesawat udara","Jalur take off - landing pesawat","Bandar Udara"],["03.03","03","Drone melepaskan CBR (Chemical, Biological and Radiological) ke area publik","Sisi darat","Bandar Udara"],["03.04","03","Serangan drone dilengkapi bahan peledak ke pesawat udara yang ada di darat (ground) atau serangan ke bandar udara","Area parkir pesawat","Bandar Udara"],["03.05","03","Teroris menerbangkan drone di area bandar udara untuk mengganggu operasional bandar udara","Area Bandar Udara","Bandar Udara"],["03.06","03","Drone menjadi sarana untuk membawa barang yang membahayakan ke daerah keamanan terbatas","Daerah Keamanan Terbatas","Bandar Udara"],["03.07","03","Drone dipergunakan sebagai alat untuk mengawasi daerah yang sensitif","Daerah Keamanan Terbatas","Bandar Udara"],["04.01","04","Serangan teroris menggunakan bom kendaraan di area parkir kendaraan untuk melumpuhkan operasional di bandar udara untuk mendapatkan perhatian dari pemerintah dan media massa","Area parkir kendaraan","Bandar Udara"],["04.02","04","Serangan teroris menggunakan bom kendaraan yang diparkir di area drop zone/pick up zone","Drop zone, pick up zone, fasilitas penghubung antar moda","Bandar Udara"],["04.03","04","Serangan teroris menggunakan bom rakitan yang disisipkan di koper (barang bawaan) untuk menyerang orang/penumpang","Lobby kedatangan, Lobby keberangkatan","Bandar Udara"],["04.04","04","Serangan teroris menggunakan senjata untuk menyerang orang/penumpang","Lobby kedatangan, Lobby keberangkatan","Bandar Udara"],["04.05","04","Serangan teroris menggunakan bom kendaraan dengan menabrakkan kendaraan ke gedung terminal","Lobby kedatangan, Lobby keberangkatan","Bandar Udara"],["04.06","04","Serangan teroris menggunakan bom rakitan yang disisipkan di koper (barang bawaan) untuk menyerang orang/penumpang","Fasilitas jasa terkait penunjang dan memberi nilai tambah","Bandar Udara"],["04.07","04","Serangan teroris menggunakan senjata untuk menyerang orang/penumpang","Fasilitas jasa terkait penunjang dan memberi nilai tambah","Bandar Udara"],["04.08","04","Serangan teroris menggunakan bom kendaraan di area parkir kendaraan gedung kargo","Area depan terminal kargo","Bandar Udara"],["04.09","04","Serangan teroris menggunakan bom kendaraan dengan menabrakkan kendaraan ke Gedung Kargo","Area depan terminal kargo","Bandar Udara"],["04.10","04","Teroris menyamar sebagai penumpang menggunakan bom rakitan yang disisipkan di koper (barang bawaan) untuk menyerang orang/penumpang","Area lapor diri (check in area)","Bandar Udara, Airlines"],["04.11","04","Teroris menyamar sebagai penumpang menggunakan bom rakitan yang disisipkan di badan untuk menyerang orang/penumpang","Area lapor diri (check in area)","Bandar Udara, Airlines"],["04.12","04","Teroris menyamar sebagai penumpang menggunakan senjata untuk menyerang orang/penumpang","Area lapor diri (check in area)","Bandar Udara, Airlines"],["05.01","05","Pesawat udara dipergunakan sebagai senjata oleh awak pesawat atau cabin crew","Pesawat Udara","Airlines"],["05.02","05","Pesawat udara dipergunakan sebagai senjata dan dikomandokan dengan senjata/IED","Pesawat Udara","Airlines"],["05.03","05","Pesawat udara dipergunakan sebagai senjata dengan pengambilalihan (theft)","Area parkir pesawat","Airlines"],["06.01","06","Bahan kimia disebarkan secara terbuka atau tertutup/secara terus menerus atau sesekali/pada lokasi yang terisolir atau padat","Area lapor diri (check in area)","Bandar Udara"],["07.01","07","Teroris melakukan serangan MANPADS ke pesawat udara","Daerah KKOP","Bandar Udara"],["07.02","07","Teroris melakukan serangan MANPADS ke bandar udara","Daerah KKOP","Bandar Udara"],["07.03","07","Teroris melakukan serangan roket/granat/mortir ke pesawat udara","Daerah KKOP","Bandar Udara"],["07.04","07","Teroris melakukan serangan roket/granat/mortir ke bandar udara","Daerah KKOP","Bandar Udara"],["07.05","07","Teroris melemparkan IED ke pesawat udara dari perimeter","Pagar perimeter","Bandar Udara"],["07.06","07","Teroris melemparkan IED ke area bandar udara dari perimeter","Pagar perimeter","Bandar Udara"],["08.01","08","Teroris menyamar sebagai penumpang menyembunyikan IED pada bagasi tercatat dengan target pesawat udara","HBSCP, Area lapor diri (check in area)","HBSC: Bandar Udara; Area lapor diri: Airlines"],["08.02","08","Orang selain penumpang (insider threat) menyusupkan bom rakitan (IED) ke dalam bagasi tercatat","Make up area, perjalanan ke pesawat, pesawat udara","Airlines"],["09.01","09","IED disembunyikan oleh staf (insider threat) pada barang perbekalan pesawat udara (in flight supplies) dengan target pesawat udara","Perusahaan barang perbekalan pesawat udara, pesawat","Airlines"],["09.02","09","IED disembunyikan oleh staf (insider threat) pada peralatan pembersih (cleaning supplies) dengan target pesawat udara","Pesawat Udara","Airlines"],["09.03","09","IED disembunyikan oleh staf (insider threat) pada katering (catering) dengan target pesawat udara","Perusahaan catering, pesawat","Airlines"],["10.01","10","VBIED diparkir dekat fasilitas bandar udara di sisi udara (misal: fuel farm)","ASCP","Bandar Udara"],["10.02","10","VBIED ditabrakkan ke fasilitas bandar udara di sisi udara (misal: fuel farm)","ASCP","Bandar Udara"],["10.03","10","VBIED dalam bentuk padat (solid) atau cair (liquid) diledakkan di sisi udara","ASCP","Bandar Udara"],["10.04","10","Teroris menggunakan bom kendaraan pada kendaraan untuk menyerang pesawat udara","ASCP, Area pengendapan kendaraan pengangkut penumpang di sisi udara","Bandar Udara, Airlines"],["10.05","10","VBIED diledakkan di dekat pesawat udara dari luar bandara","Pagar perimeter","Bandar Udara"],["10.06","10","Teroris menyisipkan bom pada kendaraan Ambulance (kendaraan darurat) untuk menyerang pesawat udara","ASCP","Bandar Udara"],["10.07","10","Kendaraan operasional di sisi udara sengaja menabrak pesawat udara di DKT","Sisi udara","Bandar Udara"],["10.08","10","Kendaraan operasional sengaja menabrak pesawat udara dari luar bandara","Pagar perimeter","Bandar Udara"],["10.09","10","Serangan ke pesawat udara di sisi udara menggunakan VBIED yang difasilitasi oleh staf (insider threat)","SSCP","Bandar Udara"],["11.01","11","Serangan siber ke sistem elektronik yang bersifat kritis terhadap keselamatan penerbangan","Data dan SEP","Airlines, LPPNPI"],["11.02","11","Serangan siber ke sistem elektronik yang bersifat kritis terhadap keamanan penerbangan","Data dan SEP","Bandar Udara, RA, Jaster"],["11.03","11","Serangan siber ke sistem elektronik yang bersifat kritis terhadap fasilitas bandar udara","Data dan SEP","Airlines, Bandar Udara, Imigrasi, Bea Cukai"],["11.04","11","Serangan siber ke sistem elektronik penerbangan yang bersifat kritis yang difasilitasi oleh staf (insider threat) atau pihak ketiga","Data dan SEP","Airlines, Bandar Udara, RA, Jaster, Imigrasi, Bea Cukai"],["12.01","12","Pembajakan terhadap pesawat udara oleh teroris","Pesawat Udara","Airlines, Bandar Udara"],["12.02","12","Pembajakan terhadap pesawat udara oleh teroris yang difasilitasi oleh staf (insider threat)","Pesawat Udara","Airlines"],["12.03","12","Pembajakan terhadap kendaraan regulated agent yang mengangkut kargo dan pos ke gudang kargo","Kendaraan kargo dan POS RA","Regulated Agent"],["13.01","13","Menyebarkan bahan biologi ke area bandara","Publik area","Bandar Udara"],["13.02","13","Menyebarkan bahan radioaktif melalui Radiological Dispersal Device (RDD) di area terisolir atau tempat yang ramai","Publik area","Bandar Udara"],["14.01","14","Penyampaian informasi palsu (candaan bom) di dalam pesawat udara","Pesawat Udara","Airlines"],["14.02","14","Penyampaian informasi palsu (candaan bom) di area publik, area DKT dan area steril","Bandar Udara","Bandar Udara"],["15.01","15","VBIED diparkir dekat gedung Fasilitas Pemandu Lalu Lintas Penerbangan (Air Traffic Control/ATC)","Area pemeriksaan kendaraan","LPPNPI"],["15.02","15","VBIED ditabrakkan ke gedung Fasilitas Pemandu Lalu Lintas Penerbangan (Air Traffic Control/ATC)","Area pemeriksaan kendaraan","LPPNPI"],["16.01","16","Sabotase terhadap power supply bandar udara","Area power supply","Bandar Udara"],["16.02","16","Sabotase terhadap water house bandar udara","Area water house","Bandar Udara"],["16.03","16","Sabotase terhadap sistem telekomunikasi bandar udara","Area sistem telekomunikasi","Bandar Udara"],["16.04","16","Sabotase terhadap sistem elektronika bandar udara (denial of service/importation of false data)","Area sistem elektronika","Bandar Udara"],["17.01","17","Pesawat udara dipergunakan sebagai senjata dengan pengambilalihan (theft)","Pesawat udara","Airlines"],["17.02","17","Unruly passenger pada saat terbang","Pesawat udara","Airlines"],["18.01","18","IED disembunyikan oleh staf (insider threat) di barang yang diperjualbelikan di dalam pesawat udara","Perusahaan penyedia perbekalan pesawat udara","Airlines"],["18.02","18","IED disembunyikan oleh staf (insider threat) pada peralatan pembersih (cleaning supplies) dengan target pesawat udara","Pesawat udara","Airlines"],["19.01","19","Serangan bersenjata ke pesawat udara dengan menggunakan senjata api/pisau","Area Bandar Udara","Bandar Udara, Airlines"],["19.02","19","Serangan bersenjata ke pesawat udara dengan menggunakan pisau kecil","Security Check Point","Bandar Udara"],["19.03","19","Serangan bersenjata ke pesawat udara dengan menggunakan pisau non logam","Security Check Point","Bandar Udara"],["19.04","19","Penyebaran berita palsu (hoax)","","Bandar Udara"],["19.05","19","Pengrusakan terminal oleh orang umum sebagai perluasan aksi protes/demonstrasi","Terminal","Bandar Udara"],["19.06","19","Serangan terhadap pesawat udara yang mendarat dan penyanderaan terhadap pilot/penumpang sebagai aksi protes","Sisi Udara","Bandar Udara, Airlines"],["19.07","19","Huru hara/pengumpulan massa di area bandar udara","Area sisi darat","Bandar Udara"],["19.08","19","Penyelundupan barang-barang ilegal (narkoba, hewan yang dilindungi, senjata, dan lain-lain)","Akses kontrol","Bandar Udara, RA, Jaster, LPPNPI"],["19.09","19","Penyusupan orang melalui perimeter","Pagar perimeter","Bandar Udara"],["19.10","19","Pelanggaran akses ke sisi udara","Boarding gate","Airlines"],["19.11","19","Pemalsuan pas bandara","Akses kontrol","Bandar Udara"],["19.12","19","Pemalsuan dokumen perjalanan","Akses kontrol","Bandar Udara, Airlines"],["19.13","19","Pencurian/pendodosan","Make up area, pesawat udara","Airlines"]], KATEGORI=[["01","Person Borne IEDs (Bom Bunuh Diri) - on the body or in cabin baggage"],["02","Bom Kargo (IEDs in Cargo)"],["03","Attacks Using UAS/RPAS (Penyerangan Sistem Pesawat Kendali Jarak Jauh)"],["04","Landside Attack (Ancaman di Daerah Sisi Darat)"],["05","Aircraft as a Weapon (Pemanfaatan Pesawat Udara sebagai Senjata)"],["06","Chemical Threats (Ancaman Serangan Kimia)"],["07","MANPADS (Serangan Sistem Senjata Pertahanan Udara Portable)"],["08","IED in Hold Baggage (Penyusupan Bom di Bagasi Tercatat)"],["09","IED in Catering (Penyusupan Bom/Senjata dalam Kiriman Katering)"],["10","Vehicle-Borne IEDs / Bom Mobil"],["11","Cyber-Attack (Serangan Siber)"],["12","Hijack (Pembajakan)"],["13","Biological and Radiological Threats"],["14","Hoaxes (Informasi Palsu)"],["15","Attack on ATC Facility"],["16","Sabotage (Sabotase)"],["17","Airborne Threats"],["18","IED in Other Services"],["19","Other Attacks (Sumber Serangan Lainnya)"]];
+var KATEGORI_NAME={};KATEGORI.forEach(function(x){KATEGORI_NAME[x[0]]=x[1]});
+var PROVINSI=["Aceh","Sumatera Utara","Sumatera Barat","Riau","Kepulauan Riau","Jambi","Sumatera Selatan","Kepulauan Bangka Belitung","Bengkulu","Lampung","DKI Jakarta","Jawa Barat","Jawa Tengah","DI Yogyakarta","Jawa Timur","Banten","Bali","Nusa Tenggara Barat","Nusa Tenggara Timur","Kalimantan Barat","Kalimantan Tengah","Kalimantan Selatan","Kalimantan Timur","Kalimantan Utara","Sulawesi Utara","Sulawesi Tengah","Sulawesi Selatan","Sulawesi Tenggara","Gorontalo","Sulawesi Barat","Maluku","Maluku Utara","Papua","Papua Barat","Papua Selatan","Papua Tengah","Papua Pegunungan","Papua Barat Daya"];
+var BULAN=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+var TYPES=[["Bandar Udara","Bandar Udara","Master 281 bandara"],["Airlines","Airlines","Entitas operator penerbangan"],["LPPNPI","LPPNPI","Unit/fasilitas LPPNPI"],["Regulated Agent","Regulated Agent","Entitas regulated agent"]];
+var RATING=["Tinggi","Menengah-Tinggi","Menengah","Menengah-Rendah","Rendah"];
+var BAND=[{min:3,max:6,l:"Rendah",c:"#5B9E5E"},{min:7,max:12,l:"Menengah-Rendah",c:"#8FB86A"},{min:13,max:18,l:"Menengah",c:"#E0B341"},{min:19,max:24,l:"Menengah-Tinggi",c:"#DD8A42"},{min:25,max:30,l:"Tinggi",c:"#CF4A42"}];
+var PERLAKUAN=["Diterima","Mitigasi","Penolakan","Pembagian"], PRIORITAS=["Sangat Segera","Segera","Biasa"];
+var state={type:"",entity:null,data:null,operators:[],risks:[],risksLoadedAt:0,edit:null,pendingCreateId:null,pendingCreateToken:null,pendingCreateFingerprint:null};
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]})}
+function get(a,attempt){
+ attempt=attempt||0;var bits=String(a).split("&"),action=bits.shift();
+ var url=GAS_URL+"?action="+encodeURIComponent(action)+(bits.length?"&"+bits.join("&"):"")+"&_ts="+Date.now();
+ return fetch(url,{cache:"no-store"}).then(function(r){if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(function(res){
+  if(res&&res.code==="BUSY"&&attempt<2)return new Promise(function(resolve){setTimeout(resolve,800*(attempt+1))}).then(function(){return get(a,attempt+1)});
+  return res;
+ });
+}
+function post(p,attempt){
+ attempt=attempt||0;return fetch(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)}).then(function(r){if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(function(res){
+  if(res&&res.code==="BUSY"&&attempt<2)return new Promise(function(resolve){setTimeout(resolve,1000*(attempt+1))}).then(function(){return post(p,attempt+1)});
+  return res;
+ });
+}
+function rating(n){for(var i=0;i<BAND.length;i++)if(n>=BAND[i].min&&n<=BAND[i].max)return BAND[i];return null}
+function pill(r){return r?'<span class="pill" style="background:'+r.c+'">'+esc(r.l)+'</span>':"—"}
+function token(){var a=new Uint8Array(10);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);else for(var i=0;i<a.length;i++)a[i]=Math.random()*256;return Array.prototype.map.call(a,function(x){return("0"+x.toString(16)).slice(-2)}).join("").toUpperCase()}
+
+function init(){
+ $("bulan").innerHTML='<option value="">Pilih bulan</option>'+BULAN.map(function(x){return'<option>'+x+'</option>'}).join("");
+ $("kategori").innerHTML='<option value="">Pilih kategori</option>'+KATEGORI.map(function(x){return'<option value="'+x[0]+'">'+esc(x[0]+" — "+x[1])+'</option>'}).join("");
+ $("perlakuan").innerHTML='<option value="">Pilih perlakuan</option>'+PERLAKUAN.map(function(x){return'<option>'+x+'</option>'}).join("");
+ $("prioritas").innerHTML='<option value="">Pilih prioritas</option>'+PRIORITAS.map(function(x){return'<option>'+x+'</option>'}).join("");
+ $("riskRating").innerHTML='<option value="">Semua Rating</option>'+RATING.map(function(x){return'<option>'+x+'</option>'}).join("");
+ $("riskCategory").innerHTML='<option value="">Semua Kategori</option>'+KATEGORI.map(function(x){return'<option value="'+x[0]+'">'+x[0]+" — "+esc(x[1])+'</option>'}).join("");
+ $("riskType").innerHTML='<option value="">Semua Jenis Operator</option>'+TYPES.map(function(x){return'<option value="'+esc(x[0])+'">'+esc(x[0])+'</option>'}).join("");
+ renderTypes();renderEntityArea();bind();renderLocalHistory();loadDashboard();loadRisks();loadOperatorMasterForForm();
+}
+function loadOperatorMasterForForm(){
+ get("operators").then(function(res){
+   if(res&&res.ok){
+     state.operators=res.data||[];enrichRiskLocations();initDashboardLocationFilters();
+     if(state.type==="Bandar Udara" && state.entity) renderEntityArea();
+   }
+ }).catch(function(e){
+   console.warn("MASTER_OPERATOR belum dapat dimuat:",e);
+ });
+}
+function renderTypes(){
+ $("types").innerHTML=TYPES.map(function(t){return'<label class="type '+(state.type===t[0]?"selected":"")+'"><input type="radio" name="entityType" value="'+esc(t[0])+'"><b>'+esc(t[1])+'</b><small>'+esc(t[2])+'</small></label>'}).join("");
+ Array.prototype.forEach.call(document.querySelectorAll("input[name=entityType]"),function(r){r.checked=r.value===state.type;r.disabled=!!state.edit;r.onchange=function(){if(this.disabled)return;state.type=this.value;state.entity=null;renderTypes();renderEntityArea();clearScenarioSelection();filterCatalog()}})
+}
+function renderEntityArea(){
+ var a=$("entityArea");
+ if(!state.type){a.innerHTML='<div class="notice">Pilih salah satu dari 4 jenis operator untuk melanjutkan.</div>';return}
+ if(state.type==="Bandar Udara"){
+  a.innerHTML='<div class="field"><label>Nama Bandar Udara</label><input id="entitySearch" placeholder="Ketik nama bandara atau kota..."><div id="entityResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div></div><div id="entitySelected"></div>';
+  $("entitySearch").oninput=function(){var q=this.value.toLowerCase(),arr=AIRPORTS.filter(function(x){return(x[1]+" "+x[2]+" "+x[3]).toLowerCase().indexOf(q)>-1}).slice(0,25),box=$("entityResults");box.innerHTML=arr.map(function(x){return'<div style="padding:9px;border-bottom:1px solid #edf1f5;cursor:pointer" data-id="'+x[0]+'"><b>'+esc(x[1])+'</b> '+esc(x[3]||"")+'<br><small>'+esc(x[2])+' • Kelas '+esc(x[4]||"-")+'</small></div>'}).join("")||'<div class="empty">Tidak ditemukan.</div>';box.style.display="block";Array.prototype.forEach.call(box.children,function(el){el.onclick=function(){var id=this.getAttribute("data-id");state.entity=AIRPORTS.filter(function(x){return x[0]===id})[0];renderEntityArea()}})};
+  if(state.edit){$("entitySearch").disabled=true;}
+  if(state.entity){
+ var rg=airportRegion(state.entity);
+ var source=(state.operators||[]).some(function(x){return String(x.operatorId||"")==="BD-"+String(state.entity[0]||"") && (x.provinsi||x.kabkota);});
+ $("entitySelected").innerHTML='<div class="notice ok"><b>'+esc(state.entity[1])+'</b> • '+esc(state.entity[3]||"-")+' • '+esc(state.entity[2])+' • Kelas '+esc(state.entity[4]||"-")+(source?' • Wilayah dari MASTER_OPERATOR':'')+'</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Provinsi</label><input id="airportProv" value="'+esc(rg[0])+'" readonly></div><div class="field"><label>Kabupaten/Kota</label><input id="airportKab" value="'+esc(rg[1])+'" readonly></div></div>';
+}
+ }else{
+  a.innerHTML='<div class="formgrid"><div class="field"><label>Nama Entitas / Unit</label><input id="entityName" placeholder="Nama '+esc(state.type)+'"></div><div class="field"><label>Kode / ICAO / Identitas (opsional)</label><input id="entityCode" placeholder="Kode identitas"></div><div class="field"><label>Provinsi</label><select id="entityProv"><option value="">Pilih provinsi</option>'+PROVINSI.map(function(x){return'<option>'+x+'</option>'}).join("")+'</select></div><div class="field"><label>Kabupaten/Kota</label><input id="entityKab" placeholder="Kabupaten/Kota"></div><div class="field full"><label>Lokasi / Basis / Fasilitas</label><input id="entityLoc" placeholder="Lokasi operasional"></div></div>';
+  if(state.entity){$("entityName").value=state.entity.nama||"";$("entityCode").value=state.entity.kode||"";$("entityProv").value=state.entity.provinsi||"";$("entityKab").value=state.entity.kabkota||"";$("entityLoc").value=state.entity.lokasi||""}
+  if(state.edit){["entityName","entityCode","entityProv","entityKab","entityLoc"].forEach(function(id){if($(id))$(id).disabled=true;});}
+ }
+}
+function generatedOperatorId(type,name){
+ return String(type||"").slice(0,3).toUpperCase()+"-"+String(name||"").toUpperCase().replace(/[^A-Z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,24);
+}
+function resolveStableOperatorId(type,name,code){
+ var t=String(type||"").trim(),n=String(name||"").trim().toLowerCase(),c=String(code||"").trim().toLowerCase();
+ var arr=(state.operators||[]).filter(function(x){return String(x.jenisOperator||"")===t;});
+ var byCode=c?arr.filter(function(x){return String(x.kodeOperator||"").trim().toLowerCase()===c;})[0]:null;
+ if(byCode&&byCode.operatorId)return String(byCode.operatorId);
+ var byName=n?arr.filter(function(x){return String(x.namaOperator||"").trim().toLowerCase()===n;})[0]:null;
+ if(byName&&byName.operatorId)return String(byName.operatorId);
+ return generatedOperatorId(t,name);
+}
+function readEntity(){
+ if(state.type==="Bandar Udara"){if(!state.entity)return null;var rg=airportRegion(state.entity);return{operatorId:state.entity.operatorId||("BD-"+state.entity[0]),jenisOperator:"Bandar Udara",namaOperator:state.entity[1],kodeOperator:state.entity[3]||"",iata:state.entity[3]||"",provinsi:rg[0]||"",kabkota:rg[1]||state.entity[2]||"",lokasi:state.entity[2]||"",kelas:state.entity[4]||""}}
+ var n=$("entityName")&&$("entityName").value.trim();if(!n)return null;
+ var code=$("entityCode")?$("entityCode").value.trim():"";
+ var stableId=(state.entity&&state.entity.operatorId)?String(state.entity.operatorId):resolveStableOperatorId(state.type,n,code);
+ return{operatorId:stableId,jenisOperator:state.type,namaOperator:n,kodeOperator:code,iata:"",provinsi:$("entityProv").value,kabkota:$("entityKab").value.trim(),lokasi:$("entityLoc").value.trim(),kelas:""}
+}
+function normalizeCategory(v){return String(v||"").trim().split(/\s*[—-]\s*/)[0].trim();}
+function catalogCategory(x){return normalizeCategory(x[1]||x[0]);}
+function clearScenarioSelection(){
+ if($("riskCatalog"))$("riskCatalog").value="";
+ if($("skenario"))$("skenario").value="";
+ if($("area"))$("area").value="";
+ if($("skenario"))$("skenario").placeholder="Skenario akan terisi dari katalog dan dapat disesuaikan bila diperlukan.";
+}
+function filterCatalog(){
+ var cat=$("kategori").value||"";
+ var arr=CATALOG.filter(function(x){
+   return !cat||catalogCategory(x)===normalizeCategory(cat);
+ });
+ arr.sort(function(a,b){return String(a[0]).localeCompare(String(b[0]),undefined,{numeric:true})});
+ $("riskCatalog").innerHTML='<option value="">Pilih skenario katalog ('+arr.length+' tersedia)</option>'+arr.map(function(x){
+   return'<option value="'+esc(x[0])+'">'+esc(x[0]+" — "+x[2])+'</option>';
+ }).join('')+'<option value="__MANUAL__">Isi Sendiri — Skenario belum tersedia di katalog</option>';
+}
+function catalogScenarioById(id){
+ if(!id||id==="__MANUAL__")return null;
+ return CATALOG.filter(function(x){return String(x[0])===String(id)})[0]||null;
+}
+function isSelectedCatalogScenarioAllowed(){
+ var id=$("riskCatalog")?$("riskCatalog").value:"";
+ if(!id||id==="__MANUAL__")return true;
+ var scenario=catalogScenarioById(id);
+ return !!scenario && (!$("kategori").value || catalogCategory(scenario)===normalizeCategory($("kategori").value));
+}
+function bind(){
+ Array.prototype.forEach.call(document.querySelectorAll(".nav button"),function(b){b.onclick=function(){Array.prototype.forEach.call(document.querySelectorAll(".nav button"),function(x){x.classList.remove("active");x.setAttribute("aria-selected","false")});b.classList.add("active");b.setAttribute("aria-selected","true");Array.prototype.forEach.call(document.querySelectorAll(".view"),function(v){v.classList.remove("active")});$("view-"+b.dataset.view).classList.add("active");window.scrollTo({top:0,behavior:"smooth"});if(b.dataset.view==="operator")loadOperators();if(b.dataset.view==="risk")loadRisks();if(b.dataset.view==="trend")renderTrends()}});
+ $("kategori").onchange=function(){clearScenarioSelection();filterCatalog()};
+ $("riskCatalog").onchange=function(){if(this.value==="__MANUAL__"){$("skenario").value="";$("area").value="";$("skenario").placeholder="Tulis skenario ancaman/metode serangan secara manual.";$("skenario").focus();return}var x=CATALOG.filter(function(c){return c[0]===this.value},this)[0];if(x){$("skenario").value=x[2];$("area").value=x[3]||"";$("skenario").placeholder="Skenario terisi dari katalog dan dapat disesuaikan bila diperlukan."}};
+ ["ancaman","kerentanan","konsekuensi"].forEach(function(id){$(id).oninput=updateRisk});
+ $("saveBtn").onclick=save;$("loadEditBtn").onclick=loadEdit;$("loadDprkTokenBtn").onclick=loadDprkToken;$("clearBtn").onclick=clearForm;$("clearLocalHistoryBtn").onclick=clearLocalHistory;$("opRefresh").onclick=loadOperators;
+ ["opFilterType","opFilterProv","opSearch"].forEach(function(id){$(id).oninput=renderOperatorTable});
+ ["riskType","riskRating","riskCategory","riskSearch"].forEach(function(id){$(id).oninput=renderRiskTable});
+}
+function applyRiskColor(boxId,ratingId,n){var box=$(boxId),lab=$(ratingId);box.classList.remove("risk-low","risk-ml","risk-mid","risk-mh","risk-high");if(!n){lab.textContent="Belum diisi";return}if(n<=2){box.classList.add("risk-low");lab.textContent="Rendah"}else if(n<=4){box.classList.add("risk-ml");lab.textContent="Menengah-Rendah"}else if(n<=6){box.classList.add("risk-mid");lab.textContent="Menengah"}else if(n<=8){box.classList.add("risk-mh");lab.textContent="Menengah-Tinggi"}else{box.classList.add("risk-high");lab.textContent="Tinggi"}}
+function updateRisk(){var a=Number($("ancaman").value),k=Number($("kerentanan").value),c=Number($("konsekuensi").value),sum=(a||0)+(k||0)+(c||0),r=rating(sum);applyRiskColor("riskBoxAncaman","ancamanRating",a);applyRiskColor("riskBoxKerentanan","kerentananRating",k);applyRiskColor("riskBoxKonsekuensi","konsekuensiRating",c);$("riskNum").textContent=(a&&k&&c)?sum:"—";$("riskBadge").textContent=r?r.l:"Belum lengkap";$("riskBadge").style.background=r?r.c:"#cfd7df";$("riskMeterFill").style.width=(a&&k&&c)?Math.min(100,sum/30*100)+"%":"0%";$("riskMeterFill").style.background=r?r.c:"#cfd7df";}
+function clearScenario(){["skenario","area","langkahSaatIni","kerentananSaatIni","ancaman","kerentanan","konsekuensi","langkahTambahan","keterangan"].forEach(function(id){$(id).value=""});$("riskCatalog").value="";updateRisk()}
+function clearForm(){clearScenario();["namaPengisi","jabatanPengisi","riskOwner","emailRiskOwner","tanggalPengesahan","tanggalKaji","linkDprk"].forEach(function(id){$(id).value=""});$("kategori").value="";$("bulan").value="";$("formNotice").innerHTML="";$("refBox").style.display="none";state.edit=null;state.pendingCreateId=null;state.pendingCreateToken=null;state.pendingCreateFingerprint=null;renderTypes();renderEntityArea();filterCatalog()}
+// ============================================================
+// SPRINT 1 (FRONTEND) — PENYIMPANAN LOKAL dprkEditToken
+// Backend (V2 Sprint 1) sekarang menerbitkan dprkEditToken saat DPRK sebuah
+// entitas pertama kali dibuat, dan mensyaratkan token itu untuk mengubah
+// field identitas DPRK (email risk owner, link file, tanggal kaji, dst)
+// pada pengisian berikutnya. Token disimpan per kombinasi operatorId+tahun,
+// bukan per skenario risiko, karena satu DPRK bisa memuat banyak skenario.
+// ============================================================
+var DPRK_TOKEN_KEY="DPRK_NASIONAL_DPRKTOKEN_V1";
+function dprkTokenMapKey(operatorId,tahun){return String(operatorId||"")+"|"+String(tahun||"")}
+function getDprkTokenMap(){try{return JSON.parse(localStorage.getItem(DPRK_TOKEN_KEY)||"{}")}catch(e){return{}}}
+function setDprkTokenMap(m){try{localStorage.setItem(DPRK_TOKEN_KEY,JSON.stringify(m))}catch(e){}}
+function getDprkToken(operatorId,tahun){var m=getDprkTokenMap();return m[dprkTokenMapKey(operatorId,tahun)]||""}
+function setDprkToken(operatorId,tahun,tok){if(!tok)return;var m=getDprkTokenMap();m[dprkTokenMapKey(operatorId,tahun)]=tok;setDprkTokenMap(m)}
+
+// ============================================================
+// V3.29 (FRONTEND) — PENYIMPANAN LOKAL API KEY OPERATOR
+// Backend sekarang mewajibkan API key per-operator (diterbitkan admin lewat
+// issueApiKey_) untuk action=create/update/renewDprk. Disimpan per
+// operatorId (bukan per tahun, karena satu operator memakai satu key untuk
+// seluruh periode) supaya tidak perlu ditempel ulang setiap submit.
+// ============================================================
+var API_KEY_STORE="DPRK_NASIONAL_APIKEY_V1";
+function getApiKeyMap(){try{return JSON.parse(localStorage.getItem(API_KEY_STORE)||"{}")}catch(e){return{}}}
+function setApiKeyMap(m){try{localStorage.setItem(API_KEY_STORE,JSON.stringify(m))}catch(e){}}
+function getApiKey(operatorId){var m=getApiKeyMap();return m[String(operatorId||"")]||""}
+function setApiKey(operatorId,key){if(!operatorId||!key)return;var m=getApiKeyMap();m[String(operatorId)]=key;setApiKeyMap(m)}
+
+var LOCAL_HISTORY_KEY="DPRK_NASIONAL_RIWAYAT_V1";
+function getLocalHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||"[]")}catch(e){return[]}}
+function setLocalHistory(a){try{localStorage.setItem(LOCAL_HISTORY_KEY,JSON.stringify(a.slice(0,100)))}catch(e){}}
+function saveLocalHistory(p,action,dprkEditTokenIssued){var a=getLocalHistory(),item={id:p.id,editToken:p.editToken,dprkEditToken:dprkEditTokenIssued||getDprkToken(p.operatorId,p.tahun)||"",operatorId:p.operatorId,jenisOperator:p.jenisOperator,namaOperator:p.namaOperator,kategori:p.kategori,idRisikoKatalog:p.idRisikoKatalog,skenario:p.skenario,risikoNilai:p.risikoNilai,risikoRating:p.risikoRating,bulan:p.bulan,tahun:p.tahun,periodKey:p.periodKey||p.operatorId+"|"+p.tahun+"|"+p.bulan,duplicateKey:p.duplicateKey||"",savedAt:new Date().toISOString(),action:action||"create"};var idx=a.findIndex(function(x){return x.id===item.id});if(idx>=0)a.splice(idx,1);a.unshift(item);setLocalHistory(a);renderLocalHistory()}
+function renderLocalHistory(){var box=$("localHistoryList");if(!box)return;var a=getLocalHistory();if(!a.length){box.innerHTML='<div class="empty">Belum ada riwayat pengisian pada perangkat ini.</div>';return}box.innerHTML=a.map(function(x,i){var when=x.savedAt?new Date(x.savedAt).toLocaleString("id-ID"):"-",rr=rating(Number(x.risikoNilai))||{c:"#607080"};var dprkBtn=x.dprkEditToken?('<button class="btn secondary" data-local-copy-dprk="'+i+'">Salin Kode DPRK</button>'):'';return '<div class="local-item"><div class="local-item-head"><div><div class="local-item-title">'+esc(x.namaOperator||"-")+' • '+esc(x.idRisikoKatalog||"Manual")+'</div><div class="local-item-meta">'+esc(x.kategori||"-")+' • Risiko '+esc(x.risikoNilai||"-")+' • '+esc(x.risikoRating||"-")+' • '+esc(when)+'</div></div><span class="pill" style="background:'+rr.c+'">'+esc(x.action==="update"?"Diperbarui":"Tersimpan")+'</span></div><div style="margin-top:6px;font-size:12px">'+esc(x.skenario||"-")+'</div><div class="local-item-actions"><button class="btn secondary" data-local-edit="'+i+'">Edit</button><button class="btn secondary" data-local-copy="'+i+'">Salin Kode Edit</button>'+dprkBtn+'<button class="btn secondary" data-local-delete="'+i+'">Hapus</button></div></div>'}).join("");Array.prototype.forEach.call(box.querySelectorAll("[data-local-edit]"),function(b){b.onclick=function(){var x=getLocalHistory()[Number(this.dataset.localEdit)];if(!x)return;$("editRef").value=x.id+"::"+x.editToken;loadEdit()}});Array.prototype.forEach.call(box.querySelectorAll("[data-local-copy]"),function(b){b.onclick=function(){var x=getLocalHistory()[Number(this.dataset.localCopy)];if(!x)return;var ref=x.id+"::"+x.editToken;if(navigator.clipboard){navigator.clipboard.writeText(ref).then(function(){b.textContent="Tersalin";setTimeout(function(){b.textContent="Salin Kode Edit"},1200)}).catch(function(){prompt("Salin kode edit berikut:",ref)})}else prompt("Salin kode edit berikut:",ref)}});Array.prototype.forEach.call(box.querySelectorAll("[data-local-copy-dprk]"),function(b){b.onclick=function(){var x=getLocalHistory()[Number(this.dataset.localCopyDprk)];if(!x||!x.dprkEditToken)return;var ref=x.operatorId+"|"+x.tahun+"::"+x.dprkEditToken;if(navigator.clipboard){navigator.clipboard.writeText(ref).then(function(){b.textContent="Tersalin";setTimeout(function(){b.textContent="Salin Kode DPRK"},1200)}).catch(function(){prompt("Salin kode edit DPRK berikut:",ref)})}else prompt("Salin kode edit DPRK berikut:",ref)}});Array.prototype.forEach.call(box.querySelectorAll("[data-local-delete]"),function(b){b.onclick=function(){var a=getLocalHistory();a.splice(Number(this.dataset.localDelete),1);setLocalHistory(a);renderLocalHistory()}})}
+function clearLocalHistory(){if(!getLocalHistory().length)return;if(!confirm("Hapus seluruh riwayat pengisian dari browser/perangkat ini? Data utama di Google Sheets tidak akan terhapus."))return;localStorage.removeItem(LOCAL_HISTORY_KEY);renderLocalHistory()}
+
+function buildPeriodKey(e){
+ var bulan=$("bulan")?$("bulan").value:"";
+ var tahun=$("tahun")?String($("tahun").value||"").trim():"";
+ return [String(e&&e.operatorId||""),tahun,bulan].join("|");
+}
+function normalizeDuplicateText(v){
+ return String(v||"").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim().replace(/\s+/g," ");
+}
+function buildDuplicateKey(e,category,scenario,bulan,tahun){
+ return [
+  String(e&&e.operatorId||"").trim().toUpperCase(),
+  String(tahun||"").trim(),
+  String(bulan||"").trim().toLowerCase(),
+  normalizeCategory(category),
+  normalizeDuplicateText(scenario)
+ ].join("|");
+}
+function recordDuplicateKey(x){
+ return buildDuplicateKey(
+  {operatorId:x&&x.operatorId||""},
+  x&&x.kategoriKode||x&&x.kategori||"",
+  x&&x.skenario||"",
+  x&&x.bulan||"",
+  x&&x.tahun||""
+ );
+}
+function buildRecordFingerprint(x){
+ return [
+  x&&x.operatorId||"",x&&x.jenisOperator||"",x&&x.namaOperator||"",x&&x.kodeOperator||"",
+  x&&x.provinsi||"",x&&x.kabkota||"",x&&x.lokasi||"",x&&x.bulan||"",x&&x.tahun||"",
+  x&&x.tanggalPengesahan||"",x&&x.namaPengisi||"",x&&x.jabatanPengisi||"",
+  x&&x.emailRiskOwner||x&&x.emailPemilikRisiko||"",x&&x.linkFileDprk||x&&x.linkDprk||"",
+  x&&x.kategoriKode||x&&x.kategori||"",x&&x.idRisikoKatalog||"",x&&x.skenario||"",x&&x.area||"",
+  x&&x.langkahSaatIni||"",x&&x.kerentananSaatIni||"",x&&x.ancamanNilai||"",x&&x.kerentananNilai||"",
+  x&&x.konsekuensiNilai||"",x&&x.pemilikRisiko||x&&x.riskOwner||"",x&&x.tanggalKaji||"",
+  x&&x.perlakuan||"",x&&x.prioritas||"",x&&x.langkahTambahan||"",x&&x.keterangan||""
+ ].join("|");
+}
+function findDuplicateRisk(e,category,scenario,bulan,tahun,excludeId){
+ var key=buildDuplicateKey(e,category,scenario,bulan,tahun);
+ var hit=(state.risks||[]).filter(function(x){
+  return String(x.riskId||x.id||"")!==String(excludeId||"") && recordDuplicateKey(x)===key;
+ })[0];
+ return hit||null;
+}
+function ensureRecentRisks(){
+ var fresh=state.risksLoadedAt && (Date.now()-state.risksLoadedAt<30000);
+ if(fresh)return Promise.resolve(true);
+ return get("risks").then(function(res){
+  if(!res.ok)throw Error(res.error||"Data risiko belum dapat dimuat untuk pemeriksaan duplikasi.");
+  state.risks=res.data||[];state.risksLoadedAt=Date.now();enrichRiskLocations();
+  return true;
+ });
+}
+function checkEditFreshness(){
+ if(!state.edit||!state.edit.id||!state.edit.editToken)return Promise.resolve(true);
+ return get("find&id="+encodeURIComponent(state.edit.id)+"&token="+encodeURIComponent(state.edit.editToken)).then(function(res){
+  if(!res.ok)throw Error(res.error||"Data edit tidak dapat diverifikasi.");
+  var server=res.data||{};
+  var current=buildRecordFingerprint(server);
+  if(state.edit.baseFingerprint && current!==state.edit.baseFingerprint){
+   throw Error("Data ini sudah berubah di server sejak dimuat. Muat ulang data untuk menghindari menimpa perubahan terbaru.");
+  }
+  return true;
+ });
+}
+function createFingerprint(e){
+ return [
+  e.operatorId||"",e.jenisOperator||"",e.namaOperator||"",buildPeriodKey(e),
+  $("bulan").value||"",$("tahun").value||"",$("tanggalPengesahan").value||"",$("kategori").value||"",
+  $("riskCatalog").value||"",$("skenario").value.trim()||"",$("area").value.trim()||"",
+  $("langkahSaatIni").value.trim()||"",$("kerentananSaatIni").value.trim()||"",
+  $("ancaman").value||"",$("kerentanan").value||"",$("konsekuensi").value||"",
+  $("perlakuan").value||"",$("prioritas").value||"",
+  $("langkahTambahan").value.trim()||"",$("keterangan").value.trim()||""
+ ].join("|");
+}
+function validateForm(e,cat,sc,a,k,c){
+ var errors=[];
+ var bulan=$("bulan")?$("bulan").value:"";
+ var tahun=$("tahun")?Number($("tahun").value):NaN;
+ var nama=$("namaPengisi")?$("namaPengisi").value.trim():"";
+ var jabatan=$("jabatanPengisi")?$("jabatanPengisi").value.trim():"";
+ var tPengesahan=$("tanggalPengesahan")?$("tanggalPengesahan").value:"";
+ var perlakuan=$("perlakuan")?$("perlakuan").value:"";
+ var prioritas=$("prioritas")?$("prioritas").value:"";
+ var riskOwner=$("riskOwner")?$("riskOwner").value.trim():"";
+ var tKaji=$("tanggalKaji")?$("tanggalKaji").value:"";
+ var email=$("emailRiskOwner")?$("emailRiskOwner").value.trim():"";
+ var link=$("linkDprk")?$("linkDprk").value.trim():"";
+ var catalogId=$("riskCatalog")?$("riskCatalog").value:"";
+ var apiKey=$("apiKey")?$("apiKey").value.trim():"";
+ if(!e)errors.push("Identitas entitas/operator belum dipilih atau diisi.");
+ if(!apiKey)errors.push("API Key operator wajib diisi. Hubungi admin sistem bila belum memiliki kunci akses.");
+ if(!state.type)errors.push("Jenis operator belum dipilih.");
+ if(state.edit&&state.edit.originalOperatorId&&e&&String(e.operatorId||"")!==String(state.edit.originalOperatorId))errors.push("Identitas operator pada mode edit tidak boleh berubah. Buat pengisian baru bila risiko akan dipindahkan ke operator lain.");
+ if(state.edit&&state.edit.originalJenisOperator&&e&&String(e.jenisOperator||"")!==String(state.edit.originalJenisOperator))errors.push("Jenis operator pada mode edit tidak boleh berubah. Buat pengisian baru untuk jenis operator lain.");
+ if(!bulan)errors.push("Bulan penilaian wajib dipilih.");
+ if(!Number.isInteger(tahun)||tahun<2024||tahun>2040)errors.push("Tahun penilaian harus antara 2024–2040.");
+ if(!nama)errors.push("Nama pengisi wajib diisi.");
+ if(!jabatan)errors.push("Jabatan pengisi wajib diisi.");
+ if(!tPengesahan)errors.push("Tanggal pengesahan wajib diisi.");
+ if(!cat)errors.push("Kategori ancaman wajib dipilih.");
+ if(!sc)errors.push("Skenario ancaman/metode serangan wajib diisi.");
+ [a,k,c].forEach(function(v,i){var label=["Ancaman","Kerentanan","Konsekuensi"][i];if(!Number.isInteger(v)||v<1||v>10)errors.push(label+" harus bernilai 1–10.");});
+ if(!perlakuan)errors.push("Perlakuan risiko wajib dipilih.");
+ if(!prioritas)errors.push("Prioritas penanganan wajib dipilih.");
+ if(!riskOwner)errors.push("Pemilik risiko (Risk Owner) wajib diisi.");
+ if(!tKaji)errors.push("Tanggal kaji ulang wajib diisi.");
+ if(tPengesahan&&tKaji&&new Date(tKaji+'T00:00:00')<new Date(tPengesahan+'T00:00:00'))errors.push("Tanggal kaji ulang tidak boleh lebih awal daripada tanggal pengesahan.");
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errors.push("Format email pemilik risiko tidak valid.");
+ if(link){try{var u=new URL(link);if(!/^https?:$/.test(u.protocol))throw Error()}catch(err){errors.push("Link file DPRK harus berupa URL http/https yang valid.")}}
+ if(catalogId&&catalogId!=="__MANUAL__"&&!isSelectedCatalogScenarioAllowed())errors.push("Skenario katalog tidak konsisten dengan kategori yang dipilih.");
+ return errors;
+}
+function showValidationErrors(errors){
+ var box=$("formNotice");
+ if(!box)return;
+ if(!errors.length){box.innerHTML="";return}
+ box.innerHTML='<div class="notice"><b>Periksa data sebelum disimpan:</b><ul class="validation-list">'+errors.map(function(x){return'<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+}
+function save(){
+ if($("website")&&$("website").value){return}
+ var e=readEntity(),cat=$("kategori").value,sc=$("skenario").value.trim(),a=Number($("ancaman").value),k=Number($("kerentanan").value),c=Number($("konsekuensi").value),r=rating(a+k+c);
+ if(e&&e.operatorId&&$("apiKey")&&!$("apiKey").value.trim()){var storedKey=getApiKey(e.operatorId);if(storedKey)$("apiKey").value=storedKey;}
+ var validationErrors=validateForm(e,cat,sc,a,k,c);
+ if(validationErrors.length){showValidationErrors(validationErrors);return}
+ showValidationErrors([]);
+ var fingerprint=createFingerprint(e);
+ var wasEdit=!!state.edit;
+ var bulan=$("bulan").value,tahun=$("tahun").value;
+ $("saveBtn").disabled=true;$("saveBtn").textContent="Memeriksa data...";
+ var preflight=(wasEdit?checkEditFreshness():Promise.resolve(true)).then(function(){
+  return ensureRecentRisks();
+ }).then(function(){
+  var dup=findDuplicateRisk(e,cat,sc,bulan,tahun,wasEdit?state.edit.id:"");
+  if(dup){
+   throw Error("Skenario yang sama sudah tersimpan untuk operator dan periode ini ("+(dup.riskId||"referensi tidak tersedia")+"). Gunakan Edit pada data tersebut atau isi skenario yang berbeda.");
+  }
+  if(!state.edit){
+   if(!state.pendingCreateId||state.pendingCreateFingerprint!==fingerprint){
+    state.pendingCreateId="risk-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+    state.pendingCreateToken=token();
+    state.pendingCreateFingerprint=fingerprint;
+   }
+  }
+  var p={action:wasEdit?"update":"create",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
+  $("saveBtn").textContent=wasEdit?"Memperbarui...":"Menyimpan...";$("formNotice").innerHTML="";
+  return post(p).then(function(res){
+   if(!res.ok){
+    if(res.code==="FORBIDDEN")throw Error((res.error||"Akses ditolak.")+" Periksa kembali API Key operator pada field di atas.");
+    throw Error(res.error||"Gagal menyimpan");
+   }
+   if(p.apiKey)setApiKey(p.operatorId,p.apiKey);
+   if(res.dprkEditToken)setDprkToken(p.operatorId,p.tahun,res.dprkEditToken);
+   saveLocalHistory(p,wasEdit?"update":"create",res.dprkEditToken||"");
+   if(!wasEdit){state.pendingCreateId=null;state.pendingCreateToken=null;state.pendingCreateFingerprint=null}
+   state.edit=null;
+   var dprkTok=getDprkToken(p.operatorId,p.tahun);
+   var dprkLine=dprkTok?("<br>Kode Edit DPRK entitas ini (simpan untuk memperbarui email/link/tanggal kaji di lain waktu): <code>"+esc(p.operatorId+"|"+p.tahun+"::"+dprkTok)+"</code>"):"";
+   $("refBox").style.display="block";
+   $("refBox").innerHTML="<b>"+(wasEdit?"Berhasil diperbarui.":(res.duplicate?"Request sudah tersimpan sebelumnya.":"Berhasil disimpan."))+"</b> Kode referensi skenario: <code>"+esc(p.id+"::"+p.editToken)+"</code>"+dprkLine;
+   clearScenario();$("editRef").value="";$("editNotice").innerHTML="";loadDashboard();loadRisks();
+  });
+ }).catch(function(err){$("formNotice").innerHTML='<div class="notice">Gagal: '+esc(err.message)+"</div>";}).finally(function(){$("saveBtn").disabled=false;$("saveBtn").textContent="Simpan Skenario"});
+}
+
+function loadEdit(){
+ var ref=$("editRef").value.trim();
+ if(!ref){$("editNotice").innerHTML='<div class="notice">Masukkan kode referensi terlebih dahulu.</div>';return}
+ var parts=ref.split("::");
+ if(parts.length!==2||!parts[0]||!parts[1]){$("editNotice").innerHTML='<div class="notice">Format kode tidak valid. Gunakan riskId::editToken.</div>';return}
+ $("loadEditBtn").disabled=true;$("loadEditBtn").textContent="Memuat...";
+ get("find&id="+encodeURIComponent(parts[0])+"&token="+encodeURIComponent(parts[1])).then(function(res){
+  if(!res.ok)throw Error(res.error||"Data tidak ditemukan");var x=res.data||{};state.edit={id:x.riskId,editToken:parts[1],originalOperatorId:x.operatorId||"",originalJenisOperator:x.jenisOperator||"",baseFingerprint:buildRecordFingerprint(x)};state.type=x.jenisOperator||"";state.entity=null;renderTypes();renderEntityArea();
+  if(state.type==="Bandar Udara"){var found=AIRPORTS.filter(function(a){return "BD-"+a[0]===x.operatorId||a[1]===x.namaOperator||a[3]===x.iata})[0];if(found){found.operatorId=x.operatorId||("BD-"+found[0]);state.entity=found;renderEntityArea()}}
+  else{state.entity={operatorId:x.operatorId||"",jenisOperator:state.type,nama:x.namaOperator||"",kode:x.kodeOperator||"",provinsi:x.provinsi||"",kabkota:x.kabkota||"",lokasi:x.lokasi||""};renderEntityArea();}
+  $("bulan").value=x.bulan||"";$("tahun").value=x.tahun||"";$("tanggalPengesahan").value=(x.tanggalPengesahan||"").toString().slice(0,10);$("namaPengisi").value=x.namaPengisi||"";$("jabatanPengisi").value=x.jabatanPengisi||"";$("emailRiskOwner").value=x.emailRiskOwner||"";$("linkDprk").value=x.linkFileDprk||x.linkDprk||"";$("kategori").value=x.kategori||x.kategoriKode||"";filterCatalog();$("riskCatalog").value=x.idRisikoKatalog||"";if($("riskCatalog").value!==x.idRisikoKatalog)$("riskCatalog").value="__MANUAL__";
+  $("skenario").value=x.skenario||"";$("area").value=x.area||"";$("langkahSaatIni").value=x.langkahSaatIni||"";$("kerentananSaatIni").value=x.kerentananSaatIni||"";$("ancaman").value=x.ancamanNilai||"";$("kerentanan").value=x.kerentananNilai||"";$("konsekuensi").value=x.konsekuensiNilai||"";$("perlakuan").value=x.perlakuan||"";$("prioritas").value=x.prioritas||"";$("riskOwner").value=x.pemilikRisiko||"";$("tanggalKaji").value=x.tanggalKaji||"";$("langkahTambahan").value=x.langkahTambahan||"";$("keterangan").value=x.keterangan||"";updateRisk();
+  $("saveBtn").textContent="Perbarui Skenario";$("refBox").style.display="block";$("refBox").innerHTML='<b>Mode edit aktif.</b> Risiko <code>'+esc(x.riskId)+'</code> siap diperbarui.'+((x.bulan||x.tahun)?' <span class="local-note">Periode: '+esc((x.bulan||"")+" "+(x.tahun||""))+'</span>':'');$("editNotice").innerHTML='<div class="notice ok">Data berhasil dimuat. Klik <b>Perbarui Skenario</b> setelah selesai.</div>';window.scrollTo({top:0,behavior:"smooth"});
+ }).catch(function(err){$("editNotice").innerHTML='<div class="notice">Gagal memuat: '+esc(err.message)+'</div>'}).finally(function(){$("loadEditBtn").disabled=false;$("loadEditBtn").textContent="Muat Data untuk Edit"})
+}
+function loadDprkToken(){
+ var ref=$("dprkRef").value.trim();
+ if(!ref){$("dprkTokenNotice").innerHTML='<div class="notice">Masukkan kode DPRK terlebih dahulu.</div>';return}
+ var sep=ref.split("::");
+ if(sep.length!==2||!sep[0]||!sep[1]){$("dprkTokenNotice").innerHTML='<div class="notice">Format kode tidak valid. Gunakan operatorId|tahun::TOKEN.</div>';return}
+ var idPart=sep[0].split("|"),tok=sep[1];
+ if(idPart.length!==2||!idPart[0]||!idPart[1]){$("dprkTokenNotice").innerHTML='<div class="notice">Format kode tidak valid. Gunakan operatorId|tahun::TOKEN.</div>';return}
+ var operatorId=idPart[0],tahun=idPart[1];
+ $("loadDprkTokenBtn").disabled=true;$("loadDprkTokenBtn").textContent="Memeriksa...";
+ get("finddprk&operatorId="+encodeURIComponent(operatorId)+"&tahun="+encodeURIComponent(tahun)+"&dprkToken="+encodeURIComponent(tok)).then(function(res){
+  if(!res.ok)throw Error(res.error||"Kode DPRK tidak valid");
+  var x=res.data||{};
+  setDprkToken(operatorId,tahun,tok);
+  $("dprkTokenNotice").innerHTML='<div class="notice ok">Kode DPRK tersimpan untuk <b>'+esc(x.namaOperator||operatorId)+'</b> tahun '+esc(tahun)+'. Perangkat ini sekarang dapat memperbarui email pemilik risiko, link file, dan tanggal kaji ulang entitas tersebut saat mengisi ulang formulir.</div>';
+  $("dprkRef").value="";
+ }).catch(function(err){$("dprkTokenNotice").innerHTML='<div class="notice">Gagal: '+esc(err.message)+'</div>'}).finally(function(){$("loadDprkTokenBtn").disabled=false;$("loadDprkTokenBtn").textContent="Simpan Kode DPRK"})
+}
+function loadDashboard(){get("dashboard").then(function(res){if(!res.ok)throw Error(res.error);state.data=res.data||{};renderDashboard();renderTrends()}).catch(function(e){$("opcards").innerHTML='<div class="notice">Dashboard belum dapat memuat data: '+esc(e.message)+'</div>'})}
+function renderDashboard(){
+ var d=state.data||{},k=d.kpi||{};
+ $("k-total").textContent=k.totalEntities||0;
+ $("k-filled").textContent=k.filledEntities||0;
+ $("k-empty").textContent=k.unfilledEntities||0;
+ $("k-rate").textContent=(k.completionRate||0)+"%";
+ $("k-high").textContent=k.highRisk||0;
+ $("k-review").textContent=k.reviewDue||0;
+ ["k-total","k-filled","k-empty","k-rate","k-high","k-review"].forEach(function(id){$(id).classList.remove("is-loading")});
+ if($("attentionHigh"))$("attentionHigh").textContent=k.highRisk||0;
+ if($("attentionReview"))$("attentionReview").textContent=k.reviewDue||0;
+ if($("attentionFilled"))$("attentionFilled").textContent=k.filledEntities||0;
+ if($("dashboardUpdated"))$("dashboardUpdated").textContent="Data diperbarui "+new Date().toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+
+ $("opcards").innerHTML=(d.byType||[]).map(function(x){
+   return '<div class="opcard dashboard-selectable" data-dashboard-type="'+esc(x.jenisOperator)+'" role="button" tabindex="0" title="Tampilkan Risk Snapshot dan Threat Landscape untuk '+esc(x.jenisOperator)+'">'+
+     '<b>'+esc(x.jenisOperator)+'</b>'+
+     '<div style="font-size:28px;font-weight:800;color:var(--navy)">'+(x.filled||0)+'</div>'+
+     '<div class="opmeta"><span>Sudah Mengisi</span><span>'+x.risk+' risiko tinggi</span></div>'+
+   '</div>';
+ }).join("");
+
+ var selected=$("dashboardOperatorFilter")?$("dashboardOperatorFilter").value:"";
+ renderDashboardRiskAnalytics(selected);
+ bindDashboardOperatorFilter();
+}
+function bindDashboardOperatorFilter(){
+ var sel=$("dashboardOperatorFilter");
+ if(sel&&!sel.dataset.bound){
+   sel.dataset.bound="1";
+   sel.addEventListener("change",function(){renderDashboardRiskAnalytics(this.value,$("dashboardProvinceFilter").value,$("dashboardKabkotaFilter").value);});
+ }
+ $("opcards").querySelectorAll(".dashboard-selectable").forEach(function(card){
+   if(card.dataset.bound==="1")return;
+   card.dataset.bound="1";
+   function choose(){
+     var type=card.getAttribute("data-dashboard-type")||"";
+     if($("dashboardOperatorFilter"))$("dashboardOperatorFilter").value=type;
+     renderDashboardRiskAnalytics(type,$("dashboardProvinceFilter").value,$("dashboardKabkotaFilter").value);
+   }
+   card.addEventListener("click",choose);
+   card.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();choose();}});
+ });
+}
+function enrichRiskLocations(){
+ var risks=state.risks||[],ops=state.operators||[];
+ risks.forEach(function(r){if(String(r.provinsi||'').trim()&&String(r.kabkota||'').trim())return;var name=String(r.namaOperator||'').trim().toLowerCase();var rid=String(r.operatorId||r.kodeOperator||'').trim();var op=ops.filter(function(o){return (rid&&String(o.operatorId||o.kodeOperator||'').trim()===rid)||(name&&String(o.namaOperator||'').trim().toLowerCase()===name);})[0];if(op){r.provinsi=r.provinsi||op.provinsi||'';r.kabkota=r.kabkota||op.kabkota||'';}});
+}
+function initDashboardLocationFilters(){
+ var p=$("dashboardProvinceFilter"),k=$("dashboardKabkotaFilter");if(!p)return;enrichRiskLocations();var risks=state.risks||[],source=risks.length?risks:(state.operators||[]);
+ var vals=[];source.forEach(function(x){var v=String(x.provinsi||'').trim();if(v&&vals.indexOf(v)<0)vals.push(v);});vals.sort(function(a,b){return a.localeCompare(b,'id');});var cur=p.value;p.innerHTML='<option value="">Semua Provinsi</option>'+vals.map(function(v){return'<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');p.value=vals.indexOf(cur)>=0?cur:'';
+ if(k){var list=p.value?source.filter(function(x){return String(x.provinsi||'').trim()===p.value;}):source,ks=[];list.forEach(function(x){var v=String(x.kabkota||'').trim();if(v&&ks.indexOf(v)<0)ks.push(v);});ks.sort(function(a,b){return a.localeCompare(b,'id');});var ck=k.value;k.innerHTML='<option value="">Semua Kabupaten/Kota</option>'+ks.map(function(v){return'<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');k.value=ks.indexOf(ck)>=0?ck:'';}
+}
+function bindDashboardLocationFilters(){
+ var p=$("dashboardProvinceFilter"),k=$("dashboardKabkotaFilter");
+ if(p&&!p.dataset.bound){
+   p.dataset.bound="1";p.addEventListener("change",function(){
+     initDashboardLocationFilters();
+     renderDashboardRiskAnalytics($("dashboardOperatorFilter")?$("dashboardOperatorFilter").value:"",
+       p.value,k?k.value:"");
+   });
+ }
+ if(k&&!k.dataset.bound){
+   k.dataset.bound="1";k.addEventListener("change",function(){
+     renderDashboardRiskAnalytics($("dashboardOperatorFilter")?$("dashboardOperatorFilter").value:"",
+       p?p.value:"",k.value);
+   });
+ }
+}
+function renderDashboardRiskAnalytics(selectedType,selectedProv,selectedKab){
+ var all=state.risks||[];
+ var filtered=all.filter(function(x){
+   return (!selectedType||String(x.jenisOperator||"")===selectedType) &&
+          (!selectedProv||String(x.provinsi||"").trim()===selectedProv) &&
+          (!selectedKab||String(x.kabkota||"").trim()===selectedKab);
+ });
+ initDashboardLocationFilters();
+ bindDashboardLocationFilters();
+ var riskColors={Tinggi:"#CF4A42","Menengah-Tinggi":"#DD8A42",Menengah:"#E0B341","Menengah-Rendah":"#8FB86A",Rendah:"#5B9E5E"};
+ var dist={};
+ RATING.forEach(function(x){dist[x]=0;});
+ filtered.forEach(function(x){
+   var r=String(x.risikoRating||rating(Number(x.risikoNilai))||"").trim();
+   if(dist.hasOwnProperty(r))dist[r]++;
+ });
+ var total=filtered.length;
+  var operatorSet={};
+  filtered.forEach(function(x){
+    var op=String(x.namaOperator||x.operatorId||"").trim();
+    if(op)operatorSet[op]=true;
+  });
+  var operatorCount=Object.keys(operatorSet).length;
+ if(!selectedType && !all.length){
+   var d=state.data||{},k=d.kpi||{};
+   dist=d.riskDistribution||{};
+   total=k.totalRisks||0;
+ }
+ if($("riskDonutTotal"))$("riskDonutTotal").textContent=total;
+  if($("riskDonutOperators"))$("riskDonutOperators").textContent=String(operatorCount);
+ if($("riskTotalBadge"))$("riskTotalBadge").textContent=total+" RISIKO";
+
+ var riskRows=RATING.map(function(x){return{x:x,n:Number(dist[x]||0),col:riskColors[x]};}).filter(function(x){return x.n>0;});
+ var GAP=riskRows.length>1?2.2:0,start=0,stops=[];
+ riskRows.forEach(function(r,i){
+   var deg=total?(r.n/total)*(360-GAP*riskRows.length):0;
+   stops.push(r.col+" "+start+"deg "+(start+deg)+"deg");
+   start+=deg;
+   if(GAP&&i<riskRows.length-1){stops.push("#fff "+start+"deg "+(start+GAP)+"deg");start+=GAP;}
+ });
+ if($("riskDonut"))$("riskDonut").style.background=stops.length?"conic-gradient("+stops.join(",")+")":"conic-gradient(#dce5ec 0deg 360deg)";
+ if($("riskLegend"))$("riskLegend").innerHTML=RATING.map(function(x){
+   var n=Number(dist[x]||0),pct=total?Math.round(n/total*100):0;
+   return '<div class="risk-legend-item" style="--dot:'+riskColors[x]+'"><span class="risk-legend-name">'+x+'</span><span class="risk-legend-value">'+n+' <span class="risk-legend-pct">('+pct+'%)</span></span></div>';
+ }).join("");
+ if($("riskDominant")){
+   var top=riskRows.slice().sort(function(a,b){return b.n-a.n})[0];
+   $("riskDominant").innerHTML=top?
+     "Didominasi risiko <b style=\"color:"+top.col+"\">"+esc(top.x)+"</b> — "+top.n+" dari "+total+" risiko ("+Math.round(top.n/total*100)+"%)":
+     "Belum ada data risiko untuk ditampilkan.";
+ }
+
+ var cats={};
+ filtered.forEach(function(x){
+   var code=String(x.kategoriKode||"").trim();
+   var val=Number(x.risikoNilai);
+   if(code&&isFinite(val)){
+     if(!cats[code])cats[code]={sum:0,n:0};
+     cats[code].sum+=val;cats[code].n++;
+   }
+ });
+ var catList;
+ if(selectedType){
+   catList=Object.keys(cats).map(function(code){return{kode:code,avg:cats[code].n?cats[code].sum/cats[code].n:0};});
+ }else if(all.length){
+   catList=Object.keys(cats).map(function(code){return{kode:code,avg:cats[code].n?cats[code].sum/cats[code].n:0};});
+ }else{
+   catList=(state.data.categories||[]).slice();
+ }
+ catList.sort(function(a,b){return Number(b.avg||0)-Number(a.avg||0);});
+
+ $("catbarsList").innerHTML=catList.map(function(x){
+   var avg=Number(x.avg||0),band=rating(Math.round(avg)),color=band?band.c:"#8fa5b8",name=KATEGORI_NAME[x.kode]||x.kode;
+   return '<div class="threat-item" title="'+esc(x.kode+" — "+name)+'"><div class="threat-item-top"><span class="threat-code">'+esc(x.kode)+'</span><span class="threat-name">'+esc(name)+'</span><b class="threat-value" style="color:'+color+'">'+avg.toFixed(1)+'</b></div><div class="bar"><i style="width:'+Math.min(100,avg/30*100)+'%;background:'+color+'"></i></div></div>';
+ }).join("")||'<div class="empty">Belum ada data kategori untuk operator ini.</div>';
+
+ var scope=[];if(selectedType)scope.push(selectedType);if(selectedProv)scope.push(selectedProv);if(selectedKab)scope.push(selectedKab);
+ var hint=scope.length?"Menampilkan kondisi risiko dan ancaman untuk "+scope.join(" • ")+".":"Menampilkan kondisi risiko seluruh operator.";
+ if($("dashboardLocationHint"))$("dashboardLocationHint").textContent=scope.length?"Menampilkan kondisi risiko untuk "+scope.join(" • ")+".":"Menampilkan kondisi risiko seluruh provinsi dan kabupaten/kota.";
+ if($("dashboardFilterHint"))$("dashboardFilterHint").textContent=hint;
+ document.querySelectorAll("#opcards .dashboard-selectable").forEach(function(card){
+   card.classList.toggle("selected",card.getAttribute("data-dashboard-type")===selectedType);
+ });
+ var riskTitle=document.querySelector("#view-dashboard .risk-snapshot-card h2");
+ var threatTitle=document.querySelector("#view-dashboard .threat-landscape-card h2");
+ if(riskTitle)riskTitle.textContent=scope.length?"Kondisi Risiko — "+scope.join(" • "):"Kondisi Risiko Nasional";
+ if(threatTitle)threatTitle.textContent=scope.length?"19 Kategori Ancaman — "+scope.join(" • "):"19 Kategori Ancaman";
+ var riskSub=document.querySelector("#view-dashboard .risk-snapshot-card .sub");
+ var threatSub=document.querySelector("#view-dashboard .threat-landscape-card .sub");
+ if(riskSub)riskSub.textContent="Menampilkan "+operatorCount+" operator dengan "+total+" total risiko.";  
+ if(threatSub)threatSub.textContent=selectedType?"Rata-rata nilai risiko 19 kategori untuk operator yang dipilih.":"Rata-rata nilai risiko dari skenario yang telah diisi, diurutkan dari yang tertinggi.";
+}
+function loadOperators(){get("operators").then(function(res){if(!res.ok)throw Error(res.error);state.operators=res.data||[];fillOpFilters();renderOperatorTable()}).catch(function(e){$("opTbody").innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'})}
+function fillOpFilters(){ $("opFilterType").innerHTML='<option value="">Semua Jenis Operator</option>'+TYPES.map(function(x){return'<option>'+x[0]+'</option>'}).join("");$("opFilterProv").innerHTML='<option value="">Semua Provinsi</option>'+PROVINSI.map(function(x){return'<option>'+x+'</option>'}).join("")}
+function renderOperatorTable(){var a=state.operators||[],t=$("opFilterType").value,p=$("opFilterProv").value,q=$("opSearch").value.toLowerCase();a=a.filter(function(x){return(!t||x.jenisOperator===t)&&(!p||x.provinsi===p)&&(!q||(x.namaOperator||"").toLowerCase().indexOf(q)>-1)});var filled=a.filter(function(x){return/sudah/i.test(x.statusDprk||"")}).length;$("opCount").textContent=a.length;$("opFilled").textContent=filled;$("opUnfilled").textContent=a.length-filled;$("opFilterState").textContent=(t||p||q)?"Aktif":"Semua";$("opTbody").innerHTML=a.map(function(x){var st=x.statusDprk||"Belum Mengisi",isFilled=/sudah/i.test(st);return'<tr><td>'+esc(x.jenisOperator)+'</td><td><b>'+esc(x.namaOperator)+'</b><br><small>'+esc(x.kodeOperator||"")+'</small></td><td>'+esc((x.provinsi||"")+" "+(x.kabkota||""))+'</td><td class="status-cell"><span class="pill-status '+(isFilled?"filled":"unfilled")+'">'+esc(st)+'</span></td><td>'+esc(x.jumlahSkenario||0)+'</td><td>'+esc(x.tanggalKaji||"-")+'</td></tr>'}).join("")||'<tr><td colspan="6" class="empty empty-row">Tidak ada data yang sesuai dengan filter.</td></tr>'}
+function loadRisks(){get("risks").then(function(res){if(!res.ok)throw Error(res.error);state.risks=res.data||[];state.risksLoadedAt=Date.now();enrichRiskLocations();initDashboardLocationFilters();renderRiskTable();renderDashboardRiskAnalytics($("dashboardOperatorFilter").value,$("dashboardProvinceFilter").value,$("dashboardKabkotaFilter").value)}).catch(function(e){$("riskTbody").innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'})}
+function renderRiskTable(){var a=state.risks||[],t=$("riskType").value,r=$("riskRating").value,c=$("riskCategory").value,q=$("riskSearch").value.toLowerCase();a=a.filter(function(x){return(!t||x.jenisOperator===t)&&(!r||x.risikoRating===r)&&(!c||x.kategoriKode===c)&&(!q||((x.namaOperator||"")+" "+(x.kategori||"")).toLowerCase().indexOf(q)>-1)});var nums=a.map(function(x){return Number(x.risikoNilai)}).filter(function(n){return isFinite(n)}),avg=nums.length?nums.reduce(function(s,n){return s+n},0)/nums.length:0,high=a.filter(function(x){return Number(x.risikoNilai)>=25}).length;$("riskCount").textContent=a.length;$("riskHighCount").textContent=high;$("riskAvgCount").textContent=nums.length?avg.toFixed(1):"—";$("riskFilterState").textContent=(t||r||c||q)?"Aktif":"Semua";$("riskTbody").innerHTML=a.map(function(x){return'<tr><td>'+esc(x.jenisOperator)+'</td><td><b>'+esc(x.namaOperator)+'</b></td><td class="risk-cat">'+esc(x.kategori)+'</td><td class="risk-number">'+esc(x.risikoNilai)+'</td><td>'+pill(rating(Number(x.risikoNilai)))+'</td><td class="risk-period">'+esc((x.bulan||"")+" "+(x.tahun||""))+'</td></tr>'}).join("")||'<tr><td colspan="6" class="empty empty-row">Tidak ada data yang sesuai dengan filter.</td></tr>'}
+function renderTrends(){var d=state.data||{},t=d.trend||{},labels=t.labels||[],filled=t.filled||[],risk=t.risk||[];draw("fillChart2",labels,filled,"Completion");draw("riskChart2",labels,risk,"Rata-rata Risiko");$("trendPeriods").textContent=labels.length;$("trendLatestFilled").textContent=filled.length?filled[filled.length-1]:"—";$("trendLatestRisk").textContent=risk.length?Number(risk[risk.length-1]).toFixed(1):"—";var rv=d.review||[];$("reviewTbody").innerHTML=rv.map(function(x){return'<tr><td>'+esc(x.jenisOperator)+'</td><td><b>'+esc(x.namaOperator)+'</b></td><td>'+esc(x.tanggalKaji)+'</td><td>'+esc(x.status)+'</td></tr>'}).join("")||'<tr><td colspan="4" class="empty empty-row">Tidak ada kaji ulang yang mendekat.</td></tr>'}
+function draw(id,labels,vals,title){
+ var c=$(id),ctx=c.getContext("2d"),w=c.clientWidth||700,h=300;
+ c.width=w*2;c.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);
+ ctx.font="11px Inter, Arial";ctx.fillStyle="#0f2a45";ctx.font="700 11px Inter, Arial";ctx.fillText(title,15,16);
+ if(!vals.length){ctx.fillStyle="#607080";ctx.font="12px Inter, Arial";ctx.fillText("Belum ada data untuk periode ini",20,h/2);return}
+ var max=Math.max.apply(null,vals.concat([1])),pad=40,plotW=w-pad-20,plotH=h-70,baseY=h-40;
+ ctx.strokeStyle="#edf1f5";ctx.lineWidth=1;ctx.font="10px Inter, Arial";ctx.fillStyle="#8a97a3";
+ for(var g=0;g<=3;g++){var gy=25+g*(plotH/3);ctx.beginPath();ctx.moveTo(pad,gy);ctx.lineTo(w-15,gy);ctx.stroke();ctx.fillText(Math.round(max-(max*g/3)),4,gy+3)}
+ ctx.strokeStyle="#dfe6ee";ctx.beginPath();ctx.moveTo(pad,25);ctx.lineTo(pad,baseY);ctx.lineTo(w-15,baseY);ctx.stroke();
+ function px(i){return pad+i*plotW/Math.max(1,vals.length-1)}
+ function py(v){return 25+plotH-(v/max)*plotH}
+ ctx.beginPath();vals.forEach(function(v,i){var x=px(i),y=py(v);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});ctx.lineTo(px(vals.length-1),baseY);ctx.lineTo(px(0),baseY);ctx.closePath();
+ var grad=ctx.createLinearGradient(0,25,0,baseY);grad.addColorStop(0,"rgba(44,110,158,.16)");grad.addColorStop(1,"rgba(44,110,158,0)");ctx.fillStyle=grad;ctx.fill();
+ ctx.strokeStyle="#2c6e9e";ctx.lineWidth=2.2;ctx.beginPath();vals.forEach(function(v,i){var x=px(i),y=py(v);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});ctx.stroke();
+ ctx.fillStyle="#182632";ctx.font="11px Inter, Arial";
+ vals.forEach(function(v,i){var x=px(i),y=py(v);ctx.beginPath();ctx.arc(x,y,3.2,0,Math.PI*2);ctx.fillStyle="#2c6e9e";ctx.fill();ctx.beginPath();ctx.arc(x,y,1.4,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.fillStyle="#607080";ctx.font="10px Inter, Arial";if(i===0||i===vals.length-1||vals.length<=6)ctx.fillText(labels[i]||"",x-12,h-20)});
+ ctx.fillStyle="#0f2a45";ctx.font="700 11px Inter, Arial";ctx.fillText(String(vals[vals.length-1]),px(vals.length-1)-8,py(vals[vals.length-1])-8);
+}
+init();
+})();
+</script>
+</body>
+</html>
