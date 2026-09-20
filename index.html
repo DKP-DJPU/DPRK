@@ -1957,38 +1957,9 @@ main {
     max-width:none;
   }
 }
-
-/* ===== AUTH GATE ===== */
-#authGate{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;padding:20px;}
-#authGate.hidden{display:none;}
-.gate-card{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:32px;max-width:400px;width:100%;}
-.gate-card h1{margin:0 0 4px;font-size:18px;color:var(--navy);}
-.gate-card .sub{margin:0 0 20px;color:var(--muted);font-size:12px;}
-.gate-field{margin-bottom:14px;}
-.gate-field label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;}
-.gate-field input{width:100%;}
-.gate-remember{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:16px;}
-.gate-remember input{width:auto;}
-.gate-error{background:#fff0ef;border:1px solid #e2aaa6;color:#a7332d;border-radius:9px;padding:9px 12px;font-size:12px;margin-bottom:14px;display:none;}
-.gate-error.show{display:block;}
-.gate-loading{text-align:center;color:rgba(255,255,255,.85);font-size:13px;}
 </style>
 </head>
 <body>
-<div id="authGate">
-  <div class="gate-card">
-    <h1>Dashboard Monitoring DPRK Nasional</h1>
-    <div class="sub">Khusus instansi berwenang. Login dengan username &amp; password yang diberikan admin sistem.</div>
-    <div id="gateLoading" class="gate-loading" style="display:none;">Memeriksa sesi login...</div>
-    <form id="gateForm" onsubmit="return false;">
-      <div class="gate-error" id="gateError"></div>
-      <div class="gate-field"><label>Username</label><input id="gateUsername" autocomplete="username"></div>
-      <div class="gate-field"><label>Password</label><input id="gatePassword" type="password" autocomplete="current-password"></div>
-      <label class="gate-remember"><input type="checkbox" id="gateRemember" checked> Ingat saya di perangkat ini</label>
-      <button type="button" class="btn primary" style="width:100%;" id="gateSubmitBtn" onclick="submitGateLogin()">Masuk</button>
-    </form>
-  </div>
-</div>
 <div class="app">
 <header class="header">
   <div class="brand"><div class="brandmark">✈</div><div><div class="eyebrow">PKRK Nasional</div><h1>DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL</h1></div></div>
@@ -2082,14 +2053,7 @@ main {
       <div class="field"><label>Tahun</label><input id="tahun" type="number" min="2024" max="2040" value="2026"></div>
       <div class="field"><label>Nama Pengisi</label><input id="namaPengisi" placeholder="Nama lengkap"></div>
       <div class="field"><label>Jabatan Pengisi</label><input id="jabatanPengisi" placeholder="Jabatan"></div>
-      <div class="field full">
-        <label>Login Operator</label>
-        <div id="loginStatus" class="scenario-hint"></div>
-        <div class="scenario-hint" style="margin-top:8px;">Akun mengikuti login di awal halaman. Bukan operator yang tepat? <a href="#" onclick="logout();return false;">Keluar &amp; ganti akun</a>. <b>Alternatif:</b> pakai API Key lama jika sudah punya: <a href="#" onclick="toggleApiKeyFallback();return false;">tampilkan field API Key</a>.</div>
-        <div id="apiKeyFallback" style="display:none;margin-top:8px;">
-          <input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off">
-        </div>
-      </div>
+      <div class="field full"><label>API Key Operator</label><input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off"><div class="scenario-hint">Diberikan oleh admin sistem per operator. Wajib untuk menyimpan/mengubah data. Akan diingat otomatis di perangkat ini setelah berhasil disimpan.</div></div>
       <div class="field"><label>Tanggal Pengesahan</label><input id="tanggalPengesahan" type="date"><div class="scenario-hint">Diisi sesuai tanggal pengesahan dokumen DPRK.</div></div>
       <div class="field"><label>Email Pemilik Risiko</label><input id="emailRiskOwner" type="email" placeholder="email@instansi.go.id"></div>
       <div class="field full"><label>Link File DPRK</label><input id="linkDprk" placeholder="https://drive.google.com/..."></div>
@@ -2180,88 +2144,6 @@ main {
 (function(){
 "use strict";
 var GAS_URL="https://script.google.com/macros/s/AKfycbyY6BLRyTqZSSlDS3o9nkWms_ky6saoxdYsELZoSv1fw_I0f0eENMb8T-ICphAtHwahrA/exec";
-// ============================================================
-// V3.32 — GATE LOGIN DI AWAL (seluruh halaman, bukan cuma form pengisian)
-// ============================================================
-var CRED_STORE_KEY = "dprk_creds_v1";
-var authState = { operatorId: "", username: "", password: "", namaOperator: "", sessionToken: "" };
-function loadSavedCreds_(){ try{ return JSON.parse(localStorage.getItem(CRED_STORE_KEY) || "null"); }catch(e){ return null; } }
-function saveCreds_(username, password){ try{ localStorage.setItem(CRED_STORE_KEY, JSON.stringify({ username: username, password: password })); }catch(e){} }
-function clearSavedCreds_(){ try{ localStorage.removeItem(CRED_STORE_KEY); }catch(e){} }
-function showGate_(loading){
-  $("authGate").classList.remove("hidden");
-  $("gateLoading").style.display = loading ? "block" : "none";
-  $("gateForm").style.display = loading ? "none" : "block";
-}
-function hideGate_(){ $("authGate").classList.add("hidden"); }
-function gateError_(msg){
-  var box = $("gateError");
-  if(!msg){ box.classList.remove("show"); box.textContent=""; return; }
-  box.textContent = msg; box.classList.add("show");
-}
-function doLoginRequest_(username, password){
-  return post({ action: "login", username: username, password: password });
-}
-function applyLoginSuccess_(res, username, password){
-  authState.operatorId = res.operatorId; authState.username = username; authState.password = password;
-  authState.namaOperator = res.namaOperator || ""; authState.sessionToken = res.sessionToken || "";
-}
-function submitGateLogin(){
-  var username = $("gateUsername").value.trim(), password = $("gatePassword").value;
-  var remember = $("gateRemember").checked;
-  if(!username || !password){ gateError_("Isi username dan password terlebih dahulu."); return; }
-  gateError_("");
-  $("gateSubmitBtn").disabled = true; $("gateSubmitBtn").textContent = "Memeriksa...";
-  doLoginRequest_(username, password).then(function(res){
-    $("gateSubmitBtn").disabled = false; $("gateSubmitBtn").textContent = "Masuk";
-    if(!res.ok){ gateError_(res.error || "Username atau password salah."); return; }
-    applyLoginSuccess_(res, username, password);
-    if(remember) saveCreds_(username, password); else clearSavedCreds_();
-    hideGate_();
-    boot_();
-  }).catch(function(){
-    $("gateSubmitBtn").disabled = false; $("gateSubmitBtn").textContent = "Masuk";
-    gateError_("Gagal menghubungi server. Periksa koneksi internet Anda.");
-  });
-}
-function logout(){
-  authState.operatorId = ""; authState.username = ""; authState.password = ""; authState.namaOperator = ""; authState.sessionToken = "";
-  clearSavedCreds_();
-  $("gateUsername").value = ""; $("gatePassword").value = "";
-  gateError_("");
-  showGate_(false);
-}
-// Dipanggil sekali di awal load halaman: coba login otomatis dengan
-// kredensial tersimpan di perangkat ini; kalau tidak ada/gagal, tampilkan
-// form login dan hentikan (init() aplikasi belum dijalankan).
-function attemptAutoLogin_(){
-  var saved = loadSavedCreds_();
-  if(!saved || !saved.username || !saved.password){ showGate_(false); return; }
-  showGate_(true);
-  doLoginRequest_(saved.username, saved.password).then(function(res){
-    if(!res.ok){ clearSavedCreds_(); showGate_(false); gateError_("Sesi tersimpan sudah tidak berlaku, silakan login kembali."); return; }
-    applyLoginSuccess_(res, saved.username, saved.password);
-    hideGate_();
-    boot_();
-  }).catch(function(){ showGate_(false); gateError_("Gagal menghubungi server. Periksa koneksi internet Anda."); });
-}
-function renderLoginState(){
-  var status = $("loginStatus");
-  if(!status) return;
-  var e = readEntity();
-  if(authState.operatorId && e && String(authState.operatorId) === String(e.operatorId)){
-    status.innerHTML = "Masuk sebagai <b>" + esc(authState.username) + "</b> (" + esc(authState.namaOperator||authState.operatorId) + ") — terverifikasi untuk operator ini.";
-  } else if(authState.operatorId){
-    status.innerHTML = "Masuk sebagai <b>" + esc(authState.username) + "</b>, tapi akun ini terdaftar untuk operator lain (" + esc(authState.namaOperator||authState.operatorId) + "), bukan operator yang sedang dipilih di atas.";
-  } else {
-    status.textContent = "";
-  }
-}
-function toggleApiKeyFallback(){
-  var box = $("apiKeyFallback");
-  if(box) box.style.display = box.style.display === "none" ? "block" : "none";
-}
-
 var AIRPORT_REGIONS={"TJQ":["Kepulauan Bangka Belitung","Kabupaten Belitung"],"DJB":["Jambi","Kota Jambi"],"BKS":["Bengkulu","Kota Bengkulu"],"PDG":["Sumatera Barat","Kabupaten Padang Pariaman"],"UPG":["Sulawesi Selatan","Kabupaten Maros"],"BDJ":["Kalimantan Selatan","Kota Banjarbaru"],"SOC":["Jawa Tengah","Kabupaten Boyolali"],"DHX":["Jawa Timur","Kabupaten Kediri"],"TNJ":["Kepulauan Riau","Kota Tanjung Pinang"],"SRG":["Jawa Tengah","Kota Semarang"],"SUB":["Jawa Timur","Kabupaten Sidoarjo"],"BTJ":["Aceh","Kabupaten Aceh Besar"],"BDO":["Jawa Barat","Kota Bandung"]};
 function airportRegion(a){
  var i=String(a&&a[3]||"").toUpperCase();
@@ -2286,22 +2168,11 @@ var PERLAKUAN=["Diterima","Mitigasi","Penolakan","Pembagian"], PRIORITAS=["Sanga
 var state={type:"",entity:null,data:null,operators:[],risks:[],risksLoadedAt:0,edit:null,pendingCreateId:null,pendingCreateToken:null,pendingCreateFingerprint:null};
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]})}
-function get(a,attempt,retriedAuth){
+function get(a,attempt){
  attempt=attempt||0;var bits=String(a).split("&"),action=bits.shift();
- if(authState.sessionToken)bits.push("sessionToken="+encodeURIComponent(authState.sessionToken));
  var url=GAS_URL+"?action="+encodeURIComponent(action)+(bits.length?"&"+bits.join("&"):"")+"&_ts="+Date.now();
  return fetch(url,{cache:"no-store"}).then(function(r){if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(function(res){
-  if(res&&res.code==="BUSY"&&attempt<2)return new Promise(function(resolve){setTimeout(resolve,800*(attempt+1))}).then(function(){return get(a,attempt+1,retriedAuth)});
-  // Sesi kedaluwarsa/tidak valid: coba login diam-diam sekali pakai kredensial
-  // tersimpan, lalu ulangi permintaan. Kalau tetap gagal, tampilkan gate lagi.
-  if(res&&res.ok===false&&res.code==="FORBIDDEN"&&!retriedAuth&&authState.username&&authState.password){
-   return doLoginRequest_(authState.username,authState.password).then(function(loginRes){
-    if(loginRes.ok){ applyLoginSuccess_(loginRes,authState.username,authState.password); return get(a,0,true); }
-    logout();
-    return res;
-   });
-  }
-  if(res&&res.ok===false&&res.code==="FORBIDDEN"&&retriedAuth){ logout(); }
+  if(res&&res.code==="BUSY"&&attempt<2)return new Promise(function(resolve){setTimeout(resolve,800*(attempt+1))}).then(function(){return get(a,attempt+1)});
   return res;
  });
 }
@@ -2341,7 +2212,6 @@ function renderTypes(){
 }
 function renderEntityArea(){
  var a=$("entityArea");
- if(typeof renderLoginState==="function")renderLoginState();
  if(!state.type){a.innerHTML='<div class="notice">Pilih salah satu dari 4 jenis operator untuk melanjutkan.</div>';return}
  if(state.type==="Bandar Udara"){
   a.innerHTML='<div class="field"><label>Nama Bandar Udara</label><input id="entitySearch" placeholder="Ketik nama bandara atau kota..."><div id="entityResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div></div><div id="entitySelected"></div>';
@@ -2545,9 +2415,8 @@ function validateForm(e,cat,sc,a,k,c){
  var link=$("linkDprk")?$("linkDprk").value.trim():"";
  var catalogId=$("riskCatalog")?$("riskCatalog").value:"";
  var apiKey=$("apiKey")?$("apiKey").value.trim():"";
- var loggedInForThisOperator=e&&authState.operatorId&&String(authState.operatorId)===String(e.operatorId);
  if(!e)errors.push("Identitas entitas/operator belum dipilih atau diisi.");
- if(!apiKey&&!loggedInForThisOperator)errors.push("Login dengan username/password operator, atau isi API Key operator.");
+ if(!apiKey)errors.push("API Key operator wajib diisi. Hubungi admin sistem bila belum memiliki kunci akses.");
  if(!state.type)errors.push("Jenis operator belum dipilih.");
  if(state.edit&&state.edit.originalOperatorId&&e&&String(e.operatorId||"")!==String(state.edit.originalOperatorId))errors.push("Identitas operator pada mode edit tidak boleh berubah. Buat pengisian baru bila risiko akan dipindahkan ke operator lain.");
  if(state.edit&&state.edit.originalJenisOperator&&e&&String(e.jenisOperator||"")!==String(state.edit.originalJenisOperator))errors.push("Jenis operator pada mode edit tidak boleh berubah. Buat pengisian baru untuk jenis operator lain.");
@@ -2600,7 +2469,7 @@ function save(){
     state.pendingCreateFingerprint=fingerprint;
    }
   }
-  var p={action:wasEdit?"update":"create",username:(authState.operatorId&&e&&String(authState.operatorId)===String(e.operatorId))?authState.username:"",password:(authState.operatorId&&e&&String(authState.operatorId)===String(e.operatorId))?authState.password:"",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
+  var p={action:wasEdit?"update":"create",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
   $("saveBtn").textContent=wasEdit?"Memperbarui...":"Menyimpan...";$("formNotice").innerHTML="";
   return post(p).then(function(res){
    if(!res.ok){
@@ -2839,8 +2708,7 @@ function draw(id,labels,vals,title){
  vals.forEach(function(v,i){var x=px(i),y=py(v);ctx.beginPath();ctx.arc(x,y,3.2,0,Math.PI*2);ctx.fillStyle="#2c6e9e";ctx.fill();ctx.beginPath();ctx.arc(x,y,1.4,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.fillStyle="#607080";ctx.font="10px Inter, Arial";if(i===0||i===vals.length-1||vals.length<=6)ctx.fillText(labels[i]||"",x-12,h-20)});
  ctx.fillStyle="#0f2a45";ctx.font="700 11px Inter, Arial";ctx.fillText(String(vals[vals.length-1]),px(vals.length-1)-8,py(vals[vals.length-1])-8);
 }
-function boot_(){ init(); }
-attemptAutoLogin_();
+init();
 })();
 </script>
 </body>
