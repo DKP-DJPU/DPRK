@@ -2053,7 +2053,6 @@ main {
       <div class="field"><label>Tahun</label><input id="tahun" type="number" min="2024" max="2040" value="2026"></div>
       <div class="field"><label>Nama Pengisi</label><input id="namaPengisi" placeholder="Nama lengkap"></div>
       <div class="field"><label>Jabatan Pengisi</label><input id="jabatanPengisi" placeholder="Jabatan"></div>
-      <div class="field full"><label>API Key Operator</label><input id="apiKey" placeholder="Kunci akses dari admin sistem" autocomplete="off"><div class="scenario-hint">Diberikan oleh admin sistem per operator. Wajib untuk menyimpan/mengubah data. Akan diingat otomatis di perangkat ini setelah berhasil disimpan.</div></div>
       <div class="field"><label>Tanggal Pengesahan</label><input id="tanggalPengesahan" type="date"><div class="scenario-hint">Diisi sesuai tanggal pengesahan dokumen DPRK.</div></div>
       <div class="field"><label>Email Pemilik Risiko</label><input id="emailRiskOwner" type="email" placeholder="email@instansi.go.id"></div>
       <div class="field full"><label>Link File DPRK</label><input id="linkDprk" placeholder="https://drive.google.com/..."></div>
@@ -2303,19 +2302,6 @@ function setDprkTokenMap(m){try{localStorage.setItem(DPRK_TOKEN_KEY,JSON.stringi
 function getDprkToken(operatorId,tahun){var m=getDprkTokenMap();return m[dprkTokenMapKey(operatorId,tahun)]||""}
 function setDprkToken(operatorId,tahun,tok){if(!tok)return;var m=getDprkTokenMap();m[dprkTokenMapKey(operatorId,tahun)]=tok;setDprkTokenMap(m)}
 
-// ============================================================
-// V3.29 (FRONTEND) — PENYIMPANAN LOKAL API KEY OPERATOR
-// Backend sekarang mewajibkan API key per-operator (diterbitkan admin lewat
-// issueApiKey_) untuk action=create/update/renewDprk. Disimpan per
-// operatorId (bukan per tahun, karena satu operator memakai satu key untuk
-// seluruh periode) supaya tidak perlu ditempel ulang setiap submit.
-// ============================================================
-var API_KEY_STORE="DPRK_NASIONAL_APIKEY_V1";
-function getApiKeyMap(){try{return JSON.parse(localStorage.getItem(API_KEY_STORE)||"{}")}catch(e){return{}}}
-function setApiKeyMap(m){try{localStorage.setItem(API_KEY_STORE,JSON.stringify(m))}catch(e){}}
-function getApiKey(operatorId){var m=getApiKeyMap();return m[String(operatorId||"")]||""}
-function setApiKey(operatorId,key){if(!operatorId||!key)return;var m=getApiKeyMap();m[String(operatorId)]=key;setApiKeyMap(m)}
-
 var LOCAL_HISTORY_KEY="DPRK_NASIONAL_RIWAYAT_V1";
 function getLocalHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||"[]")}catch(e){return[]}}
 function setLocalHistory(a){try{localStorage.setItem(LOCAL_HISTORY_KEY,JSON.stringify(a.slice(0,100)))}catch(e){}}
@@ -2414,9 +2400,7 @@ function validateForm(e,cat,sc,a,k,c){
  var email=$("emailRiskOwner")?$("emailRiskOwner").value.trim():"";
  var link=$("linkDprk")?$("linkDprk").value.trim():"";
  var catalogId=$("riskCatalog")?$("riskCatalog").value:"";
- var apiKey=$("apiKey")?$("apiKey").value.trim():"";
  if(!e)errors.push("Identitas entitas/operator belum dipilih atau diisi.");
- if(!apiKey)errors.push("API Key operator wajib diisi. Hubungi admin sistem bila belum memiliki kunci akses.");
  if(!state.type)errors.push("Jenis operator belum dipilih.");
  if(state.edit&&state.edit.originalOperatorId&&e&&String(e.operatorId||"")!==String(state.edit.originalOperatorId))errors.push("Identitas operator pada mode edit tidak boleh berubah. Buat pengisian baru bila risiko akan dipindahkan ke operator lain.");
  if(state.edit&&state.edit.originalJenisOperator&&e&&String(e.jenisOperator||"")!==String(state.edit.originalJenisOperator))errors.push("Jenis operator pada mode edit tidak boleh berubah. Buat pengisian baru untuk jenis operator lain.");
@@ -2447,7 +2431,6 @@ function showValidationErrors(errors){
 function save(){
  if($("website")&&$("website").value){return}
  var e=readEntity(),cat=$("kategori").value,sc=$("skenario").value.trim(),a=Number($("ancaman").value),k=Number($("kerentanan").value),c=Number($("konsekuensi").value),r=rating(a+k+c);
- if(e&&e.operatorId&&$("apiKey")&&!$("apiKey").value.trim()){var storedKey=getApiKey(e.operatorId);if(storedKey)$("apiKey").value=storedKey;}
  var validationErrors=validateForm(e,cat,sc,a,k,c);
  if(validationErrors.length){showValidationErrors(validationErrors);return}
  showValidationErrors([]);
@@ -2469,14 +2452,13 @@ function save(){
     state.pendingCreateFingerprint=fingerprint;
    }
   }
-  var p={action:wasEdit?"update":"create",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),apiKey:$("apiKey")?$("apiKey").value.trim():"",savedAt:new Date().toISOString()};
+  var p={action:wasEdit?"update":"create",id:wasEdit?state.edit.id:state.pendingCreateId,editToken:wasEdit?state.edit.editToken:state.pendingCreateToken,dprkEditToken:getDprkToken(e.operatorId,tahun),operatorId:e.operatorId,jenisOperator:e.jenisOperator,namaOperator:e.namaOperator,kodeOperator:e.kodeOperator,iata:e.iata,provinsi:e.provinsi||($("entityProv")?$("entityProv").value:""),kabkota:e.kabkota||($("entityKab")?$("entityKab").value:""),lokasi:e.lokasi,kelas:e.kelas,bulan:bulan,tahun:tahun,periodKey:buildPeriodKey(e),duplicateKey:buildDuplicateKey(e,cat,sc,bulan,tahun),namaPengisi:$("namaPengisi").value.trim(),jabatanPengisi:$("jabatanPengisi").value.trim(),riskOwner:$("riskOwner").value.trim(),emailRiskOwner:$("emailRiskOwner").value.trim(),tanggalPengesahan:$("tanggalPengesahan").value,tanggalKaji:$("tanggalKaji").value,linkFileDprk:$("linkDprk").value.trim(),kategori:cat,idRisikoKatalog:$("riskCatalog").value,skenario:sc,area:$("area").value.trim(),langkahSaatIni:$("langkahSaatIni").value.trim(),kerentananSaatIni:$("kerentananSaatIni").value.trim(),ancamanNilai:a,kerentananNilai:k,konsekuensiNilai:c,risikoNilai:a+k+c,risikoRating:r.l,perlakuan:$("perlakuan").value,prioritas:$("prioritas").value,langkahTambahan:$("langkahTambahan").value.trim(),keterangan:$("keterangan").value.trim(),savedAt:new Date().toISOString()};
   $("saveBtn").textContent=wasEdit?"Memperbarui...":"Menyimpan...";$("formNotice").innerHTML="";
   return post(p).then(function(res){
    if(!res.ok){
     if(res.code==="FORBIDDEN")throw Error((res.error||"Akses ditolak.")+" Periksa kembali API Key operator pada field di atas.");
     throw Error(res.error||"Gagal menyimpan");
    }
-   if(p.apiKey)setApiKey(p.operatorId,p.apiKey);
    if(res.dprkEditToken)setDprkToken(p.operatorId,p.tahun,res.dprkEditToken);
    saveLocalHistory(p,wasEdit?"update":"create",res.dprkEditToken||"");
    if(!wasEdit){state.pendingCreateId=null;state.pendingCreateToken=null;state.pendingCreateFingerprint=null}
