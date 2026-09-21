@@ -1935,6 +1935,7 @@ main {
 }
 #view-dashboard .opcard:hover {box-shadow:0 12px 26px rgba(2,10,22,.5);}
 #view-dashboard .opcard b {color:#fff;}
+#view-dashboard .opcard-num {font-size:28px;font-weight:800;color:#fff;}
 #view-dashboard .opcard .opmeta span:first-child {color:var(--dk-cyan);}
 #view-dashboard .opcard:nth-child(1):before {background:var(--dk-gold);}
 #view-dashboard .opcard:nth-child(2):before {background:var(--dk-cyan);}
@@ -2758,7 +2759,7 @@ function renderDashboard(){
  $("opcards").innerHTML=(d.byType||[]).map(function(x){
    return '<div class="opcard dashboard-selectable" data-dashboard-type="'+esc(x.jenisOperator)+'" role="button" tabindex="0" title="Tampilkan Risk Snapshot dan Threat Landscape untuk '+esc(x.jenisOperator)+'">'+
      '<b>'+esc(x.jenisOperator)+'</b>'+
-     '<div style="font-size:28px;font-weight:800;color:var(--navy)">'+(x.filled||0)+'</div>'+
+     '<div class="opcard-num">'+(x.filled||0)+'</div>'+
      '<div class="opmeta"><span>Sudah Mengisi</span><span>'+x.risk+' risiko tinggi</span></div>'+
    '</div>';
  }).join("");
