@@ -37,6 +37,24 @@
   --space-6:24px;
   --space-7:32px;
   --content-max:1320px;
+
+  /* Command-center dark theme (dashboard hero only) */
+  --dk-bg:#0a1c30;
+  --dk-bg2:#0d2848;
+  --dk-card:#0f2c4d;
+  --dk-card2:#0c2440;
+  --dk-border:rgba(255,255,255,.09);
+  --dk-border-strong:rgba(255,255,255,.16);
+  --dk-text:#eef4fb;
+  --dk-muted:rgba(238,244,251,.62);
+  --dk-cyan:#3fd8f2;
+  --dk-cyan-dim:rgba(63,216,242,.14);
+  --dk-gold:#f0b94a;
+  --dk-gold-dim:rgba(240,185,74,.14);
+  --dk-green:#5fd08a;
+  --dk-red:#ff7a72;
+  --dk-orange:#ffab5c;
+  --dk-shadow:0 10px 30px rgba(2,10,22,.45);
 }
 
 
@@ -106,9 +124,10 @@ button,input,select,textarea {
 
 .eyebrow {
   font-size:11px;
-  letter-spacing:.12em;
+  letter-spacing:.14em;
   text-transform:uppercase;
-  opacity:.7;
+  color:var(--dk-cyan);
+  font-weight:800;
 }
 
 .brand h1 {
@@ -156,7 +175,8 @@ button,input,select,textarea {
 
 .nav button.active {
   color:#fff;
-  border-color:var(--gold);
+  border-color:var(--dk-cyan);
+  text-shadow:0 0 14px rgba(63,216,242,.5);
 }
 
 .nav-wrap:after {content:"";position:absolute;top:0;right:0;bottom:3px;width:26px;background:linear-gradient(90deg,transparent,rgba(15,42,69,.35));pointer-events:none;display:none;}
@@ -1666,7 +1686,16 @@ main {
   margin:0;
 }
 
-.header {background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:24px 28px 0;box-shadow:var(--shadow);}
+.header {
+  background:
+    radial-gradient(1100px 260px at 12% -40%,rgba(63,216,242,.16),transparent 60%),
+    radial-gradient(900px 240px at 92% -30%,rgba(240,185,74,.10),transparent 60%),
+    linear-gradient(135deg,var(--dk-bg),var(--dk-bg2) 60%,var(--navy2));
+  color:#fff;
+  padding:24px 28px 0;
+  box-shadow:var(--dk-shadow);
+  border-bottom:1px solid var(--dk-border-strong);
+}
 
 
 
@@ -1808,6 +1837,214 @@ main {
 .threat-scale .threat-level-mh{background:var(--mh);}
 
 .threat-scale .threat-level-high{background:var(--high);}
+
+
+
+/* ===== DASHBOARD — COMMAND CENTER DARK THEME (scoped to Dashboard tab only) ===== */
+
+#view-dashboard {
+  background:var(--dk-bg);
+  border-radius:20px;
+  padding:20px;
+  margin-top:-2px;
+  box-shadow:inset 0 0 0 1px var(--dk-border);
+}
+
+#view-dashboard .dashboard-intro,
+#view-dashboard .card.dashboard-card,
+#view-dashboard .kpi {
+  background:linear-gradient(180deg,var(--dk-card),var(--dk-card2));
+  border-color:var(--dk-border);
+  box-shadow:var(--dk-shadow);
+  color:var(--dk-text);
+}
+
+#view-dashboard .dashboard-eyebrow,
+#view-dashboard .section-kicker {
+  color:var(--dk-cyan);
+}
+
+#view-dashboard .dashboard-intro h2,
+#view-dashboard .card h2 {
+  color:#fff;
+}
+
+#view-dashboard .dashboard-intro p,
+#view-dashboard .sub,
+#view-dashboard .opmeta,
+#view-dashboard .scenario-hint {
+  color:var(--dk-muted);
+}
+
+#view-dashboard .section-badge {
+  background:var(--dk-cyan-dim);
+  border-color:rgba(63,216,242,.3);
+  color:var(--dk-cyan);
+}
+
+#view-dashboard .live-status {
+  background:rgba(255,255,255,.04);
+  border-color:var(--dk-border-strong);
+}
+
+#view-dashboard .live-status b {color:#fff;}
+#view-dashboard .live-status small {color:var(--dk-muted);}
+#view-dashboard .live-dot {box-shadow:0 0 0 4px rgba(95,208,138,.18),0 0 10px rgba(95,208,138,.7);}
+
+/* KPI cards */
+#view-dashboard .kpi:hover {box-shadow:0 12px 30px rgba(2,10,22,.55);}
+#view-dashboard .kpi .l {color:var(--dk-muted);}
+#view-dashboard .kpi .n {color:#fff;font-size:30px;}
+#view-dashboard .kpi-tag {color:rgba(255,255,255,.45);}
+#view-dashboard .kpi-icon {background:rgba(255,255,255,.08);color:var(--dk-cyan);}
+#view-dashboard .executive-kpis .kpi:after {background:rgba(63,216,242,.05);}
+
+#view-dashboard .kpi-primary {border-top-color:var(--dk-gold);}
+#view-dashboard .kpi-primary .kpi-icon {background:var(--dk-gold-dim);color:var(--dk-gold);}
+#view-dashboard .kpi-primary .n {color:var(--dk-gold);}
+
+#view-dashboard .kpi-danger {border-top-color:var(--dk-red);}
+#view-dashboard .kpi-danger .kpi-icon {background:rgba(255,122,114,.14);color:var(--dk-red);}
+#view-dashboard .kpi-danger .n {color:var(--dk-red);}
+
+#view-dashboard .kpi-warning {border-top-color:var(--dk-orange);}
+#view-dashboard .kpi-warning .kpi-icon {background:rgba(255,171,92,.14);color:var(--dk-orange);}
+#view-dashboard .kpi-warning .n {color:var(--dk-orange);}
+
+#view-dashboard .kpi-muted {border-top-color:rgba(255,255,255,.25);}
+#view-dashboard .kpi-muted .kpi-icon {background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);}
+#view-dashboard .kpi-muted .n {color:rgba(255,255,255,.85);}
+
+#view-dashboard .kpi .n.is-loading {
+  background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.16) 37%,rgba(255,255,255,.08) 63%);
+  background-size:400% 100%;
+}
+
+/* Operator status cards */
+#view-dashboard .opcard {
+  background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
+  border-color:var(--dk-border);
+}
+#view-dashboard .opcard:hover {box-shadow:0 12px 26px rgba(2,10,22,.5);}
+#view-dashboard .opcard b {color:#fff;}
+#view-dashboard .opcard .opmeta span:first-child {color:var(--dk-cyan);}
+#view-dashboard .opcard:nth-child(1):before {background:var(--dk-gold);}
+#view-dashboard .opcard:nth-child(2):before {background:var(--dk-cyan);}
+#view-dashboard .opcard:nth-child(3):before {background:#5a92b8;}
+#view-dashboard .opcard:nth-child(4):before {background:#8098ab;}
+#view-dashboard .opcard.dashboard-selectable.selected {
+  border-color:var(--dk-cyan);
+  background:linear-gradient(180deg,rgba(63,216,242,.10),rgba(63,216,242,.03));
+  box-shadow:0 0 0 2px rgba(63,216,242,.18),0 12px 26px rgba(2,10,22,.5);
+}
+
+/* Filter bars + form controls inside dashboard tab */
+#view-dashboard .dashboard-filter-bar {
+  background:rgba(255,255,255,.03);
+  border-color:var(--dk-border);
+}
+#view-dashboard .dashboard-filter-bar b {color:#fff;}
+#view-dashboard .dashboard-filter-bar small {color:var(--dk-muted);}
+#view-dashboard select,
+#view-dashboard input {
+  background:rgba(255,255,255,.04);
+  border-color:var(--dk-border-strong);
+  color:var(--dk-text);
+}
+#view-dashboard select:focus,
+#view-dashboard input:focus {
+  border-color:var(--dk-cyan);
+  box-shadow:0 0 0 3px rgba(63,216,242,.15);
+  outline:none;
+}
+#view-dashboard select option {color:#0b1220;}
+
+/* Risk snapshot donut */
+#view-dashboard .risk-donut {
+  background:conic-gradient(rgba(255,255,255,.10) 0deg 360deg);
+  box-shadow:inset 0 0 0 1px var(--dk-border-strong);
+}
+#view-dashboard .risk-donut-hole {
+  background:var(--dk-bg2);
+  box-shadow:0 4px 20px rgba(2,10,22,.5);
+}
+#view-dashboard .risk-donut-hole b {color:#fff;}
+#view-dashboard .risk-donut-hole span {color:var(--dk-muted);}
+#view-dashboard .risk-donut-hole small {
+  background:var(--dk-cyan-dim);
+  border-color:rgba(63,216,242,.3);
+  color:var(--dk-cyan);
+}
+#view-dashboard .risk-legend-item {
+  background:rgba(255,255,255,.03);
+  border-color:var(--dk-border);
+}
+#view-dashboard .risk-legend-item:hover {background:rgba(255,255,255,.06);}
+#view-dashboard .risk-legend-name {color:#fff;}
+#view-dashboard .risk-legend-value {color:#fff;}
+#view-dashboard .risk-legend-pct {color:var(--dk-muted);}
+#view-dashboard .risk-dominant {
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.16);
+  color:#fff;
+}
+#view-dashboard .risk-snapshot-card .section-head,
+#view-dashboard .threat-landscape-card .section-head {
+  border-bottom-color:var(--dk-border);
+}
+
+/* Threat landscape list */
+#view-dashboard .threat-item {border-bottom-color:rgba(255,255,255,.06);}
+#view-dashboard .threat-code {background:var(--dk-cyan);color:#052029;}
+#view-dashboard .threat-name {color:var(--dk-text);}
+#view-dashboard .threat-item .bar {background:rgba(255,255,255,.08);}
+#view-dashboard .threat-scale {border-top-color:var(--dk-border);color:var(--dk-muted);}
+#view-dashboard .threat-landscape-card #catbars::-webkit-scrollbar-thumb {background:rgba(255,255,255,.18);}
+
+/* Section divider inside dark cards */
+#view-dashboard .section-divider {background:var(--dk-border);}
+
+/* Notice / alert banners inside the dark dashboard tab */
+#view-dashboard .notice {
+  background:rgba(240,185,74,.12);
+  border-color:rgba(240,185,74,.35);
+  color:var(--dk-gold);
+}
+#view-dashboard .empty {color:var(--dk-muted);}
+
+/* ===== SENTUHAN AKSEN GELAP — kartu ringkasan non-tabel di tab lain ===== */
+/* Mini-stat cards (Monitoring Operator & Monitoring Risiko) dan KPI box (Trend & Analitik). */
+/* Tabel, form, filter panel, dan canvas chart TIDAK disentuh — tetap terang untuk keterbacaan. */
+
+#view-operator .mini-stat,
+#view-risk .mini-stat,
+#view-trend .analytics-stat {
+  background:linear-gradient(180deg,var(--dk-card),var(--dk-card2));
+  border-color:var(--dk-border);
+  box-shadow:var(--dk-shadow);
+}
+
+#view-operator .mini-stat span,
+#view-risk .mini-stat span {
+  color:var(--dk-cyan);
+}
+
+#view-operator .mini-stat b,
+#view-risk .mini-stat b {
+  color:#fff;
+}
+
+#view-trend .analytics-stat .label {
+  color:var(--dk-cyan);
+}
+
+#view-trend .analytics-stat .value {
+  color:#fff;
+}
+
+#view-trend .analytics-stat .hint {
+  color:var(--dk-muted);
+}
 
 
 
