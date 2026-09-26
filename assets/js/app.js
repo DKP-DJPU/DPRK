@@ -2157,6 +2157,10 @@
     operators: function () {
       return (state.operators || []).filter(isActiveOp);
     },
+    // Semua operator termasuk Nonaktif (tabel Monitoring Operator menampilkan semuanya).
+    allOperators: function () {
+      return state.operators || [];
+    },
     operatorsLoaded: function () {
       return !!state.operatorsLoaded;
     },

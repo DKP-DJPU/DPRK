@@ -52,7 +52,7 @@
       .trim();
   }
   function findOperator(id) {
-    return S.operators().filter(function (o) {
+    return (S.allOperators ? S.allOperators() : S.operators()).filter(function (o) {
       return String(o.operatorId) === String(id);
     })[0];
   }
