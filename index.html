@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/pelaporan.css">
+<link rel="stylesheet" href="assets/css/operator-detail.css">
 </head>
 <body>
 <div class="app">
@@ -154,7 +155,7 @@
 </section>
 
 <section id="view-operator" class="view">
-  <div class="card">
+  <div class="card" id="opListCard">
     <div class="data-summary"><div class="mini-stat"><span>Total Ditampilkan</span><b id="opCount">0</b></div><div class="mini-stat"><span>Sudah Mengisi</span><b id="opFilled">0</b></div><div class="mini-stat"><span>Belum Mengisi</span><b id="opUnfilled">0</b></div><div class="mini-stat"><span>Filter Aktif</span><b id="opFilterState">Semua</b></div></div>
     <div class="toolbar-panel">
       <div class="toolbar-field"><label>Jenis Operator</label><select id="opFilterType"><option value="">Semua Jenis Operator</option></select></div>
@@ -164,6 +165,7 @@
     </div>
     <div class="tablewrap"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Lokasi</th><th>Status DPRK</th><th>Skenario</th><th>Kaji Ulang</th></tr></thead><tbody id="opTbody"></tbody></table></div>
   </div>
+  <div id="opDetail" class="opd" hidden aria-live="polite"></div>
 </section>
 
 <section id="view-risk" class="view">
@@ -381,5 +383,6 @@
 
 <script src="assets/js/app.js"></script>
 <script src="assets/js/pelaporan.js"></script>
+<script src="assets/js/operator-detail.js"></script>
 </body>
 </html>
