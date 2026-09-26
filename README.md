@@ -9,10 +9,14 @@ Frontend statis yang di-host di GitHub Pages dan membaca/menulis data melalui Go
 ```
 index.html                 Struktur halaman (header, tab, form, tabel)
 assets/css/app.css         Semua gaya tampilan
+assets/css/pelaporan.css   Gaya tab Sistem Pelaporan (kelas berawalan .plp-)
 assets/js/app.js           Logika aplikasi (ambil data, form, dashboard, grafik)
+assets/js/pelaporan.js     Tab Sistem Pelaporan (formulir 5W+1H, daftar & rekap, dokumen)
 assets/img/logo.png        Logo
 data/katalog-risiko.json   Katalog kategori (01–19) dan skenario risiko
 data/bandara-cadangan.json Daftar bandara cadangan — hanya dipakai bila MASTER_OPERATOR gagal dimuat
+apps-script/Pelaporan.gs   Modul server pelaporan (ditempel di proyek Apps Script)
+apps-script/PERUBAHAN-Code.gs.md  Langkah pemasangan modul server pelaporan
 ```
 
 - **Data operator** (bandara, airlines, LPPNPI, regulated agent) **tidak** disimpan di repositori ini.
@@ -29,7 +33,15 @@ python3 -m http.server 8000
 # buka http://localhost:8000
 ```
 
-## Menambah tab baru (mis. Sistem Pelaporan Keamanan Penerbangan)
+## Sistem Pelaporan Keamanan Penerbangan
+
+- Data laporan disimpan di sheet `LAPORAN_INSIDEN` (spreadsheet yang sama dengan SI-RISK).
+- Setiap laporan diberi penanda **AVSEC / Non-AVSEC / Perlu Klasifikasi** sesuai jenis kejadian.
+- Daftar publik (`?action=incidents`) **tidak** memuat nama, instansi, HP, email pelapor, maupun catatan.
+- Status verifikasi (`Baru` / `Terverifikasi` / `Ditolak`) diubah admin langsung di sheet.
+- Pemasangan server: lihat [`apps-script/PERUBAHAN-Code.gs.md`](apps-script/PERUBAHAN-Code.gs.md).
+
+## Menambah tab baru
 
 1. **Tombol tab** — di `index.html`, tambahkan di dalam `<nav class="nav">`:
    `<button data-view="pelaporan" role="tab" aria-selected="false">Sistem Pelaporan</button>`
@@ -37,7 +49,8 @@ python3 -m http.server 8000
    Nama setelah `view-` harus sama dengan `data-view` pada tombol.
 3. **Logika** — bila tab butuh memuat data saat dibuka, tambahkan pemanggilnya di fungsi `bind()`
    pada `assets/js/app.js` (lihat pola `if (b.dataset.view === "operator") loadOperators();`).
-   Untuk fitur besar, sebaiknya buat file baru `assets/js/pelaporan.js` dan muat setelah `app.js`.
+   Untuk fitur besar, buat file terpisah (contoh: `assets/js/pelaporan.js`) yang dimuat setelah `app.js`
+   dan memakai `window.SIRISK` (GAS_URL, get, post, esc, operators, kategori).
 4. **Server** — endpoint baru ditambahkan di `doGet`/`doPost` Apps Script, beserta sheet baru bila perlu.
 
 ## Alur perubahan
