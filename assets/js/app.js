@@ -252,6 +252,7 @@
           renderTypes();
           if (!state.entity) renderEntityArea();
           else if (state.type === "Bandar Udara") renderEntityArea();
+          document.dispatchEvent(new CustomEvent("sirisk:operators"));
         }
       })
       .catch(function (e) {
@@ -659,6 +660,7 @@
         if (b.dataset.view === "operator") loadOperators();
         if (b.dataset.view === "risk") loadRisks();
         if (b.dataset.view === "trend") renderTrends();
+        if (b.dataset.view === "pelaporan" && window.SIRISK_PELAPORAN) window.SIRISK_PELAPORAN.show();
       };
     });
     $("kategori").onchange = function () {
@@ -2142,6 +2144,23 @@
       });
     });
   }
+  // API bersama untuk modul lain (mis. assets/js/pelaporan.js).
+  window.SIRISK = {
+    GAS_URL: GAS_URL,
+    get: get,
+    post: post,
+    esc: esc,
+    provinsi: PROVINSI,
+    operators: function () {
+      return (state.operators || []).filter(isActiveOp);
+    },
+    operatorsLoaded: function () {
+      return !!state.operatorsLoaded;
+    },
+    kategori: function () {
+      return KATEGORI;
+    },
+  };
   loadStaticData()
     .then(init)
     .catch(function (e) {

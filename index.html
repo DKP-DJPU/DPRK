@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/pelaporan.css">
 </head>
 <body>
 <div class="app">
@@ -22,6 +23,7 @@
     <button data-view="operator" role="tab" aria-selected="false">Monitoring Operator</button>
     <button data-view="risk" role="tab" aria-selected="false">Monitoring Risiko</button>
     <button data-view="trend" role="tab" aria-selected="false">Trend & Analitik</button>
+    <button data-view="pelaporan" role="tab" aria-selected="false">Sistem Pelaporan</button>
   </nav>
   </div>
 </header>
@@ -185,10 +187,199 @@
   </div>
   <div class="card review-card"><div class="section-head"><div><div class="section-kicker">REVIEW AGENDA</div><h2>Monitoring Kaji Ulang</h2><div class="sub">Daftar agregat entitas dengan tanggal kaji ulang yang mendekat.</div></div><div class="section-badge">UPCOMING REVIEW</div></div><div class="tablewrap"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Tanggal Kaji</th><th>Status</th></tr></thead><tbody id="reviewTbody"></tbody></table></div></div>
 </section>
+
+<section id="view-pelaporan" class="view" aria-label="Sistem Pelaporan Keamanan Penerbangan">
+  <div class="card plp-intro">
+    <div class="section-head">
+      <div>
+        <div class="section-kicker">SISTEM PELAPORAN</div>
+        <h2>Pelaporan Kejadian Keamanan Penerbangan</h2>
+        <div class="sub">Catat setiap kejadian dengan struktur 5W+1H. Kejadian otomatis diberi penanda <b>AVSEC</b> atau <b>Non-AVSEC</b> sesuai jenisnya.</div>
+      </div>
+      <div class="plp-subnav" role="tablist" aria-label="Menu pelaporan">
+        <button type="button" class="plp-subtab active" data-plp="form" role="tab" aria-selected="true">Formulir Laporan</button>
+        <button type="button" class="plp-subtab" data-plp="list" role="tab" aria-selected="false">Daftar &amp; Rekap</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FORMULIR ===== -->
+  <div id="plpForm" class="plp-panel">
+    <div id="plpFormNotice"></div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">APA</span><div><h2>Informasi Umum Kejadian</h2></div></div>
+      <div class="formgrid">
+        <div class="field full"><label for="plpJudul">Judul singkat kejadian <span class="plp-req">*</span></label><input id="plpJudul" maxlength="200" placeholder="Contoh: Penemuan benda mencurigakan di area steril Terminal 2"></div>
+        <div class="field"><label for="plpJenis">Jenis kejadian <span class="plp-req">*</span></label>
+          <select id="plpJenis">
+            <option value="">— Pilih jenis —</option>
+            <optgroup label="Keamanan penerbangan (AVSEC)">
+              <option>Ancaman keamanan (unlawful interference)</option>
+              <option>Pelanggaran prosedur keamanan (security breach)</option>
+              <option>Isu regulasi / kebijakan keamanan</option>
+              <option>Kegiatan pengawasan / inspeksi / audit</option>
+              <option>Latihan / simulasi keamanan</option>
+              <option>Berita media terkait keamanan penerbangan</option>
+            </optgroup>
+            <optgroup label="Di luar keamanan (Non-AVSEC)">
+              <option>Kecelakaan penerbangan</option>
+              <option>Insiden serius / near-miss</option>
+              <option>Gangguan operasional bandara/maskapai</option>
+            </optgroup>
+            <optgroup label="Lainnya">
+              <option>Lainnya</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field"><label>Penanda lingkup</label><div id="plpLingkup" class="plp-lingkup-box"><span class="plp-muted">Pilih jenis kejadian terlebih dahulu</span></div></div>
+        <div class="field full" id="plpKategoriWrap" hidden><label for="plpKategori">Kategori ancaman (katalog risiko 01–19) <span class="plp-hint">opsional — menghubungkan laporan dengan penilaian risiko DPRK</span></label><select id="plpKategori"><option value="">— Belum ditentukan —</option></select></div>
+        <div class="field full"><label for="plpRingkasan">Ringkasan kejadian <span class="plp-hint">2–4 kalimat, inti dari apa yang terjadi</span></label><textarea id="plpRingkasan" placeholder="Jelaskan secara singkat apa yang terjadi..."></textarea></div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">KAPAN</span><div><h2>Waktu Kejadian</h2></div></div>
+      <div class="formgrid">
+        <div class="field"><label for="plpTanggal">Tanggal kejadian <span class="plp-req">*</span></label><input id="plpTanggal" type="date"></div>
+        <div class="field"><label for="plpJam">Jam kejadian <span class="plp-hint">opsional, waktu setempat</span></label><input id="plpJam" type="time"></div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">DI MANA</span><div><h2>Lokasi</h2></div></div>
+      <div class="formgrid">
+        <div class="field full">
+          <label for="plpBandaraSearch">Bandar udara <span class="plp-hint">dipilih dari MASTER_OPERATOR</span></label>
+          <input id="plpBandaraSearch" placeholder="Ketik nama bandara, kota, atau kode IATA..." autocomplete="off">
+          <div id="plpBandaraResults" class="plp-results" hidden></div>
+          <div id="plpBandaraSelected"></div>
+          <label class="plp-check"><input type="checkbox" id="plpLuarBandara"> Kejadian di luar area bandar udara</label>
+        </div>
+        <div class="field"><label for="plpProvinsi">Provinsi</label><select id="plpProvinsi"><option value="">— Pilih provinsi —</option></select></div>
+        <div class="field"><label for="plpOtoritas">Kantor otoritas wilayah</label>
+          <select id="plpOtoritas">
+            <option value="">— Pilih kantor otoritas —</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah I</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah II</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah III</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah IV</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah V</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah VI</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah VII</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah VIII</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah IX</option>
+            <option>Kantor Otoritas Bandar Udara Wilayah X</option>
+            <option>Tidak diketahui / di luar wilayah OBU</option>
+          </select>
+        </div>
+        <div class="field full"><label for="plpLokasiDetail">Detail lokasi</label><input id="plpLokasiDetail" maxlength="500" placeholder="Contoh: Terminal 3, area check-in / SCP 2 / apron remote"></div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">SIAPA</span><div><h2>Pihak yang Terlibat</h2></div></div>
+      <div class="formgrid">
+        <div class="field full">
+          <label for="plpPihakSearch">Operator terlibat <span class="plp-hint">cari bandara, airline, LPPNPI, atau regulated agent — bisa lebih dari satu</span></label>
+          <input id="plpPihakSearch" placeholder="Ketik nama operator..." autocomplete="off">
+          <div id="plpPihakResults" class="plp-results" hidden></div>
+          <div id="plpPihakChips" class="plp-chips"></div>
+        </div>
+        <div class="field full"><label for="plpPihakLain">Pihak lain yang terlibat</label><input id="plpPihakLain" maxlength="500" placeholder="Contoh: petugas AVSEC, penumpang, pihak ketiga..."></div>
+        <div class="field"><label for="plpPenangan">Otoritas/instansi yang menangani</label><input id="plpPenangan" maxlength="500" placeholder="Contoh: AVSEC Bandara, Kepolisian, KNKT"></div>
+        <div class="field"><label for="plpTerdampak">Pihak terdampak / korban</label><input id="plpTerdampak" maxlength="500" placeholder="Tulis &quot;Tidak ada&quot; bila nihil"></div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">MENGAPA</span><div><h2>Latar Belakang dan Faktor Kejadian</h2></div></div>
+      <div class="field"><label for="plpPenyebab">Latar belakang dan faktor kejadian</label><textarea id="plpPenyebab" placeholder="Uraikan penyebab utama, latar belakang, dan faktor yang berkontribusi..."></textarea></div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">BAGAIMANA</span><div><h2>Kronologi dan Dampak</h2></div></div>
+      <div class="field"><label for="plpKronologi">Kronologi kejadian secara berurutan</label><textarea id="plpKronologi" placeholder="Uraikan urutan kejadian dari awal hingga akhir..."></textarea></div>
+      <div class="field"><label>Tingkat keparahan / dampak <span class="plp-req">*</span></label>
+        <div class="plp-sev-row" role="radiogroup" aria-label="Tingkat keparahan">
+          <label class="plp-sev plp-sev-Rendah"><input type="radio" name="plpSeverity" value="Rendah" checked>Rendah</label>
+          <label class="plp-sev plp-sev-Sedang"><input type="radio" name="plpSeverity" value="Sedang">Sedang</label>
+          <label class="plp-sev plp-sev-Tinggi"><input type="radio" name="plpSeverity" value="Tinggi">Tinggi</label>
+          <label class="plp-sev plp-sev-Kritis"><input type="radio" name="plpSeverity" value="Kritis">Kritis</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">SUMBER</span><div><h2>Sumber Informasi</h2></div></div>
+      <div class="formgrid">
+        <div class="field"><label for="plpSumber">Sumber informasi</label>
+          <select id="plpSumber">
+            <option>Laporan langsung / pengamatan lapangan</option>
+            <option>Berita media massa</option>
+            <option>Laporan internal maskapai/operator</option>
+            <option>Hasil pengawasan/inspeksi</option>
+            <option>Lainnya</option>
+          </select>
+        </div>
+        <div class="field"><label for="plpNamaMedia">Nama media <span class="plp-hint">bila sumber = media</span></label><input id="plpNamaMedia" maxlength="120" placeholder="Contoh: Kompas, Antara"></div>
+        <div class="field full"><label for="plpLinkMedia">Tautan berita <span class="plp-hint">bila ada</span></label><input id="plpLinkMedia" type="url" maxlength="500" placeholder="https://..."></div>
+      </div>
+    </div>
+
+    <div class="card step-card">
+      <div class="step-head"><span class="plp-badge">PELAPOR</span><div><h2>Data Pelapor</h2></div></div>
+      <div class="notice">Data pelapor hanya tersimpan di database internal dan <b>tidak ditampilkan</b> di daftar laporan.</div>
+      <div class="formgrid">
+        <div class="field"><label for="plpNamaPelapor">Nama pelapor <span class="plp-req">*</span></label><input id="plpNamaPelapor" maxlength="120" autocomplete="name"></div>
+        <div class="field"><label for="plpInstansi">Instansi / unit kerja</label><input id="plpInstansi" maxlength="200" autocomplete="organization"></div>
+        <div class="field"><label for="plpHp">No. HP</label><input id="plpHp" type="tel" maxlength="30" autocomplete="tel" placeholder="08xxxxxxxxxx"></div>
+        <div class="field"><label for="plpEmail">Email</label><input id="plpEmail" type="email" maxlength="120" autocomplete="email" placeholder="nama@instansi.go.id"></div>
+        <div class="field full"><label for="plpCatatan">Catatan tambahan <span class="plp-hint">opsional, tidak ditampilkan publik</span></label><textarea id="plpCatatan"></textarea></div>
+      </div>
+      <div class="honeypot-field" aria-hidden="true"><label for="plpWebsite">Website</label><input id="plpWebsite" tabindex="-1" autocomplete="off"></div>
+    </div>
+
+    <div class="form-actions">
+      <div class="action-note"><span class="plp-req">*</span> wajib diisi. Nomor referensi dibuat otomatis oleh sistem.</div>
+      <div class="toolbar"><button type="button" class="btn secondary" id="plpReset">Bersihkan Formulir</button><button type="button" class="btn primary" id="plpSubmit">Kirim Laporan</button></div>
+    </div>
+  </div>
+
+  <!-- ===== DAFTAR & REKAP ===== -->
+  <div id="plpList" class="plp-panel" hidden>
+    <div class="card">
+      <div class="data-summary">
+        <div class="mini-stat"><span>Total Laporan</span><b id="plpStatTotal">0</b></div>
+        <div class="mini-stat"><span>Kejadian AVSEC</span><b id="plpStatAvsec">0</b></div>
+        <div class="mini-stat"><span>AVSEC Tinggi/Kritis</span><b id="plpStatHigh">0</b></div>
+        <div class="mini-stat"><span>Menunggu Verifikasi</span><b id="plpStatPending">0</b></div>
+      </div>
+      <div class="toolbar-panel plp-filter-panel">
+        <div class="toolbar-field"><label for="plpFLingkup">Lingkup</label><select id="plpFLingkup"><option value="">Semua lingkup</option><option>AVSEC</option><option>Non-AVSEC</option><option>Perlu Klasifikasi</option></select></div>
+        <div class="toolbar-field"><label for="plpFJenis">Jenis kejadian</label><select id="plpFJenis"><option value="">Semua jenis</option></select></div>
+        <div class="toolbar-field"><label for="plpFProv">Provinsi</label><select id="plpFProv"><option value="">Semua provinsi</option></select></div>
+        <div class="toolbar-field"><label for="plpFSev">Keparahan</label><select id="plpFSev"><option value="">Semua level</option><option>Rendah</option><option>Sedang</option><option>Tinggi</option><option>Kritis</option></select></div>
+        <div class="toolbar-field plp-search-field"><label for="plpFSearch">Pencarian</label><input id="plpFSearch" placeholder="Cari judul, lokasi, pihak..."></div>
+        <div class="toolbar-action"><button type="button" class="btn secondary" id="plpRefresh">Muat Ulang</button></div>
+      </div>
+      <div class="tablewrap"><table class="plp-table"><thead><tr><th>No. Ref</th><th>Kejadian</th><th>Lokasi</th><th>Tanggal</th><th>Keparahan</th><th>Status</th></tr></thead><tbody id="plpTbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ===== DETAIL / DOKUMEN ===== -->
+  <div id="plpDetail" class="plp-panel" hidden>
+    <div class="card plp-doc-wrap">
+      <div class="plp-doc-toolbar"><button type="button" class="btn secondary" id="plpBack">← Kembali ke Daftar</button><div class="toolbar"><button type="button" class="btn secondary" id="plpPrint">Cetak / Simpan PDF</button><button type="button" class="btn primary" id="plpWord">Unduh Word (.doc)</button></div></div>
+      <div id="plpDoc" class="plp-doc"></div>
+    </div>
+  </div>
+</section>
 </main>
 <div class="footer">SI-RISK AVSEC • DPRK Nasional V3.27 (Sprint 1: proteksi kepemilikan DPRK, merge master operator, recompute risiko server-side) • Google Sheets + Google Apps Script • Dashboard umum tidak menampilkan detail keamanan internal atau edit token.</div>
 </div>
 
 <script src="assets/js/app.js"></script>
+<script src="assets/js/pelaporan.js"></script>
 </body>
 </html>
