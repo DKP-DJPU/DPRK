@@ -2384,10 +2384,9 @@ var AIRPORT_REGIONS={"TJQ":["Kepulauan Bangka Belitung","Kabupaten Belitung"],"D
 function airportRegion(a){
  var i=String(a&&a[3]||"").toUpperCase();
  var oid="BD-"+String(a&&a[0]||"");
- var master=(state.operators||[]).filter(function(x){
-   return String(x.operatorId||"")===oid ||
-          (String(x.iata||"").toUpperCase()===i && String(x.jenisOperator||"")==="Bandar Udara");
- })[0];
+ var ops=state.operators||[];
+ var master=ops.filter(function(x){return String(x.operatorId||"")===oid})[0]||
+   (i?ops.filter(function(x){return String(x.iata||"").toUpperCase()===i && String(x.jenisOperator||"")==="Bandar Udara"})[0]:null);
  if(master && (master.provinsi||master.kabkota)){
    return[String(master.provinsi||""),String(master.kabkota||"")];
  }
@@ -2435,23 +2434,32 @@ function init(){
 function loadOperatorMasterForForm(){
  get("operators").then(function(res){
    if(res&&res.ok){
-     state.operators=res.data||[];enrichRiskLocations();initDashboardLocationFilters();
-     if(state.type==="Bandar Udara" && state.entity) renderEntityArea();
+     state.operators=res.data||[];state.operatorsLoaded=true;enrichRiskLocations();initDashboardLocationFilters();
+     renderTypes();if(!state.entity)renderEntityArea();else if(state.type==="Bandar Udara") renderEntityArea();
    }
  }).catch(function(e){
-   console.warn("MASTER_OPERATOR belum dapat dimuat:",e);
+   console.warn("MASTER_OPERATOR belum dapat dimuat:",e);state.operatorsError=true;renderTypes();
  });
 }
+function isActiveOp(o){return String(o&&o.aktif).toLowerCase()!=="false"}
+function activeOpsByType(t){return(state.operators||[]).filter(function(o){return isActiveOp(o)&&String(o.jenisOperator||"")===t})}
+var TYPE_UNIT={"Bandar Udara":"bandara","Airlines":"badan usaha angkutan udara","LPPNPI":"cabang LPPNPI","Regulated Agent":"lokasi regulated agent"};
+function typeCountLabel(t,fallback){if(!state.operatorsLoaded)return state.operatorsError?fallback:"Memuat jumlah dari master...";var n=activeOpsByType(t).length;return n+" "+(TYPE_UNIT[t]||"entitas")+" aktif"}
+function airportList(){
+ var m=activeOpsByType("Bandar Udara");
+ if(!m.length)return AIRPORTS;
+ return m.map(function(o){var a=[String(o.operatorId||"").replace(/^BD-/,""),String(o.namaOperator||""),String(o.kabkota||o.lokasi||""),String(o.iata||o.kodeOperator||""),String(o.kelas||"")];a.operatorId=String(o.operatorId||"");return a}).sort(function(a,b){return a[1].localeCompare(b[1])});
+}
 function renderTypes(){
- $("types").innerHTML=TYPES.map(function(t){return'<label class="type '+(state.type===t[0]?"selected":"")+'"><input type="radio" name="entityType" value="'+esc(t[0])+'"><b>'+esc(t[1])+'</b><small>'+esc(t[2])+'</small></label>'}).join("");
+ $("types").innerHTML=TYPES.map(function(t){return'<label class="type '+(state.type===t[0]?"selected":"")+'"><input type="radio" name="entityType" value="'+esc(t[0])+'"><b>'+esc(t[1])+'</b><small>'+esc(typeCountLabel(t[0],t[2]))+'</small></label>'}).join("")+(state.operatorsLoaded?'<div class="scenario-hint full" style="grid-column:1/-1">Total '+(state.operators||[]).filter(isActiveOp).length+' operator aktif terdaftar di MASTER_OPERATOR.</div>':"");
  Array.prototype.forEach.call(document.querySelectorAll("input[name=entityType]"),function(r){r.checked=r.value===state.type;r.disabled=!!state.edit;r.onchange=function(){if(this.disabled)return;state.type=this.value;state.entity=null;renderTypes();renderEntityArea();clearScenarioSelection();filterCatalog()}})
 }
 function renderEntityArea(){
  var a=$("entityArea");
  if(!state.type){a.innerHTML='<div class="notice">Pilih salah satu dari 4 jenis operator untuk melanjutkan.</div>';return}
  if(state.type==="Bandar Udara"){
-  a.innerHTML='<div class="field"><label>Nama Bandar Udara</label><input id="entitySearch" placeholder="Ketik nama bandara atau kota..."><div id="entityResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div></div><div id="entitySelected"></div>';
-  $("entitySearch").oninput=function(){var q=this.value.toLowerCase(),arr=AIRPORTS.filter(function(x){return(x[1]+" "+x[2]+" "+x[3]).toLowerCase().indexOf(q)>-1}).slice(0,25),box=$("entityResults");box.innerHTML=arr.map(function(x){return'<div style="padding:9px;border-bottom:1px solid #edf1f5;cursor:pointer" data-id="'+x[0]+'"><b>'+esc(x[1])+'</b> '+esc(x[3]||"")+'<br><small>'+esc(x[2])+' • Kelas '+esc(x[4]||"-")+'</small></div>'}).join("")||'<div class="empty">Tidak ditemukan.</div>';box.style.display="block";Array.prototype.forEach.call(box.children,function(el){el.onclick=function(){var id=this.getAttribute("data-id");state.entity=AIRPORTS.filter(function(x){return x[0]===id})[0];renderEntityArea()}})};
+  a.innerHTML='<div class="field"><label>Nama Bandar Udara</label><input id="entitySearch" placeholder="Ketik nama bandara atau kota... ('+esc(airportList().length)+' bandara aktif)"><div id="entityResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div></div><div id="entitySelected"></div>';
+  $("entitySearch").oninput=function(){var q=this.value.toLowerCase(),arr=airportList().filter(function(x){return(x[1]+" "+x[2]+" "+x[3]).toLowerCase().indexOf(q)>-1}).slice(0,25),box=$("entityResults");box.innerHTML=arr.map(function(x){return'<div style="padding:9px;border-bottom:1px solid #edf1f5;cursor:pointer" data-id="'+x[0]+'"><b>'+esc(x[1])+'</b> '+esc(x[3]||"")+'<br><small>'+esc(x[2])+' • Kelas '+esc(x[4]||"-")+'</small></div>'}).join("")||'<div class="empty">Tidak ditemukan.</div>';box.style.display="block";Array.prototype.forEach.call(box.children,function(el){el.onclick=function(){var id=this.getAttribute("data-id");state.entity=airportList().filter(function(x){return x[0]===id})[0];renderEntityArea()}})};
   if(state.edit){$("entitySearch").disabled=true;}
   if(state.entity){
  var rg=airportRegion(state.entity);
@@ -2459,7 +2467,14 @@ function renderEntityArea(){
  $("entitySelected").innerHTML='<div class="notice ok"><b>'+esc(state.entity[1])+'</b> • '+esc(state.entity[3]||"-")+' • '+esc(state.entity[2])+' • Kelas '+esc(state.entity[4]||"-")+(source?' • Wilayah dari MASTER_OPERATOR':'')+'</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Provinsi</label><input id="airportProv" value="'+esc(rg[0])+'" readonly></div><div class="field"><label>Kabupaten/Kota</label><input id="airportKab" value="'+esc(rg[1])+'" readonly></div></div>';
 }
  }else{
-  a.innerHTML='<div class="formgrid"><div class="field"><label>Nama Entitas / Unit</label><input id="entityName" placeholder="Nama '+esc(state.type)+'"></div><div class="field"><label>Kode / ICAO / Identitas (opsional)</label><input id="entityCode" placeholder="Kode identitas"></div><div class="field"><label>Provinsi</label><select id="entityProv"><option value="">Pilih provinsi</option>'+PROVINSI.map(function(x){return'<option>'+x+'</option>'}).join("")+'</select></div><div class="field"><label>Kabupaten/Kota</label><input id="entityKab" placeholder="Kabupaten/Kota"></div><div class="field full"><label>Lokasi / Basis / Fasilitas</label><input id="entityLoc" placeholder="Lokasi operasional"></div></div>';
+  var mlist=activeOpsByType(state.type);
+  a.innerHTML=(mlist.length?'<div class="field"><label>Cari '+esc(state.type)+' dari master ('+mlist.length+' terdaftar)</label><input id="masterSearch" placeholder="Ketik nama, kode, atau kota..."><div id="masterResults" style="border:1px solid var(--line);border-radius:9px;max-height:230px;overflow:auto;display:none;background:#fff"></div>'+(state.entity&&state.entity.operatorId&&mlist.some(function(o){return String(o.operatorId)===String(state.entity.operatorId)})?'<div class="notice ok" style="margin-top:8px">Terhubung ke MASTER_OPERATOR: <b>'+esc(state.entity.nama)+'</b> • '+esc(state.entity.operatorId)+'</div>':'<div class="scenario-hint">Pilih dari daftar agar data tersambung ke master. Isi manual di bawah hanya jika entitas belum terdaftar.</div>')+'</div>':'')+'<div class="formgrid"><div class="field"><label>Nama Entitas / Unit</label><input id="entityName" placeholder="Nama '+esc(state.type)+'"></div><div class="field"><label>Kode / ICAO / Identitas (opsional)</label><input id="entityCode" placeholder="Kode identitas"></div><div class="field"><label>Provinsi</label><select id="entityProv"><option value="">Pilih provinsi</option>'+PROVINSI.map(function(x){return'<option>'+x+'</option>'}).join("")+'</select></div><div class="field"><label>Kabupaten/Kota</label><input id="entityKab" placeholder="Kabupaten/Kota"></div><div class="field full"><label>Lokasi / Basis / Fasilitas</label><input id="entityLoc" placeholder="Lokasi operasional"></div></div>';
+  if($("masterSearch")){
+   if(state.edit)$("masterSearch").disabled=true;
+   $("masterSearch").oninput=function(){var q=this.value.toLowerCase().trim(),arr=mlist.filter(function(o){return(String(o.namaOperator||"")+" "+String(o.kodeOperator||"")+" "+String(o.iata||"")+" "+String(o.kabkota||"")+" "+String(o.lokasi||"")).toLowerCase().indexOf(q)>-1}).slice(0,30),box=$("masterResults");
+    box.innerHTML=arr.map(function(o){return'<div style="padding:9px;border-bottom:1px solid #edf1f5;cursor:pointer" data-oid="'+esc(o.operatorId)+'"><b>'+esc(o.namaOperator)+'</b> '+esc(o.iata||"")+'<br><small>'+esc([o.lokasi||o.kabkota,o.provinsi].filter(Boolean).join(" • ")||o.operatorId)+'</small></div>'}).join("")||'<div class="empty">Tidak ditemukan di master. Isi manual di bawah.</div>';box.style.display="block";
+    Array.prototype.forEach.call(box.querySelectorAll("[data-oid]"),function(el){el.onclick=function(){var oid=this.getAttribute("data-oid"),o=mlist.filter(function(x){return String(x.operatorId)===oid})[0];if(!o)return;state.entity={operatorId:String(o.operatorId),jenisOperator:state.type,nama:o.namaOperator||"",kode:o.kodeOperator||"",provinsi:o.provinsi||"",kabkota:o.kabkota||"",lokasi:o.lokasi||""};renderEntityArea()}})};
+  }
   if(state.entity){$("entityName").value=state.entity.nama||"";$("entityCode").value=state.entity.kode||"";$("entityProv").value=state.entity.provinsi||"";$("entityKab").value=state.entity.kabkota||"";$("entityLoc").value=state.entity.lokasi||""}
   if(state.edit){["entityName","entityCode","entityProv","entityKab","entityLoc"].forEach(function(id){if($(id))$(id).disabled=true;});}
  }
@@ -2469,7 +2484,7 @@ function generatedOperatorId(type,name){
 }
 function resolveStableOperatorId(type,name,code){
  var t=String(type||"").trim(),n=String(name||"").trim().toLowerCase(),c=String(code||"").trim().toLowerCase();
- var arr=(state.operators||[]).filter(function(x){return String(x.jenisOperator||"")===t;});
+ var arr=activeOpsByType(t);
  var byCode=c?arr.filter(function(x){return String(x.kodeOperator||"").trim().toLowerCase()===c;})[0]:null;
  if(byCode&&byCode.operatorId)return String(byCode.operatorId);
  var byName=n?arr.filter(function(x){return String(x.namaOperator||"").trim().toLowerCase()===n;})[0]:null;
@@ -2480,7 +2495,7 @@ function readEntity(){
  if(state.type==="Bandar Udara"){if(!state.entity)return null;var rg=airportRegion(state.entity);return{operatorId:state.entity.operatorId||("BD-"+state.entity[0]),jenisOperator:"Bandar Udara",namaOperator:state.entity[1],kodeOperator:state.entity[3]||"",iata:state.entity[3]||"",provinsi:rg[0]||"",kabkota:rg[1]||state.entity[2]||"",lokasi:state.entity[2]||"",kelas:state.entity[4]||""}}
  var n=$("entityName")&&$("entityName").value.trim();if(!n)return null;
  var code=$("entityCode")?$("entityCode").value.trim():"";
- var stableId=(state.entity&&state.entity.operatorId)?String(state.entity.operatorId):resolveStableOperatorId(state.type,n,code);
+ var stableId=(state.entity&&state.entity.operatorId&&String(state.entity.nama||"").trim()===n)?String(state.entity.operatorId):resolveStableOperatorId(state.type,n,code);
  return{operatorId:stableId,jenisOperator:state.type,namaOperator:n,kodeOperator:code,iata:"",provinsi:$("entityProv").value,kabkota:$("entityKab").value.trim(),lokasi:$("entityLoc").value.trim(),kelas:""}
 }
 function normalizeCategory(v){return String(v||"").trim().split(/\s*[—-]\s*/)[0].trim();}
@@ -2717,7 +2732,7 @@ function loadEdit(){
  $("loadEditBtn").disabled=true;$("loadEditBtn").textContent="Memuat...";
  get("find&id="+encodeURIComponent(parts[0])+"&token="+encodeURIComponent(parts[1])).then(function(res){
   if(!res.ok)throw Error(res.error||"Data tidak ditemukan");var x=res.data||{};state.edit={id:x.riskId,editToken:parts[1],originalOperatorId:x.operatorId||"",originalJenisOperator:x.jenisOperator||"",baseFingerprint:buildRecordFingerprint(x)};state.type=x.jenisOperator||"";state.entity=null;renderTypes();renderEntityArea();
-  if(state.type==="Bandar Udara"){var found=AIRPORTS.filter(function(a){return "BD-"+a[0]===x.operatorId||a[1]===x.namaOperator||a[3]===x.iata})[0];if(found){found.operatorId=x.operatorId||("BD-"+found[0]);state.entity=found;renderEntityArea()}}
+  if(state.type==="Bandar Udara"){var found=airportList().concat(AIRPORTS).filter(function(a){return "BD-"+a[0]===x.operatorId||a[1]===x.namaOperator||a[3]===x.iata})[0];if(found){found.operatorId=x.operatorId||("BD-"+found[0]);state.entity=found;renderEntityArea()}}
   else{state.entity={operatorId:x.operatorId||"",jenisOperator:state.type,nama:x.namaOperator||"",kode:x.kodeOperator||"",provinsi:x.provinsi||"",kabkota:x.kabkota||"",lokasi:x.lokasi||""};renderEntityArea();}
   $("bulan").value=x.bulan||"";$("tahun").value=x.tahun||"";$("tanggalPengesahan").value=(x.tanggalPengesahan||"").toString().slice(0,10);$("namaPengisi").value=x.namaPengisi||"";$("jabatanPengisi").value=x.jabatanPengisi||"";$("emailRiskOwner").value=x.emailRiskOwner||"";$("linkDprk").value=x.linkFileDprk||x.linkDprk||"";$("kategori").value=x.kategori||x.kategoriKode||"";filterCatalog();$("riskCatalog").value=x.idRisikoKatalog||"";if($("riskCatalog").value!==x.idRisikoKatalog)$("riskCatalog").value="__MANUAL__";
   $("skenario").value=x.skenario||"";$("area").value=x.area||"";$("langkahSaatIni").value=x.langkahSaatIni||"";$("kerentananSaatIni").value=x.kerentananSaatIni||"";$("ancaman").value=x.ancamanNilai||"";$("kerentanan").value=x.kerentananNilai||"";$("konsekuensi").value=x.konsekuensiNilai||"";$("perlakuan").value=x.perlakuan||"";$("prioritas").value=x.prioritas||"";$("riskOwner").value=x.pemilikRisiko||"";$("tanggalKaji").value=x.tanggalKaji||"";$("langkahTambahan").value=x.langkahTambahan||"";$("keterangan").value=x.keterangan||"";updateRisk();
