@@ -1903,9 +1903,11 @@
           return (
             "<tr><td>" +
             esc(x.jenisOperator) +
-            "</td><td><b>" +
+            '</td><td><button type="button" class="op-link" data-op-id="' +
+            esc(x.operatorId) +
+            '" title="Lihat rekap operator">' +
             esc(x.namaOperator) +
-            "</b><br><small>" +
+            "</button><br><small>" +
             esc(x.kodeOperator || "") +
             "</small></td><td>" +
             esc((x.provinsi || "") + " " + (x.kabkota || "")) +
@@ -1929,6 +1931,7 @@
         if (!res.ok) throw Error(res.error);
         state.risks = res.data || [];
         state.risksLoadedAt = Date.now();
+        document.dispatchEvent(new CustomEvent("sirisk:risks"));
         enrichRiskLocations();
         initDashboardLocationFilters();
         renderRiskTable();
@@ -2160,6 +2163,14 @@
     kategori: function () {
       return KATEGORI;
     },
+    risks: function () {
+      return state.risks || [];
+    },
+    risksLoaded: function () {
+      return !!state.risksLoadedAt;
+    },
+    rating: rating,
+    ratings: RATING,
   };
   loadStaticData()
     .then(init)

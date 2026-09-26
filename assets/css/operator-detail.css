@@ -1,0 +1,193 @@
+/* ============================================================
+   SI-RISK AVSEC — Rekap per Operator (tab Monitoring Operator)
+   Kelas berawalan .opd- ; komponen donut/legend/threat-list
+   memakai kelas yang sama dengan Dashboard (app.css).
+   ============================================================ */
+
+.opd[hidden] {
+  display: none;
+}
+
+.opd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* nama operator di tabel Monitoring Operator */
+.op-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  color: var(--navy);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(44, 110, 158, 0.35);
+  text-underline-offset: 3px;
+}
+
+.op-link:hover {
+  color: var(--blue);
+  text-decoration-color: var(--blue);
+}
+
+.opd-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.opd-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opd-title h2 {
+  margin: 2px 0 4px;
+  font-size: 21px !important;
+  color: var(--navy);
+}
+
+.opd-title .sub {
+  margin-bottom: 0;
+}
+
+.opd-of {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.opd-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.opd-meta b {
+  color: var(--navy);
+}
+
+.opd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.opd-grid > .card {
+  min-width: 0;
+}
+
+.opd-donut-wrap {
+  margin-top: 14px;
+}
+
+.opd-cat-meta {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.opd-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.opd-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--blue);
+  white-space: nowrap;
+}
+
+.opd-note {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+  margin-top: 12px;
+}
+
+.opd-trend-single {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.opd-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 220px;
+  margin-top: 14px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.opd-trend-col {
+  flex: 1;
+  min-width: 34px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.opd-trend-col i {
+  display: block;
+  width: 100%;
+  max-width: 54px;
+  border-radius: 6px 6px 0 0;
+}
+
+.opd-trend-val {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.opd-trend-lbl {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  transform: translateY(18px);
+  white-space: nowrap;
+}
+
+/* tabel ringkas di rekap: jangan warisi min-width 760px dari .tablewrap */
+.opd-table table {
+  min-width: 0;
+}
+
+.opd-table td:not(:first-child),
+.opd-table th:not(:first-child) {
+  white-space: nowrap;
+  width: 1%;
+}
+
+@media (max-width: 1000px) {
+  .opd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .opd-donut-wrap {
+    grid-template-columns: 1fr;
+  }
+}
