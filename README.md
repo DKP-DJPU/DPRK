@@ -56,3 +56,11 @@ python3 -m http.server 8000
 ## Alur perubahan
 
 Semua perubahan diajukan lewat **Pull Request** ke `main` dan baru berlaku setelah disetujui (Merge).
+
+### Versi aset (cache browser)
+
+GitHub Pages menyimpan file JS/CSS di cache browser ±10 menit. Karena itu
+`index.html` memuat aset dengan penanda versi, misalnya
+`assets/js/app.js?v=20260927`. **Setiap kali file di `assets/` berubah,
+naikkan angka `?v=` di `index.html`** (pakai tanggal perubahan) agar pengguna
+langsung mendapat versi terbaru tanpa perlu *hard refresh*.
