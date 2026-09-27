@@ -1487,8 +1487,26 @@
     $("k-total").textContent = k.totalEntities || 0;
     $("k-filled").textContent = k.filledEntities || 0;
     $("k-empty").textContent = k.unfilledEntities || 0;
-    $("k-rate").textContent = (k.completionRate || 0) + "%";
-    $("k-high").textContent = k.highRisk || 0;
+    // Completion rate 1 desimal (format Indonesia, mis. "3,6%"). Server V3.30 mengirim
+    // completionRatePct; untuk server lama dihitung dari filled/total.
+    var pct =
+      k.completionRatePct != null
+        ? Number(k.completionRatePct)
+        : k.totalEntities
+          ? (k.filledEntities / k.totalEntities) * 100
+          : 0;
+    $("k-rate").textContent =
+      pct.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+    // Risiko Tinggi dihitung per operator bila server mendukung (V3.30), selain itu per skenario.
+    var highOps = k.highRiskOperators != null;
+    $("k-high").textContent = highOps ? k.highRiskOperators : k.highRisk || 0;
+    var highCard = $("k-high").closest(".kpi");
+    if (highCard)
+      highCard.title = highOps
+        ? "Jumlah operator yang memiliki minimal satu skenario berating Tinggi pada penilaian terbaru (" +
+          (k.highRiskScenarios || 0) +
+          " skenario Tinggi)"
+        : "Jumlah skenario risiko (bukan jumlah operator) berating Tinggi pada penilaian terbaru";
     $("k-review").textContent = k.reviewDue || 0;
     ["k-total", "k-filled", "k-empty", "k-rate", "k-high", "k-review"].forEach(function (id) {
       $(id).classList.remove("is-loading");
@@ -1522,8 +1540,8 @@
           (x.filled || 0) +
           "</div>" +
           '<div class="opmeta"><span>Sudah Mengisi</span><span>' +
-          x.risk +
-          " risiko tinggi</span></div>" +
+          (x.riskOperators != null ? x.riskOperators + " operator risiko tinggi" : x.risk + " risiko tinggi") +
+          "</span></div>" +
           "</div>"
         );
       })

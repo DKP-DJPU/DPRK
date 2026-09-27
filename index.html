@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20260927">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20260927">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20260927">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20260927b">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20260927b">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20260927b">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20260927">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20260927">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20260927">
+<link rel="stylesheet" href="assets/css/app.css?v=20260927b">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20260927b">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20260927b">
 </head>
 <body>
 <div class="app">
@@ -43,12 +43,12 @@
     <div class="live-status"><span class="live-dot"></span><div><b>LIVE MONITORING</b><small id="dashboardUpdated">Memuat data...</small></div></div>
   </div>
   <div class="kpis executive-kpis">
-    <div class="kpi kpi-primary"><div class="kpi-top"><span class="kpi-icon">✓</span><span class="kpi-tag">DPRK</span></div><div class="n is-loading" id="k-filled">—</div><div class="l">Sudah Mengisi</div></div>
-    <div class="kpi"><div class="kpi-top"><span class="kpi-icon">◌</span><span class="kpi-tag">COVERAGE</span></div><div class="n is-loading" id="k-total">—</div><div class="l">Total Entitas</div></div>
-    <div class="kpi"><div class="kpi-top"><span class="kpi-icon">%</span><span class="kpi-tag">STATUS</span></div><div class="n is-loading" id="k-rate">—</div><div class="l">Completion Rate</div></div>
-    <div class="kpi kpi-danger"><div class="kpi-top"><span class="kpi-icon">!</span><span class="kpi-tag">ATTENTION</span></div><div class="n is-loading" id="k-high">—</div><div class="l">Risiko Tinggi</div></div>
-    <div class="kpi kpi-warning"><div class="kpi-top"><span class="kpi-icon">↻</span><span class="kpi-tag">REVIEW</span></div><div class="n is-loading" id="k-review">—</div><div class="l">Kaji Ulang Mendekat</div></div>
-    <div class="kpi kpi-muted"><div class="kpi-top"><span class="kpi-icon">—</span><span class="kpi-tag">INFO</span></div><div class="n is-loading" id="k-empty">—</div><div class="l">Belum Mengisi</div></div>
+    <div class="kpi" title="Jumlah operator aktif di MASTER_OPERATOR (Bandar Udara, Airlines, LPPNPI, Regulated Agent)"><div class="kpi-top"><span class="kpi-icon">◌</span><span class="kpi-tag">COVERAGE</span></div><div class="n is-loading" id="k-total">—</div><div class="l">Total Operator</div></div>
+    <div class="kpi kpi-muted" title="Total Operator dikurangi Sudah Mengisi"><div class="kpi-top"><span class="kpi-icon">—</span><span class="kpi-tag">INFO</span></div><div class="n is-loading" id="k-empty">—</div><div class="l">Belum Mengisi</div></div>
+    <div class="kpi kpi-primary" title="Operator aktif yang memiliki DPRK berstatus Aktif di MASTER_DPRK"><div class="kpi-top"><span class="kpi-icon">✓</span><span class="kpi-tag">DPRK</span></div><div class="n is-loading" id="k-filled">—</div><div class="l">Sudah Mengisi</div></div>
+    <div class="kpi" title="Sudah Mengisi ÷ Total Operator × 100%, dibulatkan 1 angka desimal"><div class="kpi-top"><span class="kpi-icon">%</span><span class="kpi-tag">STATUS</span></div><div class="n is-loading" id="k-rate">—</div><div class="l">Completion Rate</div></div>
+    <div class="kpi kpi-danger" title="Jumlah skenario risiko (bukan jumlah operator) berating Tinggi pada penilaian terbaru"><div class="kpi-top"><span class="kpi-icon">!</span><span class="kpi-tag">ATTENTION</span></div><div class="n is-loading" id="k-high">—</div><div class="l">Risiko Tinggi</div></div>
+    <div class="kpi kpi-warning" title="DPRK dengan Tanggal Kaji Ulang dalam 30 hari ke depan (sama dengan tabel Monitoring Kaji Ulang)"><div class="kpi-top"><span class="kpi-icon">↻</span><span class="kpi-tag">REVIEW</span></div><div class="n is-loading" id="k-review">—</div><div class="l">Kaji Ulang Mendekat</div></div>
   </div>
   <div class="card dashboard-card operator-section">
     <div class="section-head">
@@ -385,8 +385,8 @@
 <div class="footer">SI-RISK AVSEC • DPRK Nasional V3.27 (Sprint 1: proteksi kepemilikan DPRK, merge master operator, recompute risiko server-side) • Google Sheets + Google Apps Script • Dashboard umum tidak menampilkan detail keamanan internal atau edit token.</div>
 </div>
 
-<script src="assets/js/app.js?v=20260927"></script>
-<script src="assets/js/pelaporan.js?v=20260927"></script>
-<script src="assets/js/operator-detail.js?v=20260927"></script>
+<script src="assets/js/app.js?v=20260927b"></script>
+<script src="assets/js/pelaporan.js?v=20260927b"></script>
+<script src="assets/js/operator-detail.js?v=20260927b"></script>
 </body>
 </html>
