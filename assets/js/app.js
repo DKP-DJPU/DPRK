@@ -159,6 +159,8 @@
   }
   function post(p, attempt) {
     attempt = attempt || 0;
+    var auth = window.SIRISK_AUTH;
+    if (auth && auth.token() && !p.sessionToken) p.sessionToken = auth.token();
     return fetch(GAS_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -175,6 +177,7 @@
           }).then(function () {
             return post(p, attempt + 1);
           });
+        if (res && res.code === "AUTH_REQUIRED" && window.SIRISK_AUTH) window.SIRISK_AUTH.expired();
         return res;
       });
   }
@@ -239,6 +242,7 @@
     renderLocalHistory();
     loadDashboard();
     loadRisks();
+    state.initDone = true;
     loadOperatorMasterForForm();
   }
   function loadOperatorMasterForForm() {
@@ -252,6 +256,7 @@
           renderTypes();
           if (!state.entity) renderEntityArea();
           else if (state.type === "Bandar Udara") renderEntityArea();
+          if (authScope()) applyAuthScope();
           document.dispatchEvent(new CustomEvent("sirisk:operators"));
         }
       })
@@ -264,10 +269,63 @@
   function isActiveOp(o) {
     return String(o && o.aktif).toLowerCase() !== "false";
   }
+  // Operator yang login hanya boleh mengisi entitas miliknya (server tetap memeriksa ulang).
+  function authScope() {
+    return window.SIRISK_AUTH ? window.SIRISK_AUTH.scopeIds() : null;
+  }
   function activeOpsByType(t) {
+    var sc = authScope();
     return (state.operators || []).filter(function (o) {
-      return isActiveOp(o) && String(o.jenisOperator || "") === t;
+      return (
+        isActiveOp(o) && String(o.jenisOperator || "") === t && (!sc || sc.indexOf(String(o.operatorId)) > -1)
+      );
     });
+  }
+  function entityOperatorId(e) {
+    if (!e) return "";
+    if (e.operatorId) return String(e.operatorId);
+    return e[0] ? "BD-" + String(e[0]) : "";
+  }
+  function selectEntityById(id) {
+    var o = (state.operators || []).filter(function (x) {
+      return String(x.operatorId) === String(id);
+    })[0];
+    if (!o) return false;
+    state.type = o.jenisOperator;
+    if (o.jenisOperator === "Bandar Udara")
+      state.entity =
+        airportList().filter(function (x) {
+          return x.operatorId === String(o.operatorId);
+        })[0] || null;
+    else
+      state.entity = {
+        operatorId: String(o.operatorId),
+        jenisOperator: o.jenisOperator,
+        nama: o.namaOperator || "",
+        kode: o.kodeOperator || "",
+        provinsi: o.provinsi || "",
+        kabkota: o.kabkota || "",
+        lokasi: o.lokasi || "",
+      };
+    return !!state.entity;
+  }
+  // Dipanggil auth.js setiap status login berubah.
+  function applyAuthScope() {
+    if (!state.initDone || state.edit) return;
+    var sc = authScope(),
+      typeBefore = state.type;
+    if (sc && state.entity && sc.indexOf(entityOperatorId(state.entity)) < 0) state.entity = null;
+    if (sc && sc.length === 1 && state.operatorsLoaded && !state.entity) selectEntityById(sc[0]);
+    if (sc && state.type && !activeOpsByType(state.type).length) {
+      state.type = null;
+      state.entity = null;
+    }
+    renderTypes();
+    renderEntityArea();
+    if (state.type !== typeBefore) {
+      clearScenarioSelection();
+      filterCatalog();
+    }
   }
   var TYPE_UNIT = {
     "Bandar Udara": "bandara",
@@ -321,7 +379,9 @@
         : "");
     Array.prototype.forEach.call(document.querySelectorAll("input[name=entityType]"), function (r) {
       r.checked = r.value === state.type;
-      r.disabled = !!state.edit;
+      var sc = authScope();
+      r.disabled = !!state.edit || !!(sc && !activeOpsByType(r.value).length);
+      r.closest(".type").classList.toggle("type-disabled", !!(sc && !activeOpsByType(r.value).length));
       r.onchange = function () {
         if (this.disabled) return;
         state.type = this.value;
@@ -505,7 +565,7 @@
         $("entityKab").value = state.entity.kabkota || "";
         $("entityLoc").value = state.entity.lokasi || "";
       }
-      if (state.edit) {
+      if (state.edit || authScope()) {
         ["entityName", "entityCode", "entityProv", "entityKab", "entityLoc"].forEach(function (id) {
           if ($(id)) $(id).disabled = true;
         });
@@ -2168,6 +2228,7 @@
   // API bersama untuk modul lain (mis. assets/js/pelaporan.js).
   window.SIRISK = {
     GAS_URL: GAS_URL,
+    applyAuthScope: applyAuthScope,
     get: get,
     post: post,
     esc: esc,
