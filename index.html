@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20260927b">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20260927b">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20260927b">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20260927c">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20260927c">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20260927c">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20260927b">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20260927b">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20260927b">
+<link rel="stylesheet" href="assets/css/app.css?v=20260927c">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20260927c">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20260927c">
+<link rel="stylesheet" href="assets/css/auth.css?v=20260927c">
 </head>
 <body>
 <div class="app">
 <header class="header">
+  <div class="auth-bar" id="authBar" aria-live="polite"></div>
   <div class="brand"><div class="brandmark"><img src="assets/img/logo.png" alt="Logo Kementerian Perhubungan"></div><div><div class="eyebrow">System Information Risk Assessment Aviation Security</div><h1>SI-RISK AVSEC</h1></div></div>
   <div class="subtitle">Dashboard Risiko Keamanan Penerbangan Nasional — penilaian risiko berbasis data digital untuk Bandar Udara, Airlines, LPPNPI, dan Regulated Agent.</div>
   <div class="nav-wrap">
@@ -101,6 +103,7 @@
 </section>
 
 <section id="view-form" class="view">
+  <div id="authGate" class="auth-gate"></div>
   <div class="card step-card">
     <div class="step-head"><span class="step-no">01</span><div><h2>Identitas Entitas / Operator</h2><div class="sub">Pilih jenis entitas terlebih dahulu. Bandara tidak menjadi field wajib untuk Airlines, LPPNPI, dan Regulated Agent.</div></div></div>
     <div class="typegrid" id="types"></div>
@@ -205,6 +208,7 @@
       <div class="plp-subnav" role="tablist" aria-label="Menu pelaporan">
         <button type="button" class="plp-subtab active" data-plp="form" role="tab" aria-selected="true">Formulir Laporan</button>
         <button type="button" class="plp-subtab" data-plp="list" role="tab" aria-selected="false">Daftar &amp; Rekap</button>
+        <button type="button" class="plp-subtab" data-plp="status" role="tab" aria-selected="false">Cek Status Laporan</button>
       </div>
     </div>
   </div>
@@ -352,6 +356,20 @@
     </div>
   </div>
 
+  <!-- ===== CEK STATUS ===== -->
+  <div id="plpStatus" class="plp-panel" hidden>
+    <div class="card plp-status-card">
+      <h3 class="panel-title">Cek status laporan Anda</h3>
+      <div class="sub">Masukkan nomor referensi dan kode cek yang Anda terima setelah mengirim laporan. Tidak perlu login.</div>
+      <form id="plpStatusForm" class="plp-status-form" novalidate>
+        <div class="field"><label for="plpStRef">Nomor referensi</label><input id="plpStRef" placeholder="LKP/0001/09/2026" maxlength="40" autocomplete="off"></div>
+        <div class="field"><label for="plpStKode">Kode cek</label><input id="plpStKode" placeholder="6 karakter" maxlength="6" autocomplete="off" class="plp-kode-input"></div>
+        <div class="field plp-status-action"><button type="submit" class="btn primary" id="plpStBtn">Cek status</button></div>
+      </form>
+      <div id="plpStatusResult" aria-live="polite"></div>
+    </div>
+  </div>
+
   <!-- ===== DAFTAR & REKAP ===== -->
   <div id="plpList" class="plp-panel" hidden>
     <div class="card">
@@ -359,8 +377,9 @@
         <div class="mini-stat"><span>Total Laporan</span><b id="plpStatTotal">0</b></div>
         <div class="mini-stat"><span>Kejadian AVSEC</span><b id="plpStatAvsec">0</b></div>
         <div class="mini-stat"><span>AVSEC Tinggi/Kritis</span><b id="plpStatHigh">0</b></div>
-        <div class="mini-stat"><span>Menunggu Verifikasi</span><b id="plpStatPending">0</b></div>
+        <div class="mini-stat"><span>Kejadian Bulan Ini</span><b id="plpStatMonth">0</b></div>
       </div>
+      <div class="plp-verified-note">Daftar ini hanya memuat laporan yang <b>sudah diverifikasi</b> oleh Direktorat Keamanan Penerbangan. Laporan baru tidak ditampilkan sampai selesai diperiksa, agar informasi yang belum pasti tidak tersebar.</div>
       <div class="toolbar-panel plp-filter-panel">
         <div class="toolbar-field"><label for="plpFLingkup">Lingkup</label><select id="plpFLingkup"><option value="">Semua lingkup</option><option>AVSEC</option><option>Non-AVSEC</option><option>Perlu Klasifikasi</option></select></div>
         <div class="toolbar-field"><label for="plpFJenis">Jenis kejadian</label><select id="plpFJenis"><option value="">Semua jenis</option></select></div>
@@ -385,8 +404,9 @@
 <div class="footer">SI-RISK AVSEC • DPRK Nasional V3.27 (Sprint 1: proteksi kepemilikan DPRK, merge master operator, recompute risiko server-side) • Google Sheets + Google Apps Script • Dashboard umum tidak menampilkan detail keamanan internal atau edit token.</div>
 </div>
 
-<script src="assets/js/app.js?v=20260927b"></script>
-<script src="assets/js/pelaporan.js?v=20260927b"></script>
-<script src="assets/js/operator-detail.js?v=20260927b"></script>
+<script src="assets/js/app.js?v=20260927c"></script>
+<script src="assets/js/pelaporan.js?v=20260927c"></script>
+<script src="assets/js/operator-detail.js?v=20260927c"></script>
+<script src="assets/js/auth.js?v=20260927c"></script>
 </body>
 </html>

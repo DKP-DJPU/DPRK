@@ -11,11 +11,16 @@ index.html                 Struktur halaman (header, tab, form, tabel)
 assets/css/app.css         Semua gaya tampilan
 assets/css/pelaporan.css   Gaya tab Sistem Pelaporan (kelas berawalan .plp-)
 assets/js/app.js           Logika aplikasi (ambil data, form, dashboard, grafik)
-assets/js/pelaporan.js     Tab Sistem Pelaporan (formulir 5W+1H, daftar & rekap, dokumen)
+assets/js/pelaporan.js     Tab Sistem Pelaporan (formulir 5W+1H, daftar & rekap, cek status, dokumen)
+assets/js/operator-detail.js  Rekap per operator (klik nama di Monitoring Operator)
+assets/js/auth.js          Login kode email (OTP), pendaftaran operator, gerbang Pengisian DPRK
+assets/css/auth.css        Gaya login (kelas berawalan .auth-)
 assets/img/logo.png        Logo
 data/katalog-risiko.json   Katalog kategori (01–19) dan skenario risiko
 data/bandara-cadangan.json Daftar bandara cadangan — hanya dipakai bila MASTER_OPERATOR gagal dimuat
 apps-script/Pelaporan.gs   Modul server pelaporan (ditempel di proyek Apps Script)
+apps-script/Auth.gs        Modul server login OTP, sesi, pendaftaran & hak akses operator
+apps-script/PERUBAHAN-LOGIN-V3.31.md  Langkah pemasangan login
 apps-script/PERUBAHAN-Code.gs.md  Langkah pemasangan modul server pelaporan
 ```
 
@@ -39,6 +44,15 @@ python3 -m http.server 8000
 - Setiap laporan diberi penanda **AVSEC / Non-AVSEC / Perlu Klasifikasi** sesuai jenis kejadian.
 - Daftar publik (`?action=incidents`) **tidak** memuat nama, instansi, HP, email pelapor, maupun catatan.
 - Status verifikasi (`Baru` / `Terverifikasi` / `Ditolak`) diubah admin langsung di sheet.
+- Daftar publik **hanya** menampilkan laporan `Terverifikasi`. Pelapor mendapat nomor referensi + kode cek
+  untuk mengecek status laporannya tanpa login.
+
+## Login (Pengisian DPRK)
+
+- Masuk dengan **kode 6 digit yang dikirim ke email** — tanpa kata sandi. Hanya Pengisian DPRK yang dikunci;
+  dashboard dan Sistem Pelaporan tetap terbuka.
+- Operator mendaftar sendiri dan disetujui admin di sheet `USER_ACCESS`; operator hanya dapat mengisi DPRK
+  entitasnya sendiri. Pemasangan: [`apps-script/PERUBAHAN-LOGIN-V3.31.md`](apps-script/PERUBAHAN-LOGIN-V3.31.md).
 - Pemasangan server: lihat [`apps-script/PERUBAHAN-Code.gs.md`](apps-script/PERUBAHAN-Code.gs.md).
 
 ## Menambah tab baru

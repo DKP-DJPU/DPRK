@@ -97,6 +97,7 @@
   function showPanel(name) {
     st.panel = name;
     $("plpForm").hidden = name !== "form";
+    $("plpStatus").hidden = name !== "status";
     $("plpList").hidden = name !== "list";
     $("plpDetail").hidden = name !== "detail";
     Array.prototype.forEach.call(document.querySelectorAll(".plp-subtab"), function (b) {
@@ -350,7 +351,18 @@
             esc(res.refNumber || "") +
             "</b> berhasil dikirim" +
             (res.lingkup ? " dengan penanda " + lingkupPill(res.lingkup) : "") +
-            ". Laporan akan diverifikasi oleh Direktorat Keamanan Penerbangan.",
+            ". Laporan akan diverifikasi oleh Direktorat Keamanan Penerbangan dan baru tampil di daftar publik setelah terverifikasi." +
+            (res.kodeCek
+              ? '<div class="plp-receipt"><div><span>Nomor referensi</span><b>' +
+                esc(res.refNumber || "") +
+                "</b></div><div><span>Kode cek</span><b class=\"plp-kode\">" +
+                esc(res.kodeCek) +
+                '</b></div><p><b>Simpan kedua data ini</b> (catat atau ambil tangkapan layar). Keduanya diperlukan untuk mengecek status laporan di menu <button type="button" class="plp-linkbtn" data-plp-go="status" data-ref="' +
+                esc(res.refNumber || "") +
+                '" data-kode="' +
+                esc(res.kodeCek) +
+                '">Cek Status Laporan</button>. Kode cek tidak dapat ditampilkan ulang.</p></div>'
+              : ""),
           true,
         );
         st.loadedAt = 0;
@@ -464,13 +476,14 @@
     $("plpStatHigh").textContent = all.filter(function (r) {
       return r.lingkup === "AVSEC" && (r.severity === "Tinggi" || r.severity === "Kritis");
     }).length;
-    $("plpStatPending").textContent = all.filter(function (r) {
-      return (r.statusVerifikasi || "Baru") === "Baru";
+    var ym = todayLocal().slice(0, 7);
+    $("plpStatMonth").textContent = all.filter(function (r) {
+      return String(r.tanggal || "").slice(0, 7) === ym;
     }).length;
     var list = filtered();
     if (!list.length) {
       $("plpTbody").innerHTML =
-        '<tr><td colspan="6" class="empty">' + (all.length ? "Tidak ada laporan yang cocok dengan filter." : "Belum ada laporan.") + "</td></tr>";
+        '<tr><td colspan="6" class="empty">' + (all.length ? "Tidak ada laporan yang cocok dengan filter." : "Belum ada laporan yang terverifikasi.") + "</td></tr>";
       return;
     }
     $("plpTbody").innerHTML = list
@@ -670,6 +683,18 @@
       renderChips();
     });
     $("plpSubmit").onclick = submit;
+    $("plpStatusForm").onsubmit = checkStatus;
+    $("plpStKode").addEventListener("input", function () {
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    });
+    $("plpFormNotice").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-plp-go]");
+      if (!b) return;
+      $("plpStRef").value = b.getAttribute("data-ref") || "";
+      $("plpStKode").value = b.getAttribute("data-kode") || "";
+      showPanel("status");
+      checkStatus();
+    });
     $("plpReset").onclick = function () {
       resetForm(false);
     };
@@ -696,6 +721,57 @@
         if (!box.hidden && !box.contains(e.target) && e.target !== box.previousElementSibling) box.hidden = true;
       });
     });
+  }
+
+  /* ---------------- Cek status ---------------- */
+  var STATUS_TEXT = {
+    Baru: ["Menunggu verifikasi", "Laporan sudah diterima dan sedang menunggu pemeriksaan oleh Direktorat Keamanan Penerbangan."],
+    Terverifikasi: ["Terverifikasi", "Laporan telah diperiksa dan dinyatakan valid. Ringkasannya tampil di daftar laporan publik."],
+    Ditolak: ["Tidak dapat diverifikasi", "Laporan telah diperiksa namun tidak dapat diverifikasi atau berada di luar lingkup. Laporan tidak ditampilkan di daftar publik."],
+  };
+  function checkStatus(e) {
+    if (e) e.preventDefault();
+    var ref = $("plpStRef").value.trim().toUpperCase(),
+      kode = $("plpStKode").value.trim().toUpperCase(),
+      out = $("plpStatusResult");
+    if (!ref || kode.length !== 6) {
+      out.innerHTML = '<div class="notice">Isi nomor referensi dan 6 karakter kode cek.</div>';
+      return;
+    }
+    var btn = $("plpStBtn");
+    btn.disabled = true;
+    btn.textContent = "Memeriksa...";
+    S.get("incidentStatus&ref=" + encodeURIComponent(ref) + "&kode=" + encodeURIComponent(kode))
+      .then(function (res) {
+        if (!res || !res.ok) {
+          out.innerHTML = '<div class="notice">' + esc((res && res.error) || "Laporan tidak ditemukan.") + "</div>";
+          return;
+        }
+        var d = res.data,
+          t = STATUS_TEXT[d.statusVerifikasi] || [d.statusVerifikasi, ""];
+        out.innerHTML =
+          '<div class="plp-status-result"><div class="plp-status-head"><b>' +
+          esc(d.refNumber) +
+          "</b>" +
+          statusPill(d.statusVerifikasi) +
+          "</div><h4>" +
+          esc(d.judul) +
+          '</h4><div class="plp-muted">' +
+          esc(d.jenis || "") +
+          (d.tanggal ? " • kejadian " + esc(fmtTanggalPendek(d.tanggal)) : "") +
+          "</div><p><b>" +
+          esc(t[0]) +
+          ".</b> " +
+          esc(t[1]) +
+          "</p></div>";
+      })
+      .catch(function (err) {
+        out.innerHTML = '<div class="notice">Gagal menghubungi server: ' + esc(err.message) + "</div>";
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = "Cek status";
+      });
   }
 
   window.SIRISK_PELAPORAN = {
