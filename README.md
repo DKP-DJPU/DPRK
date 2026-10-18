@@ -19,6 +19,7 @@ assets/img/logo.png        Logo
 data/katalog-risiko.json   Katalog kategori (01–19) dan skenario risiko
 data/bandara-cadangan.json Daftar bandara cadangan — hanya dipakai bila MASTER_OPERATOR gagal dimuat
 apps-script/Pelaporan.gs   Modul server pelaporan (ditempel di proyek Apps Script)
+apps-script/Code.gs        Kode server utama (salinan yang terpasang di Apps Script — selalu perbarui lewat PR)
 apps-script/Auth.gs        Modul server login OTP, sesi, pendaftaran & hak akses operator
 apps-script/PERUBAHAN-LOGIN-V3.31.md  Langkah pemasangan login
 apps-script/PERUBAHAN-Code.gs.md  Langkah pemasangan modul server pelaporan
