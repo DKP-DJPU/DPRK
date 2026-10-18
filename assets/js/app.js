@@ -102,13 +102,22 @@
     ["Regulated Agent", "Regulated Agent", "Entitas regulated agent"],
   ];
   var RATING = ["Tinggi", "Menengah-Tinggi", "Menengah", "Menengah-Rendah", "Rendah"];
+  // Kriteria Risiko sesuai PR 16 DJPU 2024 Lampiran II (sama dengan SERVER_BAND di Code.gs V3.32).
   var BAND = [
-    { min: 3, max: 6, l: "Rendah", c: "#5B9E5E" },
-    { min: 7, max: 12, l: "Menengah-Rendah", c: "#8FB86A" },
-    { min: 13, max: 18, l: "Menengah", c: "#E0B341" },
-    { min: 19, max: 24, l: "Menengah-Tinggi", c: "#DD8A42" },
-    { min: 25, max: 30, l: "Tinggi", c: "#CF4A42" },
+    { min: 3, max: 7, l: "Rendah", c: "#5B9E5E" },
+    { min: 8, max: 13, l: "Menengah-Rendah", c: "#8FB86A" },
+    { min: 14, max: 19, l: "Menengah", c: "#E0B341" },
+    { min: 20, max: 25, l: "Menengah-Tinggi", c: "#DD8A42" },
+    { min: 26, max: 30, l: "Tinggi", c: "#CF4A42" },
   ];
+  // Kategori penerimaan risiko (ALARP) sesuai PR 16 DJPU 2024 butir 4.2.13–4.2.14.
+  var PENERIMAAN = {
+    Tinggi: "Tidak dapat ditoleransi",
+    "Menengah-Tinggi": "Tidak dapat ditoleransi",
+    Menengah: "ALARP",
+    "Menengah-Rendah": "Dapat ditoleransi",
+    Rendah: "Dapat ditoleransi",
+  };
   var PERLAKUAN = ["Diterima", "Mitigasi", "Penolakan", "Pembagian"],
     PRIORITAS = ["Sangat Segera", "Segera", "Biasa"];
   var state = {
@@ -790,13 +799,17 @@
       k = Number($("kerentanan").value),
       c = Number($("konsekuensi").value),
       sum = (a || 0) + (k || 0) + (c || 0),
-      r = rating(sum);
+      r = a && k && c ? rating(sum) : null;
     applyRiskColor("riskBoxAncaman", "ancamanRating", a);
     applyRiskColor("riskBoxKerentanan", "kerentananRating", k);
     applyRiskColor("riskBoxKonsekuensi", "konsekuensiRating", c);
     $("riskNum").textContent = a && k && c ? sum : "—";
     $("riskBadge").textContent = r ? r.l : "Belum lengkap";
     $("riskBadge").style.background = r ? r.c : "#cfd7df";
+    if ($("riskPenerimaan"))
+      $("riskPenerimaan").innerHTML = r
+        ? "Kategori penerimaan: <b>" + esc(PENERIMAAN[r.l]) + "</b>"
+        : "Kategori penerimaan muncul setelah ketiga nilai diisi.";
     $("riskMeterFill").style.width = a && k && c ? Math.min(100, (sum / 30) * 100) + "%" : "0%";
     $("riskMeterFill").style.background = r ? r.c : "#cfd7df";
   }
@@ -2254,6 +2267,7 @@
     },
     rating: rating,
     ratings: RATING,
+    penerimaan: PENERIMAAN,
   };
   loadStaticData()
     .then(init)

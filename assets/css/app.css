@@ -2399,3 +2399,14 @@ main {
     max-width: none;
   }
 }
+
+/* Kategori penerimaan risiko (ALARP) di bawah meter total risiko */
+.risk-accept {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.risk-accept b {
+  color: var(--navy);
+}
