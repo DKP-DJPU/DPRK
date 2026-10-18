@@ -38,3 +38,16 @@ Batas nilai komponen 1–10 (Ancaman/Kerentanan/Konsekuensi) **sudah benar** dan
 ## Cara kerja ke depan
 `kategoriPenerimaan` kini dihitung server dari rating dan selalu mengabaikan kiriman browser.
 Formulir Pengisian DPRK juga menampilkan kategori penerimaan secara langsung di bawah total risiko.
+
+## Pembaruan V3.33 — nol di depan hilang
+Saat V3.32 dijalankan pada data asli, kategori Thai AirAsia tetap tersimpan `1`, bukan `01`.
+Penyebabnya: Google Sheets otomatis mengubah teks berbentuk angka menjadi angka, sehingga nol
+di depan hilang. Hal yang sama terjadi pada No. HP (`0822…` tersimpan `822…`).
+V3.33 memperbaiki `sanitizeCell_`: teks angka yang diawali nol diberi apostrof agar tetap teks.
+Perbaikan ini berlaku untuk semua sheet (RISK_ASSESSMENT, USER_ACCESS, LAPORAN_INSIDEN, dst.).
+
+Langkah:
+1. Ganti Code.gs dengan versi terbaru dari repo, lalu **Deploy → New version**.
+2. Jalankan **`terapkanHitungUlangRisiko`** sekali lagi. Hanya baris Thai AirAsia yang berubah.
+3. No. HP lama yang sudah kehilangan angka 0 tidak bisa dipulihkan otomatis. Perbaiki manual di
+   sheet dengan mengetik `'0822…` (apostrof di depan).

@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.32 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.33 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -219,6 +219,9 @@ function sanitizeCell_(v){
  // memaksa Sheets memperlakukannya sebagai teks murni (apostrof itu sendiri
  // tidak ikut tampil di sel).
  if(/^[=+\-@]/.test(s))return"'"+s;
+ // V3.33: teks angka berawalan nol (kode kategori "01", No. HP "0812…") dipaksa tetap teks;
+ // tanpa apostrof Sheets mengubahnya menjadi angka dan nol di depan hilang.
+ if(/^0\d+$/.test(s))return"'"+s;
  return s;
 }
 function appendObj_(s,h,o){s.appendRow(h.map(function(k){return sanitizeCell_(o[k]===undefined||o[k]===null?"":o[k])}))}
