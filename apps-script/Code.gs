@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.34 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.35 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -807,4 +807,63 @@ function hitungUlangRisiko_(apply){
   }
   var msg=lines.join("\n");Logger.log(msg);return msg;
  }finally{if(apply)try{lock.releaseLock()}catch(x){}}
+}
+
+// ============================================================
+// V3.35 — BACKUP HARIAN SPREADSHEET
+// ============================================================
+// Pasang SATU KALI dari editor: pasangBackupHarian()  (minta izin Google Drive sekali).
+// Setiap hari ±02.00 WIB dibuat salinan berisi semua sheet data ke folder Drive
+// pribadi "SI-RISK BACKUP". Sheet login (AUTH_SESSION, ACCESS_TOKEN) TIDAK ikut dicadangkan.
+// Salinan lebih tua dari BACKUP_RETENSI_HARI dipindah ke Sampah (masih bisa dipulihkan 30 hari),
+// dengan minimal BACKUP_MIN_SIMPAN salinan terbaru selalu disimpan.
+// Sengaja TIDAK memakai makeCopy: itu ikut menggandakan proyek Apps Script & sheet login.
+var BACKUP_FOLDER="SI-RISK BACKUP",BACKUP_PREFIX="SI-RISK BACKUP ",BACKUP_RETENSI_HARI=30,BACKUP_MIN_SIMPAN=7;
+var BACKUP_KECUALI=["AUTH_SESSION","ACCESS_TOKEN"];
+
+function backupFolder_(){
+ var props=PropertiesService.getScriptProperties(),id=props.getProperty("BACKUP_FOLDER_ID");
+ if(id){try{var f=DriveApp.getFolderById(id);if(!f.isTrashed())return f}catch(e){}}
+ var it=DriveApp.getFoldersByName(BACKUP_FOLDER),folder=it.hasNext()?it.next():DriveApp.createFolder(BACKUP_FOLDER);
+ props.setProperty("BACKUP_FOLDER_ID",folder.getId());return folder;
+}
+function backupHarian(){
+ var src=SpreadsheetApp.getActive(),tz=Session.getScriptTimeZone()||"Asia/Jakarta",stamp=Utilities.formatDate(new Date(),tz,"yyyy-MM-dd HHmm");
+ var lock=LockService.getScriptLock(),locked=false,dst=null;
+ try{
+  var folder=backupFolder_();
+  locked=lock.tryLock(30000); // tunggu simpan yang sedang berjalan agar salinan konsisten
+  dst=SpreadsheetApp.create(BACKUP_PREFIX+stamp);
+  var bawaan=dst.getSheets();bawaan.forEach(function(sh,i){sh.setName("__bawaan_"+i)}); // hindari bentrok nama
+  var n=0;
+  src.getSheets().forEach(function(sh){
+   if(BACKUP_KECUALI.indexOf(sh.getName())>=0)return;
+   sh.copyTo(dst).setName(sh.getName());n++;
+  });
+  if(locked){lock.releaseLock();locked=false}
+  if(n)bawaan.forEach(function(sh){dst.deleteSheet(sh)}); // buang "Sheet1" bawaan
+  var file=DriveApp.getFileById(dst.getId());file.moveTo(folder);
+  var dihapus=bersihkanBackupLama_(folder);
+  var msg="Backup "+stamp+" selesai: "+n+" sheet → folder \""+folder.getName()+"\". Salinan lama dipindah ke Sampah: "+dihapus+".";
+  Logger.log(msg);return msg;
+ }catch(e){
+  var err="Backup GAGAL ("+stamp+"): "+(e&&e.message||e);Logger.log(err);
+  if(dst)try{DriveApp.getFileById(dst.getId()).setTrashed(true)}catch(x){}
+  try{var to=Session.getEffectiveUser().getEmail();if(to&&MailApp.getRemainingDailyQuota()>5)MailApp.sendEmail(to,"[SI-RISK] Backup harian gagal",err+"\n\nJalankan backupHarian() dari editor Apps Script untuk mencoba lagi.")}catch(x){}
+  throw e;
+ }finally{if(locked)try{lock.releaseLock()}catch(x){}}
+}
+function bersihkanBackupLama_(folder){
+ var files=[],it=folder.getFiles();
+ while(it.hasNext()){var f=it.next();if(String(f.getName()).indexOf(BACKUP_PREFIX)===0&&f.getMimeType()===MimeType.GOOGLE_SHEETS)files.push(f)}
+ files.sort(function(a,b){return b.getDateCreated()-a.getDateCreated()});
+ var batas=Date.now()-BACKUP_RETENSI_HARI*86400000,n=0;
+ files.forEach(function(f,i){if(i>=BACKUP_MIN_SIMPAN&&f.getDateCreated().getTime()<batas){f.setTrashed(true);n++}});
+ return n;
+}
+function pasangBackupHarian(){
+ ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="backupHarian")ScriptApp.deleteTrigger(t)});
+ ScriptApp.newTrigger("backupHarian").timeBased().everyDays(1).atHour(2).create();
+ var msg=backupHarian(); // backup pertama langsung, sekaligus memastikan izin Drive sudah diberikan
+ Logger.log("Trigger backup harian (±02.00) terpasang. "+msg);return "Trigger backup harian terpasang. "+msg;
 }

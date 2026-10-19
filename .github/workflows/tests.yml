@@ -1,0 +1,49 @@
+name: Uji otomatis
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uji-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: Uji server (Apps Script di Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/run-server-tests.js
+
+  ui:
+    name: Uji tampilan (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright==1.47.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/ui/smoke.py
+      - name: Simpan tangkapan layar bila gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tangkapan-layar
+          path: tests/ui/screenshots/
+          retention-days: 7
