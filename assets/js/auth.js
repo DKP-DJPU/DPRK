@@ -150,7 +150,40 @@
   }
 
   /* ---------- Gerbang tab Pengisian DPRK ---------- */
+  // Tab berisi data per operator (klasifikasi Terbatas) selalu memerlukan login.
+  var LOCK_SVG =
+    '<div class="auth-lock-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Z"/></svg></div>';
+  function renderDataGates() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-auth-view]"),
+      function (g) {
+        var view = g.closest(".view");
+        if (!view) return;
+        var locked = st.checked && !st.user;
+        view.classList.toggle("auth-locked", locked);
+        if (!locked) {
+          g.innerHTML =
+            st.user && st.user.peran !== "Admin"
+              ? '<div class="notice ok auth-gate-banner">Menampilkan data <b>' +
+                esc(scopeLabel()) +
+                "</b> sesuai akun Anda.</div>"
+              : "";
+          return;
+        }
+        g.innerHTML =
+          '<div class="card auth-gate-card">' +
+          LOCK_SVG +
+          "<h2>" +
+          esc(
+            g.getAttribute("data-auth-title") || "Data ini memerlukan login",
+          ) +
+          '</h2><p class="sub">Data penilaian risiko per operator berklasifikasi <b>Terbatas</b>. Masuk dengan akun terdaftar untuk melihatnya. Operator hanya melihat data entitasnya sendiri.</p>' +
+          '<div class="auth-gate-actions"><button type="button" class="btn primary" data-auth-open="email">Masuk</button><button type="button" class="btn secondary" data-auth-open="register">Daftar sebagai perwakilan operator</button></div></div>';
+      },
+    );
+  }
   function renderGate() {
+    renderDataGates();
     var g = $("authGate"),
       view = $("view-form");
     if (!g || !view) return;
@@ -641,11 +674,13 @@
   }
 
   /** Dipanggil app.js bila server menjawab AUTH_REQUIRED. */
-  function expired() {
+  function expired(opts) {
     if (st.user) {
       store(null);
       setSession(null, null);
     }
+    // Sesi habis saat MEMBACA data terbatas: cukup keluarkan pengguna, tanpa membuka modal.
+    if (opts && opts.read) return;
     st.enforce = true;
     renderGate();
     open("email");

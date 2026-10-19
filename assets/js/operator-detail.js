@@ -51,10 +51,14 @@
       .replace(/\s+/g, " ")
       .trim();
   }
+  // Status per operator berasal dari server sesuai login (Admin: semua; Operator: miliknya).
   function findOperator(id) {
-    return (S.allOperators ? S.allOperators() : S.operators()).filter(function (o) {
+    return (S.opStatus ? S.opStatus() : []).filter(function (o) {
       return String(o.operatorId) === String(id);
     })[0];
+  }
+  function loggedIn() {
+    return !!(window.SIRISK_AUTH && window.SIRISK_AUTH.user());
   }
   function ratingOf(x) {
     var r = String(x.risikoRating || "").trim();
@@ -106,6 +110,7 @@
     var n = norm(op.namaOperator),
       t = op.jenisOperator;
     return S.risks().filter(function (x) {
+      if (x.operatorId) return String(x.operatorId) === String(op.operatorId);
       return String(x.jenisOperator || "") === t && norm(x.namaOperator) === n;
     });
   }
@@ -522,9 +527,14 @@
 
   /* ---------------- Navigasi ---------------- */
   function open(id) {
+    if (!loggedIn()) {
+      st.pendingHash = id;
+      return;
+    }
     var op = findOperator(id);
     if (!op) {
-      st.pendingHash = id;
+      // Status belum dimuat → tunggu; sudah dimuat tapi tidak ada → di luar hak akses akun.
+      if (!S.opStatus().length) st.pendingHash = id;
       return;
     }
     st.current = op;
@@ -579,6 +589,16 @@
       showOperatorTab();
       open(id);
     }
+  });
+  document.addEventListener("sirisk:opstatus", function () {
+    if (st.pendingHash) {
+      var id = st.pendingHash;
+      st.pendingHash = null;
+      open(id);
+    }
+  });
+  document.addEventListener("sirisk:auth", function () {
+    if (!loggedIn() && st.current) close();
   });
   document.addEventListener("sirisk:risks", function () {
     if (st.current) render(st.current);
