@@ -8,8 +8,8 @@ daftar kaji ulang per operator. Versi ini menutup semuanya.
 
 | Bagian | Publik (tanpa login) | Admin | Operator |
 |---|---|---|---|
-| KPI Dashboard & kartu per jenis | ✅ (angka risiko per jenis disembunyikan bila <3 operator) | ✅ | ✅ |
-| Analisis Risiko per Jenis Operator | ✅ agregat dari server; jenis dengan <3 operator **disembunyikan** | ✅ | ✅ agregat |
+| KPI Dashboard & kartu per jenis | ✅ (angka risiko per jenis disembunyikan bila di bawah ambang) | ✅ | ✅ |
+| Analisis Risiko per Jenis Operator | ✅ agregat dari server; jenis dengan <2 operator **disembunyikan** | ✅ | ✅ agregat |
 | Analisis per Wilayah (provinsi/kab-kota) | ❌ disembunyikan | ✅ | ❌ |
 | Monitoring Operator & rekap per operator | ❌ | ✅ semua | ✅ **hanya miliknya** |
 | Monitoring Risiko | ❌ | ✅ semua | ✅ **hanya miliknya** |
@@ -35,3 +35,8 @@ daftar kaji ulang per operator. Versi ini menutup semuanya.
 > Pasang Code.gs **bersamaan** dengan merge PR ini. Kalau frontend baru dipakai dengan server lama,
 > tab terbatas akan menampilkan pesan galat (bukan membocorkan data). Kalau server baru dipakai
 > dengan frontend lama, tab Monitoring Risiko di frontend lama akan kosong.
+
+## Ambang kerahasiaan (MIN_GROUP = 2)
+- Rincian agregat (per jenis operator, per kategori ancaman, per bulan tren) hanya tampil di publik bila berasal dari **minimal 2 operator** (`MIN_GROUP` di Code.gs).
+- **Supresi komplementer:** bila jumlah operator di kelompok yang disembunyikan 1 (di bawah ambang), semua rincian per jenis ikut disembunyikan, karena angkanya bisa dihitung dari nasional dikurangi kelompok lain.
+- ⚠️ Dengan ambang 2, dua operator dalam satu kelompok dapat saling menghitung angka masing-masing. Standar umum statistik resmi adalah 3. Untuk mengubahnya, cukup ganti `var MIN_GROUP=2;` lalu Deploy New version.

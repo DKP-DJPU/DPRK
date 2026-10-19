@@ -425,7 +425,9 @@ function authRead_(p,a){
 }
 // V3.34 — analitik agregat publik per jenis operator. Kelompok dengan kurang dari
 // MIN_GROUP operator disembunyikan agar profil risiko satu operator tidak dapat dikenali.
-var MIN_GROUP=3;
+// Ambang kerahasiaan agregat publik. 2 = keputusan Alex (19 Okt 2026) untuk masa awal;
+// catatan: dengan 2 operator, masing-masing dapat menghitung angka operator lainnya. Standar umum = 3.
+var MIN_GROUP=2;
 function riskAnalytics_(rows){
  var out={};
  ["_all","Bandar Udara","Airlines","LPPNPI","Regulated Agent"].forEach(function(t){

@@ -1799,7 +1799,7 @@
   }
   function renderDashboardRiskAnalytics(selectedType, selectedProv, selectedKab) {
     // Admin yang login: dihitung di browser dari data lengkap (termasuk filter wilayah).
-    // Selain itu: agregat dari server, dan kelompok < 3 operator disembunyikan.
+    // Selain itu: agregat dari server; kelompok di bawah ambang MIN_GROUP disembunyikan.
     var useClient = isAdmin() && (state.risks || []).length > 0,
       agg = null;
     var locBar = document.querySelector(".dashboard-filter-location-bar");
@@ -1921,7 +1921,7 @@
       if (agg && agg.complementary)
         $("riskDominant").innerHTML =
           "Rincian per jenis operator disembunyikan sementara: ada jenis lain yang baru diisi kurang dari " +
-          esc(agg.minGroup || 3) +
+          esc(agg.minGroup || 2) +
           " operator, sehingga angka per jenis dapat dipakai menghitung data operator tersebut.";
       else if (agg && agg.suppressed)
         $("riskDominant").innerHTML =
@@ -1930,7 +1930,7 @@
           " operator " +
           esc(selectedType || "") +
           " yang mengisi (minimal " +
-          esc(agg.minGroup || 3) +
+          esc(agg.minGroup || 2) +
           ") — demi kerahasiaan data per operator.";
     }
 
@@ -1997,7 +1997,7 @@
       '<div class="empty">' +
         (agg && agg.suppressed
           ? "Rincian kategori disembunyikan sampai minimal " +
-            esc(agg.minGroup || 3) +
+            esc(agg.minGroup || 2) +
             " operator mengisi DPRK."
           : "Belum ada data kategori untuk operator ini.") +
         "</div>";
@@ -2201,7 +2201,7 @@
       filled = t.filled || [],
       risk = t.risk || [];
     draw("fillChart2", labels, filled, "Completion");
-    // Bulan dengan < 3 operator disembunyikan server (null) demi kerahasiaan.
+    // Bulan dengan operator di bawah ambang (MIN_GROUP) disembunyikan server (null) demi kerahasiaan.
     var rl = [],
       rv = [];
     risk.forEach(function (v, i) {
@@ -2211,7 +2211,7 @@
       }
     });
     risk = rv;
-    draw("riskChart2", rl, rv, "Rata-rata Risiko (bulan dengan ≥3 operator)");
+    draw("riskChart2", rl, rv, "Rata-rata Risiko (bulan dengan cukup operator)");
     $("trendPeriods").textContent = labels.length;
     $("trendLatestFilled").textContent = filled.length ? filled[filled.length - 1] : "—";
     $("trendLatestRisk").textContent = risk.length ? Number(risk[risk.length - 1]).toFixed(1) : "—";
