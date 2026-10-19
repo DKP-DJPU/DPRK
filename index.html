@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261018a">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261018a">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261018a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261019a">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261019a">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261019a">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261018a">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261018a">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261018a">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261018a">
+<link rel="stylesheet" href="assets/css/app.css?v=20261019a">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261019a">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261019a">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261019a">
 </head>
 <body>
 <div class="app">
@@ -163,6 +163,7 @@
 </section>
 
 <section id="view-operator" class="view">
+  <div class="auth-gate" data-auth-view="operator" data-auth-title="Monitoring Operator memerlukan login"></div>
   <div class="card" id="opListCard">
     <div class="data-summary"><div class="mini-stat"><span>Total Ditampilkan</span><b id="opCount">0</b></div><div class="mini-stat"><span>Sudah Mengisi</span><b id="opFilled">0</b></div><div class="mini-stat"><span>Belum Mengisi</span><b id="opUnfilled">0</b></div><div class="mini-stat"><span>Filter Aktif</span><b id="opFilterState">Semua</b></div></div>
     <div class="toolbar-panel">
@@ -177,6 +178,7 @@
 </section>
 
 <section id="view-risk" class="view">
+  <div class="auth-gate" data-auth-view="risk" data-auth-title="Monitoring Risiko memerlukan login"></div>
   <div class="card">
     <div class="data-summary"><div class="mini-stat"><span>Total Risiko</span><b id="riskCount">0</b></div><div class="mini-stat"><span>Risiko Tinggi</span><b id="riskHighCount">0</b></div><div class="mini-stat"><span>Rata-rata Nilai</span><b id="riskAvgCount">—</b></div><div class="mini-stat"><span>Filter Aktif</span><b id="riskFilterState">Semua</b></div></div>
     <div class="toolbar-panel risk-filter-panel">
@@ -405,9 +407,9 @@
 <div class="footer">SI-RISK AVSEC • DPRK Nasional V3.27 (Sprint 1: proteksi kepemilikan DPRK, merge master operator, recompute risiko server-side) • Google Sheets + Google Apps Script • Dashboard umum tidak menampilkan detail keamanan internal atau edit token.</div>
 </div>
 
-<script src="assets/js/app.js?v=20261018a"></script>
-<script src="assets/js/pelaporan.js?v=20261018a"></script>
-<script src="assets/js/operator-detail.js?v=20261018a"></script>
-<script src="assets/js/auth.js?v=20261018a"></script>
+<script src="assets/js/app.js?v=20261019a"></script>
+<script src="assets/js/pelaporan.js?v=20261019a"></script>
+<script src="assets/js/operator-detail.js?v=20261019a"></script>
+<script src="assets/js/auth.js?v=20261019a"></script>
 </body>
 </html>

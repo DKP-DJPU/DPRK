@@ -173,7 +173,9 @@ function authPublicUser_(u) {
   var ids = authIds_(u.operatorIds), ops = [];
   if (ids.length) {
     var byId = {};
-    objs_(sheet_(SHEETS.OP, H.OP)).forEach(function (o) { byId[String(o.operatorId)] = o; });
+    // V3.34: pakai daftar master yang di-cache (bukan membaca seluruh sheet di setiap permintaan).
+    var master = typeof operatorMaster_ === "function" ? cached_(CACHE_KEYS.master, operatorMaster_) : objs_(sheet_(SHEETS.OP, H.OP));
+    master.forEach(function (o) { byId[String(o.operatorId)] = o; });
     ids.forEach(function (id) {
       var o = byId[id];
       ops.push({ operatorId: id, namaOperator: o ? o.namaOperator : id, jenisOperator: o ? o.jenisOperator : "" });
@@ -198,6 +200,8 @@ function authSession_(token) {
   token = String(token || "").trim();
   if (!/^[A-F0-9]{40,80}$/.test(token)) return null;
   var h = hashToken_(token), cache = authCache_(), key = "sess:" + h, email = null, exp = 0;
+  // V3.34: token yang sudah terbukti tidak sah diingat 2 menit agar tidak memindai sheet berulang kali.
+  if (cache.get("sessneg:" + h)) return null;
   var c = cache.get(key);
   if (c) {
     try { c = JSON.parse(c); email = c.e; exp = c.x; } catch (x) { c = null; }
@@ -212,7 +216,10 @@ function authSession_(token) {
         break;
       }
     }
-    if (!email) return null;
+    if (!email) {
+      cache.put("sessneg:" + h, "1", 120);
+      return null;
+    }
     cache.put(key, JSON.stringify({ e: email, x: exp }), 600);
   }
   if (!exp || exp < Date.now()) return null;

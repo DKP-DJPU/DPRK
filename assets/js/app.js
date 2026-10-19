@@ -137,7 +137,13 @@
   }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[c];
     });
   }
   function get(a, attempt) {
@@ -166,6 +172,21 @@
         return res;
       });
   }
+  // Aksi baca data Terbatas (wajib login). Lihat READ_ACTIONS di Code.gs V3.34.
+  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList"];
+  function authUser() {
+    return window.SIRISK_AUTH ? window.SIRISK_AUTH.user() : null;
+  }
+  function isAdmin() {
+    var u = authUser();
+    return !!(u && u.peran === "Admin");
+  }
+  function readTerbatas(action) {
+    return post({ action: action }).then(function (res) {
+      if (!res || !res.ok) throw Error((res && res.error) || "Data belum dapat dimuat.");
+      return res.data || [];
+    });
+  }
   function post(p, attempt) {
     attempt = attempt || 0;
     var auth = window.SIRISK_AUTH;
@@ -186,7 +207,10 @@
           }).then(function () {
             return post(p, attempt + 1);
           });
-        if (res && res.code === "AUTH_REQUIRED" && window.SIRISK_AUTH) window.SIRISK_AUTH.expired();
+        if (res && res.code === "AUTH_REQUIRED" && window.SIRISK_AUTH)
+          window.SIRISK_AUTH.expired({
+            read: READ_ACTIONS.indexOf(p.action) > -1,
+          });
         return res;
       });
   }
@@ -682,7 +706,9 @@
       return !cat || catalogCategory(x) === normalizeCategory(cat);
     });
     arr.sort(function (a, b) {
-      return String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true });
+      return String(a[0]).localeCompare(String(b[0]), undefined, {
+        numeric: true,
+      });
     });
     $("riskCatalog").innerHTML =
       '<option value="">Pilih skenario katalog (' +
@@ -1125,9 +1151,10 @@
   function ensureRecentRisks() {
     var fresh = state.risksLoadedAt && Date.now() - state.risksLoadedAt < 30000;
     if (fresh) return Promise.resolve(true);
-    return get("risks").then(function (res) {
-      if (!res.ok) throw Error(res.error || "Data risiko belum dapat dimuat untuk pemeriksaan duplikasi.");
-      state.risks = res.data || [];
+    // Tanpa login, pemeriksaan duplikasi dilakukan di server saja.
+    if (!authUser()) return Promise.resolve(true);
+    return readTerbatas("riskData").then(function (data) {
+      state.risks = data;
       state.risksLoadedAt = Date.now();
       enrichRiskLocations();
       return true;
@@ -1569,10 +1596,17 @@
           ? (k.filledEntities / k.totalEntities) * 100
           : 0;
     $("k-rate").textContent =
-      pct.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+      pct.toLocaleString("id-ID", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }) + "%";
     // Risiko Tinggi dihitung per operator bila server mendukung (V3.30), selain itu per skenario.
     var highOps = k.highRiskOperators != null;
-    $("k-high").textContent = highOps ? k.highRiskOperators : k.highRisk || 0;
+    $("k-high").textContent = highOps
+      ? k.highRiskOperators
+      : k.highRisk == null && "highRisk" in k
+        ? "—"
+        : k.highRisk || 0;
     var highCard = $("k-high").closest(".kpi");
     if (highCard)
       highCard.title = highOps
@@ -1613,7 +1647,13 @@
           (x.filled || 0) +
           "</div>" +
           '<div class="opmeta"><span>Sudah Mengisi</span><span>' +
-          (x.riskOperators != null ? x.riskOperators + " operator risiko tinggi" : x.risk + " risiko tinggi") +
+          (!x.filled
+            ? "belum ada data risiko"
+            : x.riskSuppressed
+              ? "rincian risiko disembunyikan"
+              : x.riskOperators != null
+                ? x.riskOperators + " operator risiko tinggi"
+                : x.risk + " risiko tinggi") +
           "</span></div>" +
           "</div>"
         );
@@ -1758,7 +1798,18 @@
     }
   }
   function renderDashboardRiskAnalytics(selectedType, selectedProv, selectedKab) {
-    var all = state.risks || [];
+    // Admin yang login: dihitung di browser dari data lengkap (termasuk filter wilayah).
+    // Selain itu: agregat dari server; kelompok di bawah ambang MIN_GROUP disembunyikan.
+    var useClient = isAdmin() && (state.risks || []).length > 0,
+      agg = null;
+    var locBar = document.querySelector(".dashboard-filter-location-bar");
+    if (locBar) locBar.style.display = isAdmin() ? "" : "none";
+    if (!useClient) {
+      selectedProv = "";
+      selectedKab = "";
+      agg = ((state.data || {}).analytics || {})[selectedType || "_all"] || null;
+    }
+    var all = useClient ? state.risks : [];
     var filtered = all.filter(function (x) {
       return (
         (!selectedType || String(x.jenisOperator || "") === selectedType) &&
@@ -1790,11 +1841,24 @@
       if (op) operatorSet[op] = true;
     });
     var operatorCount = Object.keys(operatorSet).length;
-    if (!selectedType && !all.length) {
+    if (!useClient) {
       var d = state.data || {},
         k = d.kpi || {};
-      dist = d.riskDistribution || {};
-      total = k.totalRisks || 0;
+      if (agg && !agg.suppressed) {
+        dist = agg.distribution || {};
+        total = agg.totalRisks || 0;
+        operatorCount = agg.operators || 0;
+      } else if (agg && agg.suppressed) {
+        RATING.forEach(function (x) {
+          dist[x] = 0;
+        });
+        total = 0;
+        operatorCount = agg.operators || 0;
+      } else if (!selectedType) {
+        // server lama (tanpa analytics): pakai distribusi nasional
+        dist = d.riskDistribution || {};
+        total = k.totalRisks || 0;
+      }
     }
     if ($("riskDonutTotal")) $("riskDonutTotal").textContent = total;
     if ($("riskDonutOperators")) $("riskDonutOperators").textContent = String(operatorCount);
@@ -1854,6 +1918,20 @@
           Math.round((top.n / total) * 100) +
           "%)"
         : "Belum ada data risiko untuk ditampilkan.";
+      if (agg && agg.complementary)
+        $("riskDominant").innerHTML =
+          "Rincian per jenis operator disembunyikan sementara: ada jenis lain yang baru diisi kurang dari " +
+          esc(agg.minGroup || 2) +
+          " operator, sehingga angka per jenis dapat dipakai menghitung data operator tersebut.";
+      else if (agg && agg.suppressed)
+        $("riskDominant").innerHTML =
+          "Rincian belum ditampilkan: baru " +
+          esc(agg.operators) +
+          " operator " +
+          esc(selectedType || "") +
+          " yang mengisi (minimal " +
+          esc(agg.minGroup || 2) +
+          ") — demi kerahasiaan data per operator.";
     }
 
     var cats = {};
@@ -1869,15 +1947,23 @@
     var catList;
     if (selectedType) {
       catList = Object.keys(cats).map(function (code) {
-        return { kode: code, avg: cats[code].n ? cats[code].sum / cats[code].n : 0 };
+        return {
+          kode: code,
+          avg: cats[code].n ? cats[code].sum / cats[code].n : 0,
+        };
       });
     } else if (all.length) {
       catList = Object.keys(cats).map(function (code) {
-        return { kode: code, avg: cats[code].n ? cats[code].sum / cats[code].n : 0 };
+        return {
+          kode: code,
+          avg: cats[code].n ? cats[code].sum / cats[code].n : 0,
+        };
       });
     } else {
       catList = (state.data.categories || []).slice();
     }
+    if (!useClient)
+      catList = agg ? (agg.suppressed ? [] : (agg.categories || []).slice()) : selectedType ? [] : catList;
     catList.sort(function (a, b) {
       return Number(b.avg || 0) - Number(a.avg || 0);
     });
@@ -1907,7 +1993,14 @@
             '"></i></div></div>'
           );
         })
-        .join("") || '<div class="empty">Belum ada data kategori untuk operator ini.</div>';
+        .join("") ||
+      '<div class="empty">' +
+        (agg && agg.suppressed
+          ? "Rincian kategori disembunyikan sampai minimal " +
+            esc(agg.minGroup || 2) +
+            " operator mengisi DPRK."
+          : "Belum ada data kategori untuk operator ini.") +
+        "</div>";
 
     var scope = [];
     if (selectedType) scope.push(selectedType);
@@ -1944,12 +2037,16 @@
         : "Rata-rata nilai risiko dari skenario yang telah diisi, diurutkan dari yang tertinggi.";
   }
   function loadOperators() {
-    get("operators")
-      .then(function (res) {
-        if (!res.ok) throw Error(res.error);
-        state.operators = res.data || [];
+    if (!authUser()) {
+      state.opStatus = [];
+      return;
+    }
+    readTerbatas("operatorStatus")
+      .then(function (data) {
+        state.opStatus = data;
         fillOpFilters();
         renderOperatorTable();
+        document.dispatchEvent(new CustomEvent("sirisk:opstatus"));
       })
       .catch(function (e) {
         $("opTbody").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>";
@@ -1968,7 +2065,7 @@
       }).join("");
   }
   function renderOperatorTable() {
-    var a = state.operators || [],
+    var a = state.opStatus || [],
       t = $("opFilterType").value,
       p = $("opFilterProv").value,
       q = $("opSearch").value.toLowerCase();
@@ -2017,10 +2114,16 @@
       '<tr><td colspan="6" class="empty empty-row">Tidak ada data yang sesuai dengan filter.</td></tr>';
   }
   function loadRisks() {
-    get("risks")
-      .then(function (res) {
-        if (!res.ok) throw Error(res.error);
-        state.risks = res.data || [];
+    if (!authUser()) {
+      // Data per operator berklasifikasi Terbatas: hanya dimuat setelah login.
+      state.risks = [];
+      state.risksLoadedAt = 0;
+      if (state.data) renderDashboardRiskAnalytics($("dashboardOperatorFilter").value, "", "");
+      return;
+    }
+    readTerbatas("riskData")
+      .then(function (data) {
+        state.risks = data;
         state.risksLoadedAt = Date.now();
         document.dispatchEvent(new CustomEvent("sirisk:risks"));
         enrichRiskLocations();
@@ -2098,11 +2201,33 @@
       filled = t.filled || [],
       risk = t.risk || [];
     draw("fillChart2", labels, filled, "Completion");
-    draw("riskChart2", labels, risk, "Rata-rata Risiko");
+    // Bulan dengan operator di bawah ambang (MIN_GROUP) disembunyikan server (null) demi kerahasiaan.
+    var rl = [],
+      rv = [];
+    risk.forEach(function (v, i) {
+      if (v != null) {
+        rl.push(labels[i]);
+        rv.push(v);
+      }
+    });
+    risk = rv;
+    draw("riskChart2", rl, rv, "Rata-rata Risiko (bulan dengan cukup operator)");
     $("trendPeriods").textContent = labels.length;
     $("trendLatestFilled").textContent = filled.length ? filled[filled.length - 1] : "—";
     $("trendLatestRisk").textContent = risk.length ? Number(risk[risk.length - 1]).toFixed(1) : "—";
-    var rv = d.review || [];
+    if (!authUser()) {
+      $("reviewTbody").innerHTML =
+        '<tr><td colspan="4" class="empty empty-row">Daftar kaji ulang per operator berklasifikasi Terbatas. <button type="button" class="auth-link" data-auth-open="email">Masuk</button> untuk melihat.</td></tr>';
+      return;
+    }
+    readTerbatas("reviewList")
+      .then(renderReviewRows)
+      .catch(function (e) {
+        $("reviewTbody").innerHTML =
+          '<tr><td colspan="4" class="empty empty-row">' + esc(e.message) + "</td></tr>";
+      });
+  }
+  function renderReviewRows(rv) {
     $("reviewTbody").innerHTML =
       rv
         .map(function (x) {
@@ -2239,8 +2364,21 @@
     });
   }
   // API bersama untuk modul lain (mis. assets/js/pelaporan.js).
+  document.addEventListener("sirisk:auth", function () {
+    if (!state.initDone) return;
+    loadRisks();
+    var active = document.querySelector(".nav button.active");
+    var v = active ? active.dataset.view : "";
+    if (v === "operator") loadOperators();
+    if (v === "trend") renderTrends();
+    if (!authUser()) state.opStatus = [];
+  });
   window.SIRISK = {
     GAS_URL: GAS_URL,
+    opStatus: function () {
+      return state.opStatus || [];
+    },
+    loadOperatorStatus: loadOperators,
     applyAuthScope: applyAuthScope,
     get: get,
     post: post,

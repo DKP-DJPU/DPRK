@@ -85,7 +85,7 @@
 }
 
 /* ---------- Gerbang Pengisian DPRK ---------- */
-#view-form.auth-locked > :not(.auth-gate) {
+.view.auth-locked > :not(.auth-gate) {
   display: none !important;
 }
 
