@@ -8,8 +8,10 @@ PR yang ujinya merah (✗) **jangan di-merge** sebelum diperiksa.
 |---|---|
 | `harness/gas.js` | Menjalankan `apps-script/*.gs` **asli** di Node dengan tiruan layanan Google (Spreadsheet, Cache 100 KB, Mail + kuota, Drive, Trigger, jam tiruan). |
 | `server/*.test.js` | Uji server: login OTP & sesi, band risiko PR 16/41 DJPU 2024 + ALARP, persetujuan akun, penutupan data Terbatas + ambang `MIN_GROUP`, backup harian. |
+| `client/*.test.js` | Uji logika frontend tanpa browser (mis. pengubah Markdown tab Panduan: keamanan, FAQ, kontak, gambar yang dirujuk ada). |
 | `ui/mock-server.js` | Server tiruan yang menjalankan `.gs` asli dengan data sintetis (pengganti Apps Script). |
-| `ui/smoke.py` | Uji tampilan di browser (Playwright): publik, Admin, Operator, pendaftaran, login wajib, pelaporan, tampilan HP. |
+| `ui/smoke.py` | Uji tampilan di browser (Playwright): publik, Admin, Operator, pendaftaran, login wajib, pelaporan, Panduan, tampilan HP. |
+| `ui/make-screenshots.py` | Membuat ulang gambar tab Panduan (`assets/panduan/`) dari server tiruan berdata rekaan. |
 | `fixtures/` | Data uji **sintetis**. |
 
 ## ⚠️ Data
@@ -21,7 +23,7 @@ dari spreadsheet asli ke repo ini, termasuk untuk "sekadar uji".
 
 ## Menjalankan di komputer sendiri
 ```bash
-node tests/run-server-tests.js            # uji server (Node 18+), ±5 detik
+node tests/run-server-tests.js            # uji server + client (Node 18+), ±5 detik
 pip install playwright && python -m playwright install chromium
 python tests/ui/smoke.py                  # uji tampilan, ±1 menit
 ```
