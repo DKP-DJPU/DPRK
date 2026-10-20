@@ -60,7 +60,11 @@ try:
         pg.wait_for_timeout(300)
         clip(pg, '#view-form .form-section-title', '#riskPenerimaan', 'form-penilaian.png')
         pg.click('#saveBtn'); pg.wait_for_selector('#refBox:not(:empty)', timeout=8000); pg.wait_for_timeout(400)
-        shot(pg.locator('#refBox'), 'kode-referensi.png'); pg.close()
+        # --- tombol Edit di Monitoring Risiko (akun operator)
+        pg.click('button[data-view=risk]'); pg.wait_for_selector('[data-risk-edit]', timeout=8000); pg.wait_for_timeout(400)
+        bx = pg.eval_on_selector('#view-risk .tablewrap', "e=>{const r=e.getBoundingClientRect();return {x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height}}")
+        pg.screenshot(path=os.path.join(OUT, 'edit-monitoring.png'), clip={'x': bx['x'], 'y': bx['y'], 'width': bx['width'], 'height': min(bx['height'], 330)}, full_page=True); print('✓ edit-monitoring.png')
+        pg.close()
         # --- laporan
         pg = page(b); pg.click('button[data-view=pelaporan]'); pg.wait_for_timeout(800)
         pg.fill('#plpJudul', 'Contoh laporan kejadian'); pg.select_option('#plpJenis', index=2); pg.fill('#plpTanggal', '2026-10-20')
