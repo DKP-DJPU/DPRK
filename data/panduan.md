@@ -55,7 +55,7 @@ SI-RISK AVSEC **tidak memakai kata sandi**. Setiap kali masuk, sistem mengirim *
 4. Klik **Kirim pendaftaran**.
 5. Tunggu email pemberitahuan bahwa akun Anda sudah **aktif**. Pendaftaran diperiksa terlebih dahulu oleh Direktorat Keamanan Penerbangan.
 
-![Formulir pendaftaran perwakilan operator](assets/panduan/daftar.png)
+![Formulir pendaftaran perwakilan operator](assets/panduan/daftar@2x.png)
 
 > ! Gunakan email kantor dan pilih operator yang benar. Pendaftaran yang tidak dapat dipastikan kebenarannya akan ditolak.
 
@@ -66,7 +66,7 @@ SI-RISK AVSEC **tidak memakai kata sandi**. Setiap kali masuk, sistem mengirim *
 3. Buka email Anda. Kode berlaku **10 menit**. Periksa juga folder **Spam/Promosi**.
 4. Ketik kode 6 digit, lalu klik **Masuk**.
 
-![Langkah masuk dengan kode dari email](assets/panduan/masuk.png)
+![Langkah masuk dengan kode dari email](assets/panduan/masuk@2x.png)
 
 **Ingat perangkat ini selama 30 hari** — centang hanya di komputer atau HP pribadi. Tanpa centang, Anda otomatis keluar setelah 12 jam.
 
@@ -89,7 +89,7 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 3. Isi **Bulan Penilaian**, **Tahun**, **Nama Pengisi**, **Jabatan Pengisi**, dan **Tanggal Pengesahan** dokumen DPRK.
 4. **Email Pemilik Risiko** dan **Link File DPRK** (misalnya tautan Google Drive) dianjurkan diisi.
 
-![Langkah 01: identitas entitas](assets/panduan/form-identitas.png)
+![Langkah 01: identitas entitas](assets/panduan/form-identitas@2x.png)
 
 ### Langkah 02 — Skenario dan penilaian risiko
 
@@ -101,7 +101,7 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 6. Isi **Pemilik Risiko** dan **Tanggal Kaji Ulang**. Tanggal kaji ulang tidak boleh lebih awal dari tanggal pengesahan.
 7. Klik **Simpan Skenario**.
 
-![Langkah 02: nilai risiko dan kategori penerimaan dihitung otomatis](assets/panduan/form-penilaian.png)
+![Langkah 02: nilai risiko dan kategori penerimaan dihitung otomatis](assets/panduan/form-penilaian@2x.png)
 
 ### Cara nilai risiko dihitung
 
@@ -125,7 +125,7 @@ Bila Anda **masuk dengan akun**, tidak perlu kode apa pun:
 2. Klik **Edit** pada baris skenario yang ingin diubah. Formulir di tab **Pengisian DPRK** akan terisi otomatis.
 3. Ubah isian, lalu klik **Perbarui Skenario**. Untuk membatalkan, klik **Bersihkan**.
 
-![Tombol Edit di Monitoring Risiko untuk pengguna yang sudah masuk](assets/panduan/edit-monitoring.png)
+![Tombol Edit di Monitoring Risiko untuk pengguna yang sudah masuk](assets/panduan/edit-monitoring@2x.png)
 
 > Jenis operator, nama operator, dan periode (bulan/tahun) tidak dapat diubah lewat Edit. Bila periodenya salah, simpan sebagai skenario baru dan beri tahu admin agar skenario yang salah dihapus.
 
@@ -181,7 +181,7 @@ Siapa pun dapat melaporkan kejadian keamanan penerbangan, **tanpa login**: petug
 
 Setelah terkirim, Anda menerima **nomor referensi** (contoh: `LKP/0001/09/2026`) dan **kode cek** 6 karakter.
 
-![Nomor referensi dan kode cek setelah laporan terkirim](assets/panduan/laporan-terkirim.png)
+![Nomor referensi dan kode cek setelah laporan terkirim](assets/panduan/laporan-terkirim@2x.png)
 
 > ! **Catat kode cek.** Demi keamanan, kode cek hanya ditampilkan sekali dan tidak dapat dikirim ulang.
 

@@ -30,6 +30,7 @@ Video baru dimuat ketika pengguna mengklik tombol putar, sehingga halaman tetap 
 ## Menambah gambar
 1. Simpan gambar (PNG/JPG/WebP, sebaiknya < 300 KB) ke folder `assets/panduan/` (GitHub: *Add file → Upload files*).
 2. Tulis di `panduan.md`: `![Keterangan gambar](assets/panduan/nama-file.png)`
+   - **Tangkapan layar:** ambil pada perbesaran layar 200% (atau dari layar retina/HP) dan beri akhiran **`@2x`** pada nama file, misalnya `menu-baru@2x.png`. Gambar seperti ini ditampilkan setengah ukuran aslinya, sehingga tulisan di dalamnya sama besar dengan tulisan aplikasi dan semua gambar terlihat seragam. Gambar tanpa `@2x` (foto, diagram) ditampilkan apa adanya.
 3. **Gunakan data contoh**, jangan tangkapan layar berisi data asli (nama orang, nilai risiko operator, data pelapor).
 
 Gambar formulir bawaan dibuat otomatis dari data rekaan: `python3 tests/ui/make-screenshots.py`.
