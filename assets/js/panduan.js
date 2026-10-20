@@ -45,7 +45,7 @@
   function safeImg(u) {
     u = String(u || "").trim();
     if (/^https:\/\//i.test(u)) return u;
-    if (/^assets\/panduan\/[\w./-]+\.(png|jpe?g|webp|gif|svg)$/i.test(u) && u.indexOf("..") < 0) return u;
+    if (/^assets\/panduan\/[\w.@/-]+\.(png|jpe?g|webp|gif|svg)$/i.test(u) && u.indexOf("..") < 0) return u;
     return null;
   }
   function parseVideo(u) {
@@ -156,15 +156,19 @@
         flush();
         var src = safeImg(m[2]);
         if (src)
+          // nama@2x.png = tangkapan layar resolusi ganda → ditampilkan setengah ukuran aslinya,
+          // sehingga tulisan di semua gambar sama besar dengan tulisan di aplikasi.
           html +=
-            '<figure class="pdn-fig"><a href="' +
+            '<figure class="pdn-fig"><div class="pdn-fig-frame"><a href="' +
             esc(src) +
-            '" target="_blank" rel="noopener"><img src="' +
+            '" target="_blank" rel="noopener" title="Buka gambar ukuran penuh"><img class="pdn-img" src="' +
             esc(src) +
             '" alt="' +
             esc(m[1]) +
-            '" loading="lazy" decoding="async"></a>' +
-            (m[1] ? "<figcaption>" + inline(m[1]) + "</figcaption>" : "") +
+            '"' +
+            (/@2x\.\w+$/i.test(src) ? ' data-dpr="2"' : "") +
+            ' loading="lazy" decoding="async"></a></div>' +
+            (m[1] ? '<figcaption><span class="pdn-fig-text">' + inline(m[1]) + "</span></figcaption>" : "") +
             "</figure>";
         i++;
         continue;
@@ -365,14 +369,45 @@
       });
     return st.loading;
   }
+  function no2(n) {
+    return (n < 10 ? "0" : "") + n;
+  }
+  // Gambar @2x: lebar tampilan = lebar asli ÷ 2 (maks. selebar kolom, diatur CSS).
+  function fitImg(img) {
+    var d = Number(img.getAttribute("data-dpr")) || 0;
+    if (d > 1 && img.naturalWidth) img.style.width = Math.round(img.naturalWidth / d) + "px";
+  }
   function draw() {
-    var secs = st.sections;
+    // Teks pengantar (sebelum bab pertama) tampil di kartu judul, bukan kartu tersendiri.
+    var lead = $("pdnLead"),
+      secs = st.sections.filter(function (s) {
+        if (!s.title && lead) {
+          lead.innerHTML = s.html;
+          lead.hidden = false;
+          return false;
+        }
+        return true;
+      }),
+      no = 0;
+    secs.forEach(function (s) {
+      s.no = s.title ? no2(++no) : "";
+    });
     $("pdnToc").innerHTML = secs
       .filter(function (s) {
         return s.title;
       })
       .map(function (s) {
-        return '<a href="#panduan/' + s.id + '" data-pdn="' + s.id + '">' + esc(s.title) + "</a>";
+        return (
+          '<a href="#panduan/' +
+          s.id +
+          '" data-pdn="' +
+          s.id +
+          '"><span class="pdn-no">' +
+          s.no +
+          "</span><span>" +
+          esc(s.title) +
+          "</span></a>"
+        );
       })
       .join("");
     $("pdnContent").innerHTML =
@@ -386,12 +421,28 @@
             '" data-pdn-sec="' +
             s.id +
             '">' +
-            (s.title ? "<h2>" + esc(s.title) + "</h2>" : "") +
+            (s.title
+              ? '<div class="pdn-sec-head"><span class="pdn-sec-no">' +
+                s.no +
+                "</span><h2>" +
+                esc(s.title) +
+                "</h2></div>"
+              : "") +
             s.html +
             "</section>"
           );
         })
         .join("") + '<div class="notice pdn-empty" id="pdnEmpty" hidden></div>';
+    // Nomor gambar tetap (tidak berubah saat pencarian menyembunyikan bab).
+    Array.prototype.forEach.call(document.querySelectorAll("#pdnContent .pdn-fig figcaption"), function (c, i) {
+      c.insertAdjacentHTML("afterbegin", '<span class="pdn-fig-no">Gambar ' + (i + 1) + "</span>");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#pdnContent img[data-dpr]"), function (img) {
+      if (img.complete) fitImg(img);
+      else img.addEventListener("load", function () {
+        fitImg(img);
+      });
+    });
     filter($("pdnSearch").value);
     if (st.pending) {
       var p = st.pending;

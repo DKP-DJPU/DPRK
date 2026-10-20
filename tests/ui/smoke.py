@@ -183,6 +183,8 @@ try:
         pg.wait_for_timeout(800)
         broken = pg.eval_on_selector_all('.pdn-fig img', 'e=>e.filter(i=>!(i.complete&&i.naturalWidth>0)).map(i=>i.src)')
         T('panduan: semua gambar termuat (%d)' % len(imgs), len(imgs) >= 5 and not broken, broken)
+        sizes = pg.eval_on_selector_all('.pdn-img[data-dpr]', 'e=>e.map(i=>[i.naturalWidth, Math.round(i.getBoundingClientRect().width), i.parentElement.parentElement.clientWidth])')
+        T('panduan: ukuran tulisan di gambar seragam (gambar @2x tampil ½ ukuran asli, tidak diperbesar)', len(sizes) == len(imgs) and all(abs(w - min(n / 2, fw)) <= 2 for n, w, fw in sizes if n), sizes)
         pg.fill('#pdnSearch', 'kode cek'); pg.wait_for_timeout(400)
         vis = pg.eval_on_selector_all('.pdn-sec', 'e=>e.filter(x=>!x.hidden).map(x=>x.id)')
         opened = pg.eval_on_selector_all('.pdn-faq', 'e=>e.filter(x=>x.open&&!x.hidden).map(x=>x.querySelector("summary").textContent)')
