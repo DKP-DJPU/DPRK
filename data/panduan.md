@@ -154,12 +154,6 @@ Bagian **Kode DPRK (Ganti Perangkat)** juga hanya untuk pengisian tanpa login, d
 | **Risiko Tinggi** | Jumlah **skenario** (bukan jumlah operator) berating Tinggi |
 | **Kaji Ulang Mendekat** | DPRK dengan tanggal kaji ulang dalam 30 hari ke depan |
 
-### Mengapa sebagian angka "disembunyikan sementara"?
-
-Rincian risiko per jenis operator, per kategori ancaman, atau per bulan hanya ditampilkan bila berasal dari **minimal 2 operator**. Bila hanya satu operator yang mengisi, angka rata-ratanya sama dengan nilai risiko operator itu sendiri, sehingga data Terbatas milik operator tersebut akan terbuka.
-
-Kadang jenis operator lain ikut disembunyikan walaupun datanya cukup. Ini disengaja: bila angka nasional dan angka jenis lain terlihat, angka jenis yang disembunyikan bisa dihitung dengan pengurangan. Angka akan tampil dengan sendirinya setelah lebih banyak operator mengisi.
-
 ### Dashboard untuk pengguna yang login
 
 - **Admin** dapat memakai filter wilayah (provinsi dan kabupaten/kota) dan melihat seluruh data di Monitoring Operator dan Monitoring Risiko.
@@ -229,9 +223,6 @@ Seseorang mengubah skenario yang sama setelah Anda membukanya. Klik **Edit** lag
 
 ### Apakah setiap kategori ancaman wajib diisi?
 Isi semua skenario yang tercantum di dokumen DPRK operator Anda yang sudah disahkan. Data di sistem harus sama dengan dokumen tersebut.
-
-### Mengapa sebagian grafik di Dashboard bertuliskan "disembunyikan sementara"?
-Agar nilai risiko satu operator tidak dapat diketahui publik. Lihat bagian **Memahami Dashboard**.
 
 ### Apakah pelapor kejadian harus login?
 Tidak. Formulir laporan dan cek status dapat digunakan tanpa login.
