@@ -117,22 +117,29 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 
 Tingkat risiko dihitung ulang oleh server saat disimpan, jadi hasilnya selalu konsisten dengan aturan di atas.
 
-### Setelah menyimpan: simpan kode referensi
-
-Setelah berhasil disimpan, muncul kotak hijau berisi **kode referensi** berbentuk `riskId::KODE`. Kode ini diperlukan untuk **mengubah** skenario tersebut nanti.
-
-- Salin dan simpan kode referensi di tempat yang aman. Kode ini bersifat rahasia.
-- Kode juga tersimpan otomatis di bagian **Riwayat Pengisian Saya** pada perangkat yang sama. Riwayat ini hilang bila data browser dihapus.
-
-![Kode referensi muncul setelah skenario tersimpan](assets/panduan/kode-referensi.png)
-
 ### Mengubah skenario yang sudah disimpan
 
+Bila Anda **masuk dengan akun**, tidak perlu kode apa pun:
+
+1. Buka tab **Monitoring Risiko**. Daftar hanya berisi skenario operator Anda (Admin: semua operator).
+2. Klik **Edit** pada baris skenario yang ingin diubah. Formulir di tab **Pengisian DPRK** akan terisi otomatis.
+3. Ubah isian, lalu klik **Perbarui Skenario**. Untuk membatalkan, klik **Bersihkan**.
+
+![Tombol Edit di Monitoring Risiko untuk pengguna yang sudah masuk](assets/panduan/edit-monitoring.png)
+
+> Jenis operator, nama operator, dan periode (bulan/tahun) tidak dapat diubah lewat Edit. Bila periodenya salah, simpan sebagai skenario baru dan beri tahu admin agar skenario yang salah dihapus.
+
+> ! Bila skenario yang sama sedang diubah orang lain dan tersimpan lebih dulu, sistem menolak penyimpanan Anda agar perubahan mereka tidak tertimpa. Klik **Edit** lagi untuk memuat data terbaru.
+
+### Kode referensi (untuk pengisian tanpa login)
+
+Setiap skenario yang tersimpan juga memiliki **kode referensi** berbentuk `riskId::KODE`. Kode ini hanya diperlukan bila skenario diisi **tanpa login**:
+
 1. Di tab **Pengisian DPRK**, gulir ke bagian **03 — Edit & Riwayat**.
-2. Tempel kode referensi pada kolom **Edit Skenario Tersimpan**, lalu klik **Muat Data untuk Edit**. Atau klik tombol **Edit** pada skenario di **Riwayat Pengisian Saya**.
+2. Tempel kode referensi pada kolom **Edit Skenario Tersimpan**, lalu klik **Muat Data untuk Edit**. Atau klik **Edit** pada skenario di **Riwayat Pengisian Saya** (tersimpan di perangkat yang sama).
 3. Ubah isian, lalu klik **Perbarui Skenario**.
 
-> Bagian **Kode DPRK (Ganti Perangkat)** hanya dipakai pengisi yang **tidak login**. Bila Anda sudah masuk dengan akun operator, bagian ini tidak perlu diisi.
+Bagian **Kode DPRK (Ganti Perangkat)** juga hanya untuk pengisian tanpa login, dan otomatis disembunyikan setelah Anda masuk.
 
 ## Memahami Dashboard
 
@@ -209,10 +216,16 @@ Hubungi admin agar operator pada akun Anda diperbaiki. Jangan mendaftar ulang de
 Kedua tab berisi data berklasifikasi Terbatas, sehingga hanya terbuka setelah login. Perwakilan operator hanya melihat data operatornya sendiri.
 
 ### Saat menyimpan muncul pesan skenario sudah ada
-Skenario dengan operator, periode, kategori, dan teks skenario yang sama sudah pernah disimpan. Untuk mengubahnya, gunakan **Edit Skenario Tersimpan** dengan kode referensi, bukan menyimpan ulang.
+Skenario dengan operator, periode, kategori, dan teks skenario yang sama sudah pernah disimpan. Untuk mengubahnya, buka **Monitoring Risiko** lalu klik **Edit** pada skenario tersebut, bukan menyimpan ulang.
 
 ### Saya kehilangan kode referensi untuk mengedit
-Periksa **Riwayat Pengisian Saya** di perangkat yang dipakai saat mengisi. Bila tidak ada, hubungi admin dengan menyebutkan nama operator, periode, dan kategori ancaman skenario tersebut.
+Tidak masalah bila Anda punya akun: masuk, buka **Monitoring Risiko**, lalu klik **Edit**. Kode referensi hanya diperlukan untuk pengisian tanpa login.
+
+### Saya tidak melihat tombol Edit di Monitoring Risiko
+Tombol **Edit** hanya muncul setelah Anda masuk, dan hanya untuk skenario operator yang terhubung dengan akun Anda. Bila skenario operator Anda tidak muncul, hubungi admin untuk memeriksa operator pada akun Anda.
+
+### Saat memperbarui muncul pesan data sudah diperbarui pengguna lain
+Seseorang mengubah skenario yang sama setelah Anda membukanya. Klik **Edit** lagi pada skenario itu untuk memuat versi terbaru, lalu ulangi perubahan Anda.
 
 ### Apakah setiap kategori ancaman wajib diisi?
 Isi semua skenario yang tercantum di dokumen DPRK operator Anda yang sudah disahkan. Data di sistem harus sama dengan dokumen tersebut.

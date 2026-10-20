@@ -172,8 +172,8 @@
         return res;
       });
   }
-  // Aksi baca data Terbatas (wajib login). Lihat READ_ACTIONS di Code.gs V3.34.
-  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList"];
+  // Aksi baca data Terbatas (wajib login). Lihat READ_ACTIONS di Code.gs V3.34/V3.36.
+  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList", "riskDetail"];
   function authUser() {
     return window.SIRISK_AUTH ? window.SIRISK_AUTH.user() : null;
   }
@@ -276,6 +276,7 @@
     loadDashboard();
     loadRisks();
     state.initDone = true;
+    renderEditMode();
     loadOperatorMasterForForm();
   }
   function loadOperatorMasterForForm() {
@@ -873,6 +874,8 @@
     $("bulan").value = "";
     $("formNotice").innerHTML = "";
     $("refBox").style.display = "none";
+    $("editNotice").innerHTML = "";
+    $("saveBtn").textContent = "Simpan Skenario";
     state.edit = null;
     state.pendingCreateId = null;
     state.pendingCreateToken = null;
@@ -953,6 +956,8 @@
     var idx = a.findIndex(function (x) {
       return x.id === item.id;
     });
+    // Edit lewat akun tidak membawa kode; pertahankan kode lama dari riwayat bila ada.
+    if (idx >= 0 && !item.editToken) item.editToken = a[idx].editToken || "";
     if (idx >= 0) a.splice(idx, 1);
     a.unshift(item);
     setLocalHistory(a);
@@ -1008,6 +1013,15 @@
       b.onclick = function () {
         var x = getLocalHistory()[Number(this.dataset.localEdit)];
         if (!x) return;
+        if (authUser()) {
+          loadEditById(x.id);
+          return;
+        }
+        if (!x.editToken) {
+          $("editNotice").innerHTML =
+            '<div class="notice">Masuk dengan akun Anda untuk mengedit skenario ini.</div>';
+          return;
+        }
         $("editRef").value = x.id + "::" + x.editToken;
         loadEdit();
       };
@@ -1329,6 +1343,8 @@
           action: wasEdit ? "update" : "create",
           id: wasEdit ? state.edit.id : state.pendingCreateId,
           editToken: wasEdit ? state.edit.editToken : state.pendingCreateToken,
+          // V3.36: kirim versi baris agar server menolak bila skenario sudah diubah orang lain (STALE_RECORD).
+          rowVersion: wasEdit ? state.edit.rowVersion : undefined,
           dprkEditToken: getDprkToken(e.operatorId, tahun),
           operatorId: e.operatorId,
           jenisOperator: e.jenisOperator,
@@ -1391,6 +1407,7 @@
               esc(p.operatorId + "|" + p.tahun + "::" + dprkTok) +
               "</code>"
             : "";
+          var viaAkun = !!authUser();
           $("refBox").style.display = "block";
           $("refBox").innerHTML =
             "<b>" +
@@ -1399,10 +1416,15 @@
               : res.duplicate
                 ? "Request sudah tersimpan sebelumnya."
                 : "Berhasil disimpan.") +
-            "</b> Kode referensi skenario: <code>" +
-            esc(p.id + "::" + p.editToken) +
-            "</code>" +
-            dprkLine;
+            "</b>" +
+            (viaAkun
+              ? " Skenario ini dapat diubah kapan saja dari tab <b>Monitoring Risiko</b> → tombol <b>Edit</b>, tanpa kode referensi." +
+                (p.editToken
+                  ? ' <span class="local-note">Kode referensi (cadangan): <code>' +
+                    esc(p.id + "::" + p.editToken) +
+                    "</code></span>"
+                  : "")
+              : " Kode referensi skenario: <code>" + esc(p.id + "::" + p.editToken) + "</code>" + dprkLine);
           clearScenario();
           $("editRef").value = "";
           $("editNotice").innerHTML = "";
@@ -1436,78 +1458,7 @@
     get("find&id=" + encodeURIComponent(parts[0]) + "&token=" + encodeURIComponent(parts[1]))
       .then(function (res) {
         if (!res.ok) throw Error(res.error || "Data tidak ditemukan");
-        var x = res.data || {};
-        state.edit = {
-          id: x.riskId,
-          editToken: parts[1],
-          originalOperatorId: x.operatorId || "",
-          originalJenisOperator: x.jenisOperator || "",
-          baseFingerprint: buildRecordFingerprint(x),
-        };
-        state.type = x.jenisOperator || "";
-        state.entity = null;
-        renderTypes();
-        renderEntityArea();
-        if (state.type === "Bandar Udara") {
-          var found = airportList()
-            .concat(AIRPORTS)
-            .filter(function (a) {
-              return "BD-" + a[0] === x.operatorId || a[1] === x.namaOperator || a[3] === x.iata;
-            })[0];
-          if (found) {
-            found.operatorId = x.operatorId || "BD-" + found[0];
-            state.entity = found;
-            renderEntityArea();
-          }
-        } else {
-          state.entity = {
-            operatorId: x.operatorId || "",
-            jenisOperator: state.type,
-            nama: x.namaOperator || "",
-            kode: x.kodeOperator || "",
-            provinsi: x.provinsi || "",
-            kabkota: x.kabkota || "",
-            lokasi: x.lokasi || "",
-          };
-          renderEntityArea();
-        }
-        $("bulan").value = x.bulan || "";
-        $("tahun").value = x.tahun || "";
-        $("tanggalPengesahan").value = (x.tanggalPengesahan || "").toString().slice(0, 10);
-        $("namaPengisi").value = x.namaPengisi || "";
-        $("jabatanPengisi").value = x.jabatanPengisi || "";
-        $("emailRiskOwner").value = x.emailRiskOwner || "";
-        $("linkDprk").value = x.linkFileDprk || x.linkDprk || "";
-        $("kategori").value = x.kategori || x.kategoriKode || "";
-        filterCatalog();
-        $("riskCatalog").value = x.idRisikoKatalog || "";
-        if ($("riskCatalog").value !== x.idRisikoKatalog) $("riskCatalog").value = "__MANUAL__";
-        $("skenario").value = x.skenario || "";
-        $("area").value = x.area || "";
-        $("langkahSaatIni").value = x.langkahSaatIni || "";
-        $("kerentananSaatIni").value = x.kerentananSaatIni || "";
-        $("ancaman").value = x.ancamanNilai || "";
-        $("kerentanan").value = x.kerentananNilai || "";
-        $("konsekuensi").value = x.konsekuensiNilai || "";
-        $("perlakuan").value = x.perlakuan || "";
-        $("prioritas").value = x.prioritas || "";
-        $("riskOwner").value = x.pemilikRisiko || "";
-        $("tanggalKaji").value = x.tanggalKaji || "";
-        $("langkahTambahan").value = x.langkahTambahan || "";
-        $("keterangan").value = x.keterangan || "";
-        updateRisk();
-        $("saveBtn").textContent = "Perbarui Skenario";
-        $("refBox").style.display = "block";
-        $("refBox").innerHTML =
-          "<b>Mode edit aktif.</b> Risiko <code>" +
-          esc(x.riskId) +
-          "</code> siap diperbarui." +
-          (x.bulan || x.tahun
-            ? ' <span class="local-note">Periode: ' + esc((x.bulan || "") + " " + (x.tahun || "")) + "</span>"
-            : "");
-        $("editNotice").innerHTML =
-          '<div class="notice ok">Data berhasil dimuat. Klik <b>Perbarui Skenario</b> setelah selesai.</div>';
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        fillEditForm(res.data || {}, parts[1]);
       })
       .catch(function (err) {
         $("editNotice").innerHTML = '<div class="notice">Gagal memuat: ' + esc(err.message) + "</div>";
@@ -1516,6 +1467,107 @@
         $("loadEditBtn").disabled = false;
         $("loadEditBtn").textContent = "Muat Data untuk Edit";
       });
+  }
+  // V3.36 — edit lewat akun yang login: tanpa kode referensi. Server (riskDetail) hanya mengembalikan
+  // skenario operator milik akun (Admin: semua) dan menyertakan metadata DPRK agar formulir terisi lengkap.
+  function loadEditById(id) {
+    if (!authUser()) {
+      $("editNotice").innerHTML =
+        '<div class="notice">Masuk terlebih dahulu untuk mengedit lewat akun.</div>';
+      return Promise.resolve(false);
+    }
+    var tab = document.querySelector('.nav button[data-view="form"]');
+    if (tab && !tab.classList.contains("active")) tab.click();
+    $("editNotice").innerHTML = '<div class="notice ok">Memuat skenario…</div>';
+    return post({ action: "riskDetail", id: id })
+      .then(function (res) {
+        if (!res || !res.ok) throw Error((res && res.error) || "Data tidak ditemukan");
+        fillEditForm(res.data || {}, "");
+        return true;
+      })
+      .catch(function (err) {
+        $("editNotice").innerHTML = '<div class="notice">Gagal memuat: ' + esc(err.message) + "</div>";
+        return false;
+      });
+  }
+  function fillEditForm(x, editToken) {
+    state.edit = {
+      id: x.riskId,
+      editToken: editToken || "",
+      rowVersion: x.rowVersion != null && x.rowVersion !== "" ? Number(x.rowVersion) : undefined,
+      viaLogin: !editToken,
+      originalOperatorId: x.operatorId || "",
+      originalJenisOperator: x.jenisOperator || "",
+      baseFingerprint: buildRecordFingerprint(x),
+    };
+    state.type = x.jenisOperator || "";
+    state.entity = null;
+    renderTypes();
+    renderEntityArea();
+    if (state.type === "Bandar Udara") {
+      var found = airportList()
+        .concat(AIRPORTS)
+        .filter(function (a) {
+          return "BD-" + a[0] === x.operatorId || a[1] === x.namaOperator || a[3] === x.iata;
+        })[0];
+      if (found) {
+        found.operatorId = x.operatorId || "BD-" + found[0];
+        state.entity = found;
+        renderEntityArea();
+      }
+    } else {
+      state.entity = {
+        operatorId: x.operatorId || "",
+        jenisOperator: state.type,
+        nama: x.namaOperator || "",
+        kode: x.kodeOperator || "",
+        provinsi: x.provinsi || "",
+        kabkota: x.kabkota || "",
+        lokasi: x.lokasi || "",
+      };
+      renderEntityArea();
+    }
+    $("bulan").value = x.bulan || "";
+    $("tahun").value = x.tahun || "";
+    $("tanggalPengesahan").value = (x.tanggalPengesahan || "").toString().slice(0, 10);
+    $("namaPengisi").value = x.namaPengisi || "";
+    $("jabatanPengisi").value = x.jabatanPengisi || "";
+    $("emailRiskOwner").value = x.emailRiskOwner || "";
+    $("linkDprk").value = x.linkFileDprk || x.linkDprk || "";
+    // Sheet menyimpan "07 - Nama kategori" (atau angka 7 pada data lama); pilihan formulir bernilai "07".
+    var kk = String(x.kategoriKode || String(x.kategori == null ? "" : x.kategori).split(" - ")[0]).trim();
+    $("kategori").value = /^\d+$/.test(kk) ? ("0" + Number(kk)).slice(-2) : kk;
+    filterCatalog();
+    $("riskCatalog").value = x.idRisikoKatalog || "";
+    if ($("riskCatalog").value !== x.idRisikoKatalog) $("riskCatalog").value = "__MANUAL__";
+    $("skenario").value = x.skenario || "";
+    $("area").value = x.area || "";
+    $("langkahSaatIni").value = x.langkahSaatIni || "";
+    $("kerentananSaatIni").value = x.kerentananSaatIni || "";
+    $("ancaman").value = x.ancamanNilai || "";
+    $("kerentanan").value = x.kerentananNilai || "";
+    $("konsekuensi").value = x.konsekuensiNilai || "";
+    $("perlakuan").value = x.perlakuan || "";
+    $("prioritas").value = x.prioritas || "";
+    $("riskOwner").value = x.pemilikRisiko || "";
+    $("tanggalKaji").value = String(x.tanggalKaji || "").slice(0, 10);
+    $("langkahTambahan").value = x.langkahTambahan || "";
+    $("keterangan").value = x.keterangan || "";
+    updateRisk();
+    $("saveBtn").textContent = "Perbarui Skenario";
+    $("refBox").style.display = "block";
+    $("refBox").innerHTML =
+      "<b>Mode edit aktif" +
+      (editToken ? "" : " (lewat akun)") +
+      ".</b> Risiko <code>" +
+      esc(x.riskId) +
+      "</code> siap diperbarui." +
+      (x.bulan || x.tahun
+        ? ' <span class="local-note">Periode: ' + esc((x.bulan || "") + " " + (x.tahun || "")) + "</span>"
+        : "");
+    $("editNotice").innerHTML =
+      '<div class="notice ok">Data berhasil dimuat. Klik <b>Perbarui Skenario</b> setelah selesai, atau <b>Bersihkan</b> untuk membatalkan.</div>';
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function loadDprkToken() {
     var ref = $("dprkRef").value.trim();
@@ -2165,13 +2217,19 @@
             return s + n;
           }, 0) / nums.length
         : 0,
+      // Band Tinggi = 26–30 (PR 16/41 DJPU 2024); 25 termasuk Menengah-Tinggi.
       high = a.filter(function (x) {
-        return Number(x.risikoNilai) >= 25;
+        return x.risikoRating === "Tinggi" || Number(x.risikoNilai) >= 26;
       }).length;
     $("riskCount").textContent = a.length;
     $("riskHighCount").textContent = high;
     $("riskAvgCount").textContent = nums.length ? avg.toFixed(1) : "—";
     $("riskFilterState").textContent = t || r || c || q ? "Aktif" : "Semua";
+    // V3.36: tombol Edit untuk pengguna login. riskData sudah dibatasi server (operator: miliknya; Admin: semua).
+    var canEdit = !!authUser(),
+      cols = canEdit ? 7 : 6,
+      th = $("riskActCol");
+    if (th) th.hidden = !canEdit;
     $("riskTbody").innerHTML =
       a
         .map(function (x) {
@@ -2188,11 +2246,23 @@
             pill(rating(Number(x.risikoNilai))) +
             '</td><td class="risk-period">' +
             esc((x.bulan || "") + " " + (x.tahun || "")) +
-            "</td></tr>"
+            "</td>" +
+            (canEdit && x.riskId
+              ? '<td class="risk-act"><button type="button" class="btn secondary btn-sm" data-risk-edit="' +
+                esc(x.riskId) +
+                '" aria-label="Edit skenario ' +
+                esc(x.kategori || "") +
+                '">Edit</button></td>'
+              : canEdit
+                ? "<td></td>"
+                : "") +
+            "</tr>"
           );
         })
         .join("") ||
-      '<tr><td colspan="6" class="empty empty-row">Tidak ada data yang sesuai dengan filter.</td></tr>';
+      '<tr><td colspan="' +
+        cols +
+        '" class="empty empty-row">Tidak ada data yang sesuai dengan filter.</td></tr>';
   }
   function renderTrends() {
     var d = state.data || {},
@@ -2363,6 +2433,34 @@
       });
     });
   }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-risk-edit]");
+    if (b) loadEditById(b.getAttribute("data-risk-edit"));
+  });
+  // Langkah 03: saat login, edit lewat Monitoring Risiko; panel Kode DPRK tidak diperlukan.
+  function renderEditMode() {
+    var u = authUser(),
+      note = $("editLoginNote"),
+      dprk = $("dprkTokenCard");
+    if (note)
+      note.innerHTML = u
+        ? '<div class="notice ok">Anda masuk sebagai <b>' +
+          esc(u.nama || u.email || "") +
+          '</b>. Untuk mengubah skenario, buka tab <b>Monitoring Risiko</b> lalu klik <b>Edit</b> pada baris yang ingin diubah — kode referensi tidak diperlukan. <button type="button" class="auth-link" data-goto-risk>Buka Monitoring Risiko</button></div>'
+        : "";
+    if (dprk) dprk.hidden = !!u;
+  }
+  document.addEventListener("click", function (e) {
+    if (e.target.closest && e.target.closest("[data-goto-risk]")) {
+      var b = document.querySelector('.nav button[data-view="risk"]');
+      if (b) b.click();
+    }
+  });
+  document.addEventListener("sirisk:auth", function () {
+    renderEditMode();
+    if (!authUser() && state.edit && state.edit.viaLogin) clearForm();
+    if (state.risks) renderRiskTable();
+  });
   // API bersama untuk modul lain (mis. assets/js/pelaporan.js).
   document.addEventListener("sirisk:auth", function () {
     if (!state.initDone) return;

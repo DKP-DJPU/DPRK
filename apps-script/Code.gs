@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.35 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.36 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -415,13 +415,35 @@ function operatorMaster_(){
  return objs_(sheet_(SHEETS.OP,H.OP)).filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(publicOp_);
 }
 // V3.34 — BACA DATA TERBATAS (wajib login). Admin: semua operator; Operator: hanya operatorIds miliknya.
-var READ_ACTIONS=["riskData","operatorStatus","reviewList"];
+var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail"];
 function authRead_(p,a){
  var u=authSession_(p.sessionToken);
  if(!u)return json_({ok:false,code:"AUTH_REQUIRED",error:"Silakan masuk untuk melihat data ini."});
+ if(a==="riskDetail")return riskDetail_(u,p);
  var data=a==="riskData"?cached_(CACHE_KEYS.risks,riskMonitoring_):a==="operatorStatus"?cached_(CACHE_KEYS.operators,operatorMonitoring_):review_();
  var all=u.peran==="Admin";
  return json_({ok:true,scope:all?"all":"own",data:all?data:data.filter(function(r){return authCanAccess_(u,r.operatorId)})});
+}
+// V3.36 — muat SATU skenario lengkap untuk diedit lewat akun yang login (tanpa kode referensi).
+// Admin: semua operator; Operator: hanya operatorIds miliknya. Respons sama untuk "tidak ada" dan
+// "bukan milik Anda" agar riskId operator lain tidak bisa ditebak keberadaannya.
+// Metadata dokumen (tanggal pengesahan, email pemilik risiko, link file) diambil dari MASTER_DPRK
+// supaya formulir edit terisi lengkap.
+function isoDate_(v){
+ if(Object.prototype.toString.call(v)==="[object Date]"&&!isNaN(v.getTime()))return Utilities.formatDate(v,Session.getScriptTimeZone()||"Asia/Jakarta","yyyy-MM-dd");
+ var s=String(v||"").trim();return /^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(0,10):"";
+}
+function riskDetail_(u,p){
+ var id=String(p.id||"").trim(),f=id?findRiskById_(id):null;
+ if(!f||!authCanAccess_(u,f.obj.operatorId))return json_({ok:false,code:"NOT_FOUND",error:"Data risiko tidak ditemukan atau bukan milik akun Anda."});
+ var out=redact_(f.obj),d=findCurrentDprkByOperator_(String(f.obj.operatorId||""));
+ out.rowVersion=Number(f.obj.rowVersion||1);
+ out.tanggalKaji=isoDate_(f.obj.tanggalKaji)||(d?isoDate_(d.tanggalKajiUlang):""); // isian awal dari tanggal kaji ulang DPRK bila kosong
+ out.tanggalPengesahan=d?isoDate_(d.tanggalPengesahan):"";
+ out.emailRiskOwner=d?String(d.emailRiskOwner||""):"";
+ out.linkFileDprk=d?String(d.linkFileDprk||""):"";
+ out.tanggalWajibPembaruan=d?(isoDate_(d.tanggalWajibPembaruan)||addYearsDate_(d.tanggalPengesahan,2)||""):"";
+ return json_({ok:true,data:out});
 }
 // V3.34 — analitik agregat publik per jenis operator. Kelompok dengan kurang dari
 // MIN_GROUP operator disembunyikan agar profil risiko satu operator tidak dapat dikenali.
@@ -689,6 +711,8 @@ function updateRisk_(p){
  if(incomingVersion!==currentVersion)return json_({ok:false,error:"Data sudah diperbarui oleh pengguna lain. Muat ulang data terbaru sebelum menyimpan.",code:"STALE_RECORD",rowVersion:currentVersion});
  // Immutable identity/period fields come from the server-side record, never the client.
  p.operatorId=old.operatorId;p.dprkId=old.dprkId;p.jenisOperator=old.jenisOperator;p.namaOperator=old.namaOperator;p.bulan=old.bulan;p.tahun=old.tahun;
+ // V3.36: formulir mengirim "riskOwner", kolom sheet bernama "pemilikRisiko" (sebelumnya perubahan Pemilik Risiko saat edit tidak tersimpan).
+ if(p.pemilikRisiko===undefined&&p.riskOwner!==undefined)p.pemilikRisiko=p.riskOwner;
  var key=assessmentKey_(old.operatorId,old.dprkId,old.bulan,old.tahun,p.kategori,p.skenario),dup=findRiskByAssessmentKey_(key,p.id);if(dup)return json_({ok:false,error:"Perubahan akan membuat duplicate assessment.",code:"DUPLICATE_RISK",existingRiskId:dup.riskId});
  var n=now_(),obj={},risk=computeRisk_(p),h=f.h;h.forEach(function(k){obj[k]=p[k]!==undefined?p[k]:(old[k]===undefined?"":old[k])});
  obj.riskId=old.riskId;obj.dprkId=old.dprkId;obj.operatorId=old.operatorId;obj.jenisOperator=old.jenisOperator;obj.namaOperator=old.namaOperator;obj.bulan=old.bulan;obj.tahun=old.tahun;obj.assessmentKey=key;obj.rowVersion=currentVersion+1;obj.ancamanNilai=risk.ancamanNilai;obj.ancamanRating=risk.ancamanRating;obj.kerentananNilai=risk.kerentananNilai;obj.kerentananRating=risk.kerentananRating;obj.konsekuensiNilai=risk.konsekuensiNilai;obj.konsekuensiRating=risk.konsekuensiRating;obj.risikoNilai=risk.risikoNilai;obj.risikoRating=risk.risikoRating;obj.kategoriPenerimaan=risk.kategoriPenerimaan;obj.updatedAt=n;obj.editToken=old.editToken;obj.createdAt=old.createdAt||n;
