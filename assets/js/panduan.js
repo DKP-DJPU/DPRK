@@ -521,6 +521,11 @@
       load();
       return;
     }
+    // Pindah ke tab lain: hapus #panduan/... dari alamat, agar refresh tidak kembali ke Panduan.
+    if (t.closest(".nav button[data-view]") && /^#panduan/.test(location.hash)) {
+      history.replaceState(null, "", location.pathname + location.search);
+      return;
+    }
     var a = t.closest("a[data-pdn], a[data-pdn-clear], #pdnContent a[href^='#panduan/']");
     if (a) {
       e.preventDefault();

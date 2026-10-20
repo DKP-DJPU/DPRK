@@ -581,6 +581,10 @@
     var nav =
       e.target.closest && e.target.closest('.nav button[data-view="operator"]');
     if (nav && st.current) close();
+    // Pindah ke tab lain: hapus #operator=... dari alamat, agar refresh tidak membuka rekap lagi.
+    var other = e.target.closest && e.target.closest(".nav button[data-view]");
+    if (other && other.getAttribute("data-view") !== "operator" && /^#operator=/.test(location.hash))
+      history.replaceState(null, "", location.pathname + location.search);
   });
   document.addEventListener("sirisk:operators", function () {
     if (st.pendingHash) {
