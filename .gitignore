@@ -1,0 +1,3 @@
+tests/ui/screenshots/
+node_modules/
+__pycache__/
