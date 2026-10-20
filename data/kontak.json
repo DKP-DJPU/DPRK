@@ -1,0 +1,14 @@
+{
+  "_petunjuk": "Isi daftar 'kontak' di bawah. Selama daftar kosong, bagian Kontak tidak ditampilkan di tab Panduan. Gunakan email/telepon RESMI unit, bukan nomor pribadi. Kolom 'layanan' dan 'jam' opsional. Hapus contoh setelah diisi.",
+  "_contoh": {
+    "unit": "Direktorat Keamanan Penerbangan",
+    "nama": "Helpdesk SI-RISK AVSEC",
+    "layanan": "Akun, pengisian DPRK, dan kendala teknis",
+    "email": "helpdesk@contoh.go.id",
+    "telepon": "(021) 000-0000",
+    "whatsapp": "0800-0000-0000",
+    "jam": "Senin–Jumat, 08.00–16.00 WIB"
+  },
+  "catatan": "",
+  "kontak": []
+}
