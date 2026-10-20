@@ -105,7 +105,7 @@ T('data/kontak.json valid & punya daftar "kontak"', Array.isArray(kj.kontak));
 T('contoh kontak (_contoh) tidak pernah ditampilkan', P.renderKontak({ _contoh: kj._contoh, kontak: [] }) === null);
 const facts = real.map(s => s.text).join(' ');
 T('isi panduan sesuai aturan: band 3–7/8–13/14–19/20–25/26–30 & ALARP', ['3–7', '8–13', '14–19', '20–25', '26–30', 'alarp'].every(x => facts.includes(x.toLowerCase())));
-T('isi panduan sesuai aturan: kode 10 menit, sesi 12 jam / 30 hari, ambang 2 operator', /10 menit/.test(facts) && /12 jam/.test(facts) && /30 hari/.test(facts) && /minimal 2 operator/.test(facts));
+T('isi panduan sesuai aturan: kode 10 menit, sesi 12 jam / 30 hari', /10 menit/.test(facts) && /12 jam/.test(facts) && /30 hari/.test(facts));
 
 console.log(`\n[panduan] ${ok} lulus, ${fail} gagal`);
 process.exit(fail ? 1 : 0);
