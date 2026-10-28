@@ -372,6 +372,63 @@
     );
   }
 
+  // V3.37 — cakupan unit/stasiun (cabang pembantu LPPNPI, stasiun maskapai, dll.).
+  function unitsHtml(op, rows) {
+    var list = (S.units ? S.units() : []).filter(function (u) {
+      return u.operatorId === op.operatorId && u.aktif !== false;
+    });
+    if (!list.length) return "";
+    var by = {};
+    rows.forEach(function (r) {
+      var k = String(r.unitId || "");
+      if (!k) return;
+      (by[k] = by[k] || []).push(Number(r.risikoNilai) || 0);
+    });
+    var done = list.filter(function (u) {
+      return by[u.unitId];
+    }).length;
+    list = list.slice().sort(function (a, b) {
+      return (by[b.unitId] ? 1 : 0) - (by[a.unitId] ? 1 : 0) || String(a.namaUnit).localeCompare(String(b.namaUnit));
+    });
+    return (
+      '<div class="card"><div class="section-head"><div><div class="section-kicker">UNIT</div><h2>Cakupan Unit / Stasiun</h2><div class="sub">' +
+      done +
+      " dari " +
+      list.length +
+      ' unit sudah memiliki matriks risiko. Matriks kantor pusat / cabang utama dihitung terpisah (Induk).</div></div><div class="section-badge">' +
+      Math.round((done / list.length) * 100) +
+      '% UNIT</div></div><div class="opd-unit-bar"><i style="width:' +
+      Math.round((done / list.length) * 100) +
+      '%"></i></div><div class="tablewrap opd-table"><table><thead><tr><th>Unit / Stasiun</th><th>Jenis</th><th>Kab/Kota</th><th>Skenario</th><th>Rata-rata</th></tr></thead><tbody>' +
+      list
+        .map(function (u) {
+          var v = by[u.unitId] || [],
+            avg = v.length
+              ? v.reduce(function (a, b) {
+                  return a + b;
+                }, 0) / v.length
+              : 0;
+          return (
+            "<tr><td><b>" +
+            esc(u.namaUnit) +
+            "</b>" +
+            (u.kodeUnit ? ' <span class="opd-muted">' + esc(u.kodeUnit) + "</span>" : "") +
+            "</td><td>" +
+            esc(u.jenisUnit || "") +
+            "</td><td>" +
+            esc(u.kabkota || "—") +
+            "</td><td>" +
+            (v.length ? v.length : '<span class="pill-status unfilled">Belum ada</span>') +
+            '</td><td class="risk-number">' +
+            (v.length ? avg.toFixed(1) : "—") +
+            "</td></tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table></div></div>"
+    );
+  }
+
   function incidentsHtml(list) {
     if (st.incidents === null)
       return '<div class="empty">Memuat laporan kejadian...</div>';
@@ -503,7 +560,7 @@
       incidentsHtml(inc) +
       "</div>";
 
-    $("opDetail").innerHTML = head + kpi + riskSections + incSection;
+    $("opDetail").innerHTML = head + kpi + unitsHtml(op, rows) + riskSections + incSection;
     $("opdBack").onclick = close;
     $("opdCopy").onclick = function () {
       var url =
@@ -605,6 +662,9 @@
     if (!loggedIn() && st.current) close();
   });
   document.addEventListener("sirisk:risks", function () {
+    if (st.current) render(st.current);
+  });
+  document.addEventListener("sirisk:units", function () {
     if (st.current) render(st.current);
   });
   window.addEventListener("hashchange", fromHash);

@@ -88,6 +88,7 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi.
 3. Isi **Bulan Penilaian**, **Tahun**, **Nama Pengisi**, **Jabatan Pengisi**, dan **Tanggal Pengesahan** dokumen DPRK.
 4. **Email Pemilik Risiko** dan **Link File DPRK** (misalnya tautan Google Drive) dianjurkan diisi.
+5. Bila operator Anda memiliki **unit atau stasiun** (cabang pembantu, unit kerja, stasiun maskapai), muncul pilihan **Unit / Stasiun**. Pilih **Induk** untuk matriks kantor pusat atau cabang utama, atau pilih unitnya untuk matriks lampiran unit tersebut. Unit tidak dapat dipindah setelah skenario disimpan.
 
 ![Langkah 01: identitas entitas](assets/panduan/form-identitas@2x.png)
 
@@ -220,6 +221,9 @@ Tombol **Edit** hanya muncul setelah Anda masuk, dan hanya untuk skenario operat
 
 ### Saat memperbarui muncul pesan data sudah diperbarui pengguna lain
 Seseorang mengubah skenario yang sama setelah Anda membukanya. Klik **Edit** lagi pada skenario itu untuk memuat versi terbaru, lalu ulangi perubahan Anda.
+
+### Unit atau stasiun kami tidak ada di pilihan
+Daftar unit dan stasiun didaftarkan oleh Admin Direktorat Keamanan Penerbangan. Hubungi admin dengan menyebutkan nama operator dan unit yang belum terdaftar.
 
 ### Apakah setiap kategori ancaman wajib diisi?
 Isi semua skenario yang tercantum di dokumen DPRK operator Anda yang sudah disahkan. Data di sistem harus sama dengan dokumen tersebut.

@@ -49,7 +49,7 @@ var AUTH_ADMIN_NOTIFY_SEC = 3 * 3600; // notifikasi pendaftaran ke admin maks. 1
 // operatorId yang sah: huruf/angka/titik/garis bawah/tanda hubung saja (tanpa spasi, koma, titik koma)
 var AUTH_OPID_RE = /^[A-Za-z0-9_.-]{1,80}$/;
 var AUTH_PERAN = ["Admin", "Operator"];
-var AUTH_WRITE_ACTIONS = ["create", "update", "renewDprk"];
+var AUTH_WRITE_ACTIONS = ["create", "update", "renewDprk", "saveRiskBatch"];
 
 // ---------------- Konfigurasi & setup (dijalankan manual dari editor) ----------------
 

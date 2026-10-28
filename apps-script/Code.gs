@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.36 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.37 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -35,15 +35,17 @@
 // CATATAN PRODUKSI: data baseline DPRK Nasional V2 telah divalidasi.
 // Fungsi migrasi/audit historis tidak disertakan dalam file produksi ini.
 
-var SHEETS={OP:"MASTER_OPERATOR",DPRK:"MASTER_DPRK",DPRKVER:"DPRK_VERSION",RISK:"RISK_ASSESSMENT",HIST:"RISK_HISTORY",AUDIT:"AUDIT_LOG",ACCESS:"ACCESS_TOKEN",NOTIF:"NOTIFICATION_LOG"};
+var SHEETS={UNIT:"MASTER_UNIT",OP:"MASTER_OPERATOR",DPRK:"MASTER_DPRK",DPRKVER:"DPRK_VERSION",RISK:"RISK_ASSESSMENT",HIST:"RISK_HISTORY",AUDIT:"AUDIT_LOG",ACCESS:"ACCESS_TOKEN",NOTIF:"NOTIFICATION_LOG"};
 var H={
  OP:["operatorId","jenisOperator","namaOperator","kodeOperator","iata","icao","provinsi","kabkota","lokasi","kelas","status","aktif","createdAt","updatedAt"],
  DPRK:["dprkId","operatorId","jenisOperator","namaOperator","periode","tahun","versi","tanggalPenyusunan","tanggalPengesahan","tanggalKajiUlang","linkFileDprk","status","namaPengisi","jabatanPengisi","riskOwner","emailRiskOwner","dprkEditToken","createdAt","updatedAt","tanggalWajibPembaruan"],
  DPRKVER:["dprkVersionId","dprkId","operatorId","versionNumber","tanggalPenyusunan","tanggalPengesahan","tanggalWajibPembaruan","linkFileDprk","namaPengisi","jabatanPengisi","riskOwner","emailRiskOwner","status","createdAt","updatedAt"],
- RISK:["riskId","dprkId","operatorId","jenisOperator","namaOperator","kategori","idRisikoKatalog","skenario","area","langkahSaatIni","kerentananSaatIni","ancamanNilai","ancamanRating","kerentananNilai","kerentananRating","konsekuensiNilai","konsekuensiRating","risikoNilai","risikoRating","kategoriPenerimaan","perlakuan","prioritas","langkahTambahan","pemilikRisiko","tanggalKaji","keterangan","bulan","tahun","namaPengisi","jabatanPengisi","createdAt","updatedAt","editToken","assessmentKey","rowVersion"],
- HIST:["historyId","riskId","dprkId","operatorId","jenisOperator","namaOperator","tanggal","bulan","tahun","nilaiAncaman","nilaiKerentanan","nilaiKonsekuensi","nilaiRisiko","ratingRisiko","versiDprk","perubahan","updatedBy","rowVersion","beforeData","afterData"],
+ RISK:["riskId","dprkId","operatorId","jenisOperator","namaOperator","kategori","idRisikoKatalog","skenario","area","langkahSaatIni","kerentananSaatIni","ancamanNilai","ancamanRating","kerentananNilai","kerentananRating","konsekuensiNilai","konsekuensiRating","risikoNilai","risikoRating","kategoriPenerimaan","perlakuan","prioritas","langkahTambahan","pemilikRisiko","tanggalKaji","keterangan","bulan","tahun","namaPengisi","jabatanPengisi","createdAt","updatedAt","editToken","assessmentKey","rowVersion","unitId"],
+ HIST:["historyId","riskId","dprkId","operatorId","jenisOperator","namaOperator","tanggal","bulan","tahun","nilaiAncaman","nilaiKerentanan","nilaiKonsekuensi","nilaiRisiko","ratingRisiko","versiDprk","perubahan","updatedBy","rowVersion","beforeData","afterData","unitId"],
  AUDIT:["auditId","timestamp","actorType","actorId","entityType","entityId","action","reason","beforeData","afterData","requestId"],
  ACCESS:["accessId","operatorId","dprkId","tokenHash","tokenType","status","createdAt","updatedAt","revokedAt"],
+ // V3.37 — unit/stasiun di bawah operator induk (cabang pembantu LPPNPI, stasiun maskapai, Satpel, dll.). Diisi Admin lewat terapkanImporUnit().
+ UNIT:["unitId","operatorId","jenisUnit","namaUnit","kodeUnit","provinsi","kabkota","aktif","createdAt","updatedAt"],
  NOTIF:["notificationId","dprkId","operatorId","jenisOperator","namaOperator","riskOwner","email","tanggalKaji","reminderType","statusEmail","sentAt"]
 };
 
@@ -207,7 +209,11 @@ function json_(o){return ContentService.createTextOutput(JSON.stringify(o)).setM
 function now_(){return new Date().toISOString()}
 function ss_(){return SpreadsheetApp.getActiveSpreadsheet()}
 function sheet_(name,headers){var s=ss_().getSheetByName(name);if(!s)s=ss_().insertSheet(name);ensureHeaders_(s,headers);return s}
-function ensureHeaders_(s,headers){var cur=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(!cur.length){s.getRange(1,1,1,headers.length).setValues([headers]);return headers}var add=headers.filter(function(h){return cur.indexOf(h)<0});if(add.length)s.getRange(1,cur.length+1,1,add.length).setValues([add]);return s.getRange(1,1,1,s.getLastColumn()).getValues()[0]}
+// V3.37: getRange di luar ukuran grid = galat di Google Sheets. RISK_ASSESSMENT produksi tepat 35 kolom,
+// sheet baru 26 kolom × 1000 baris → perluas grid dulu sebelum menulis header/baris.
+function ensureCols_(s,n){var m=s.getMaxColumns();if(n>m)s.insertColumnsAfter(m,n-m)}
+function ensureRows_(s,n){var need=s.getLastRow()+n-s.getMaxRows();if(need>0)s.insertRowsAfter(s.getMaxRows(),need)}
+function ensureHeaders_(s,headers){var cur=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(!cur.length){ensureCols_(s,headers.length);s.getRange(1,1,1,headers.length).setValues([headers]);return headers}var add=headers.filter(function(h){return cur.indexOf(h)<0});if(add.length){ensureCols_(s,cur.length+add.length);s.getRange(1,cur.length+1,1,add.length).setValues([add])}return s.getRange(1,1,1,s.getLastColumn()).getValues()[0]}
 function rows_(s){var h=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(s.getLastRow()<2)return{h:h,a:[]};return{h:h,a:s.getRange(2,1,s.getLastRow()-1,h.length).getValues().filter(function(r){return r.some(function(v){return v!==""})})}}
 function objs_(s){var x=rows_(s);return x.a.map(function(r){var o={};x.h.forEach(function(h,i){o[h]=r[i]});return o})}
 function sanitizeCell_(v){
@@ -262,7 +268,7 @@ function ensureSheetsOnly_(){
  // Dipanggil di HOT PATH (setiap doPost). Hanya memastikan header sheet ada
  // (operasi murah) — TIDAK menjalankan seedAirports_() yang men-scan 281
  // baris MASTER_OPERATOR di setiap request tulis.
- sheet_(SHEETS.OP,H.OP);sheet_(SHEETS.DPRK,H.DPRK);sheet_(SHEETS.DPRKVER,H.DPRKVER);sheet_(SHEETS.RISK,H.RISK);sheet_(SHEETS.HIST,H.HIST);sheet_(SHEETS.AUDIT,H.AUDIT);sheet_(SHEETS.ACCESS,H.ACCESS);sheet_(SHEETS.NOTIF,H.NOTIF);
+ sheet_(SHEETS.OP,H.OP);sheet_(SHEETS.DPRK,H.DPRK);sheet_(SHEETS.DPRKVER,H.DPRKVER);sheet_(SHEETS.RISK,H.RISK);sheet_(SHEETS.HIST,H.HIST);sheet_(SHEETS.AUDIT,H.AUDIT);sheet_(SHEETS.ACCESS,H.ACCESS);sheet_(SHEETS.NOTIF,H.NOTIF);sheet_(SHEETS.UNIT,H.UNIT);
 }
 function ensureSystem_(){
  // Dipanggil HANYA dari setupSystemV2() (setup awal, manual) — bukan dari
@@ -280,7 +286,7 @@ function seedAirports_(){
  var s=sheet_(SHEETS.OP,H.OP),old=objs_(s),seen={};old.forEach(function(x){seen[String(x.operatorId)]=true});
  var n=now_(),batch=[];
  AIRPORT_SEED.forEach(function(x){if(!seen[x.operatorId])batch.push(H.OP.map(function(k){return x[k]!==undefined?x[k]:(k==="createdAt"||k==="updatedAt"?n:"")}))});
- if(batch.length)s.getRange(s.getLastRow()+1,1,batch.length,H.OP.length).setValues(batch);
+ if(batch.length)(ensureRows_(s,batch.length),s).getRange(s.getLastRow()+1,1,batch.length,H.OP.length).setValues(batch);
 }
 
 function cleanToken_(v){return String(v||"").trim();}
@@ -292,8 +298,10 @@ function addYearsDate_(dateValue,years){
  d.setFullYear(d.getFullYear()+Number(years||0));
  return d.toISOString().slice(0,10);
 }
-function assessmentKey_(operatorId,dprkId,bulan,tahun,kategori,skenario){
- return [operatorId,dprkId,String(tahun||""),String(bulan||"").toLowerCase(),String(kategori||"").split(" - ")[0],normalizeText_(skenario)].join("|");
+// V3.37: unitId ikut kunci (skenario sama di dua unit BUKAN duplikat). Tanpa unit, kunci identik dengan versi lama.
+function assessmentKey_(operatorId,dprkId,bulan,tahun,kategori,skenario,unitId){
+ var k=[operatorId,dprkId,String(tahun||""),String(bulan||"").toLowerCase(),String(kategori||"").split(" - ")[0],normalizeText_(skenario)].join("|"),u=String(unitId||"").trim();
+ return u?k+"|u:"+u:k;
 }
 function redact_(o){
  var x={};Object.keys(o||{}).forEach(function(k){if(k!=="editToken"&&k!=="dprkEditToken")x[k]=o[k]});return x;
@@ -310,7 +318,7 @@ function findCurrentDprkByOperator_(oid){
 function findRiskByAssessmentKey_(key,excludeId){
  var a=objs_(sheet_(SHEETS.RISK,H.RISK));
  for(var i=0;i<a.length;i++){
-  var x=a[i],k=x.assessmentKey||assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario);
+  var x=a[i],k=x.assessmentKey||assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario,x.unitId);
   if(k===key&&String(x.riskId)!==String(excludeId||""))return x;
  }
  return null;
@@ -334,7 +342,7 @@ function getCurrentDprk_(oid,year){
 // banyak pengunjung tidak perlu men-scan ulang sheet setiap saat, dan
 // membantu menghindari limit kuota eksekusi harian Apps Script.
 var CACHE_TTL_SECONDS=45;
-var CACHE_KEYS={dashboard:"dprk_cache_dashboard_v2",operators:"dprk_cache_operators_v2",risks:"dprk_cache_risks_v2",master:"dprk_cache_master_v1"};
+var CACHE_KEYS={dashboard:"dprk_cache_dashboard_v2",operators:"dprk_cache_operators_v2",risks:"dprk_cache_risks_v2",master:"dprk_cache_master_v1",units:"dprk_cache_units_v1"};
 // V3.34 — CacheService membatasi 100 KB per kunci. Nilai yang lebih besar dipecah
 // menjadi beberapa potongan; kunci utama hanya berisi penanda jumlah potongan.
 // Menghapus kunci utama (removeAll/remove) sudah cukup untuk menginvalidasi.
@@ -347,7 +355,7 @@ function cachePut_(key,obj){try{var c=CacheService.getScriptCache(),str=JSON.str
  var n=Math.ceil(str.length/CACHE_CHUNK),parts={};if(n>60)return;
  for(var i=0;i<n;i++)parts[key+"__"+i]=str.substr(i*CACHE_CHUNK,CACHE_CHUNK);
  c.putAll(parts,CACHE_TTL_SECONDS+30);c.put(key,JSON.stringify({__chunks:n}),CACHE_TTL_SECONDS)}catch(e){Logger.log("cachePut_ "+key+": "+e)}}
-function invalidateDashboardCache_(){try{CacheService.getScriptCache().removeAll([CACHE_KEYS.dashboard,CACHE_KEYS.operators,CACHE_KEYS.risks,CACHE_KEYS.master])}catch(e){}}
+function invalidateDashboardCache_(){try{CacheService.getScriptCache().removeAll([CACHE_KEYS.dashboard,CACHE_KEYS.operators,CACHE_KEYS.risks,CACHE_KEYS.master,CACHE_KEYS.units])}catch(e){}}
 function cached_(key,builder){var v=cacheGet_(key);if(v)return v;v=builder();cachePut_(key,v);return v}
 
 function doGet(e){
@@ -379,7 +387,7 @@ function doGet(e){
 function latestCurrentRiskRows_(rows){
  var map={};
  (rows||[]).forEach(function(x){
-  var key=assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario),dt=String(x.updatedAt||x.createdAt||"");
+  var key=assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario,x.unitId),dt=String(x.updatedAt||x.createdAt||"");
   if(!map[key]||dt>String(map[key].updatedAt||map[key].createdAt||""))map[key]=x;
  });
  return Object.keys(map).map(function(k){return map[k]});
@@ -407,19 +415,24 @@ function dashboard_(){
 }
 
 function operatorMonitoring_(){
- var ops=objs_(sheet_(SHEETS.OP,H.OP)),d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),r=objs_(sheet_(SHEETS.RISK,H.RISK));
- return ops.filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(function(o){var z=publicOp_(o),dr=d.filter(function(x){return x.operatorId===o.operatorId&&x.status==="Aktif"})[0];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=r.filter(function(x){return x.operatorId===o.operatorId}).length;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";return z})
+ var ops=objs_(sheet_(SHEETS.OP,H.OP)),d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),r=objs_(sheet_(SHEETS.RISK,H.RISK)),un={},uf={};
+ // V3.37: cakupan unit = unit aktif yang sudah punya minimal 1 skenario / unit aktif terdaftar.
+ unitMaster_().forEach(function(u){if(u.aktif)(un[u.operatorId]=un[u.operatorId]||[]).push(u.unitId)});
+ // V3.37: hitung sekali (sebelumnya menyaring seluruh RISK_ASSESSMENT untuk SETIAP operator: ±445 × 15.000 baris).
+ var cnt={},dAct={};r.forEach(function(x){if(x.unitId)uf[String(x.unitId)]=1;var k=String(x.operatorId);cnt[k]=(cnt[k]||0)+1});d.forEach(function(x){if(x.status==="Aktif"&&!dAct[x.operatorId])dAct[x.operatorId]=x});
+ return ops.filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
 }
 // V3.34 — daftar identitas operator aktif untuk publik (formulir, pendaftaran, pelaporan).
 function operatorMaster_(){
  return objs_(sheet_(SHEETS.OP,H.OP)).filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(publicOp_);
 }
 // V3.34 — BACA DATA TERBATAS (wajib login). Admin: semua operator; Operator: hanya operatorIds miliknya.
-var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail"];
+var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail","unitList"];
 function authRead_(p,a){
  var u=authSession_(p.sessionToken);
  if(!u)return json_({ok:false,code:"AUTH_REQUIRED",error:"Silakan masuk untuk melihat data ini."});
  if(a==="riskDetail")return riskDetail_(u,p);
+ if(a==="unitList")return unitList_(u);
  var data=a==="riskData"?cached_(CACHE_KEYS.risks,riskMonitoring_):a==="operatorStatus"?cached_(CACHE_KEYS.operators,operatorMonitoring_):review_();
  var all=u.peran==="Admin";
  return json_({ok:true,scope:all?"all":"own",data:all?data:data.filter(function(r){return authCanAccess_(u,r.operatorId)})});
@@ -438,6 +451,7 @@ function riskDetail_(u,p){
  if(!f||!authCanAccess_(u,f.obj.operatorId))return json_({ok:false,code:"NOT_FOUND",error:"Data risiko tidak ditemukan atau bukan milik akun Anda."});
  var out=redact_(f.obj),d=findCurrentDprkByOperator_(String(f.obj.operatorId||""));
  out.rowVersion=Number(f.obj.rowVersion||1);
+ if(out.unitId)out.namaUnit=unitNames_()[String(out.unitId)]||String(out.unitId);
  out.tanggalKaji=isoDate_(f.obj.tanggalKaji)||(d?isoDate_(d.tanggalKajiUlang):""); // isian awal dari tanggal kaji ulang DPRK bila kosong
  out.tanggalPengesahan=d?isoDate_(d.tanggalPengesahan):"";
  out.emailRiskOwner=d?String(d.emailRiskOwner||""):"";
@@ -471,7 +485,7 @@ function riskAnalytics_(rows){
  if(rem>0&&rem<MIN_GROUP)["Bandar Udara","Airlines","LPPNPI","Regulated Agent"].forEach(function(t){if(!out[t].suppressed)out[t]={suppressed:true,complementary:true,operators:out[t].operators,minGroup:MIN_GROUP}});
  return out;
 }
-function riskMonitoring_(){return objs_(sheet_(SHEETS.RISK,H.RISK)).map(function(r){return{riskId:r.riskId,operatorId:String(r.operatorId||""),kategoriPenerimaan:r.kategoriPenerimaan||"",jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,kategori:r.kategori,kategoriKode:String(r.kategori||"").split(" - ")[0],risikoNilai:Number(r.risikoNilai)||0,risikoRating:r.risikoRating,bulan:r.bulan,tahun:r.tahun}})}
+function riskMonitoring_(){var un=unitNames_();return objs_(sheet_(SHEETS.RISK,H.RISK)).map(function(r){var u=String(r.unitId||"");return{riskId:r.riskId,operatorId:String(r.operatorId||""),unitId:u,namaUnit:u?(un[u]||u):"",kategoriPenerimaan:r.kategoriPenerimaan||"",jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,kategori:r.kategori,kategoriKode:String(r.kategori||"").split(" - ")[0],risikoNilai:Number(r.risikoNilai)||0,risikoRating:r.risikoRating,bulan:r.bulan,tahun:r.tahun}})}
 function trend_(){
  var d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),r=objs_(sheet_(SHEETS.RISK,H.RISK));
  var completion={},risk={};
@@ -584,6 +598,7 @@ function doPost(e){
   if(String(a).indexOf("auth")===0)return authPost_(p,a);
   if(a==="create")return createRisk_(p);
   if(a==="update")return updateRisk_(p);
+  if(a==="saveRiskBatch")return saveRiskBatch_(p);
   if(a==="renewDprk")return renewDprk_(p);
   if(a==="createIncident")return createIncident_(p);
   return json_({ok:false,error:"Action POST tidak dikenali."});
@@ -695,9 +710,10 @@ function createRisk_(p){
   if(cleanToken_(existing.obj.editToken)===tok)return json_({ok:true,duplicate:true,retry:true,id:rid,editToken:tok,dprkId:existing.obj.dprkId||"",message:"Request sudah pernah diproses; data tidak dibuat ulang."});
   return json_({ok:false,error:"riskId sudah digunakan oleh risiko lain.",code:"RISK_ID_CONFLICT"});
  }
- var existingDprk=findCurrentDprkByOperator_(p.operatorId),prospectiveDprkId=existingDprk?existingDprk.dprkId:("DPRK-"+p.operatorId),akey=assessmentKey_(p.operatorId,prospectiveDprkId,p.bulan,p.tahun,p.kategori,p.skenario),dup=findRiskByAssessmentKey_(akey,"");
+ var existingDprk=findCurrentDprkByOperator_(p.operatorId),prospectiveDprkId=existingDprk?existingDprk.dprkId:("DPRK-"+p.operatorId),unitErr=checkUnit_(p.operatorId,p.unitId);if(unitErr)return json_({ok:false,error:unitErr,code:"UNIT_INVALID"});
+ var akey=assessmentKey_(p.operatorId,prospectiveDprkId,p.bulan,p.tahun,p.kategori,p.skenario,p.unitId),dup=findRiskByAssessmentKey_(akey,"");
  if(dup)return json_({ok:false,error:"Assessment dengan operator, periode, kategori, dan skenario yang sama sudah ada.",code:"DUPLICATE_RISK",existingRiskId:dup.riskId});
- var op=upsertOperator_(p),d=getOrCreateDprk_(p),s=sheet_(SHEETS.RISK,H.RISK),n=now_(),risk=computeRisk_(p),o={riskId:rid,dprkId:d.dprkId,operatorId:op.operatorId,jenisOperator:op.jenisOperator,namaOperator:op.namaOperator,kategori:p.kategori,idRisikoKatalog:p.idRisikoKatalog||"",skenario:p.skenario,area:p.area||"",langkahSaatIni:p.langkahSaatIni||"",kerentananSaatIni:p.kerentananSaatIni||"",ancamanNilai:risk.ancamanNilai,ancamanRating:risk.ancamanRating,kerentananNilai:risk.kerentananNilai,kerentananRating:risk.kerentananRating,konsekuensiNilai:risk.konsekuensiNilai,konsekuensiRating:risk.konsekuensiRating,risikoNilai:risk.risikoNilai,risikoRating:risk.risikoRating,kategoriPenerimaan:risk.kategoriPenerimaan,perlakuan:p.perlakuan||"",prioritas:p.prioritas||"",langkahTambahan:p.langkahTambahan||"",pemilikRisiko:p.riskOwner||"",tanggalKaji:dateOnly_(p.tanggalKaji)||"",keterangan:p.keterangan||"",bulan:p.bulan||"",tahun:p.tahun||new Date().getFullYear(),assessmentKey:akey,rowVersion:1,namaPengisi:p.namaPengisi||"",jabatanPengisi:p.jabatanPengisi||"",createdAt:n,updatedAt:n,editToken:tok};
+ var op=upsertOperator_(p),d=getOrCreateDprk_(p),s=sheet_(SHEETS.RISK,H.RISK),n=now_(),risk=computeRisk_(p),o={riskId:rid,dprkId:d.dprkId,operatorId:op.operatorId,jenisOperator:op.jenisOperator,namaOperator:op.namaOperator,kategori:p.kategori,idRisikoKatalog:p.idRisikoKatalog||"",skenario:p.skenario,area:p.area||"",langkahSaatIni:p.langkahSaatIni||"",kerentananSaatIni:p.kerentananSaatIni||"",ancamanNilai:risk.ancamanNilai,ancamanRating:risk.ancamanRating,kerentananNilai:risk.kerentananNilai,kerentananRating:risk.kerentananRating,konsekuensiNilai:risk.konsekuensiNilai,konsekuensiRating:risk.konsekuensiRating,risikoNilai:risk.risikoNilai,risikoRating:risk.risikoRating,kategoriPenerimaan:risk.kategoriPenerimaan,perlakuan:p.perlakuan||"",prioritas:p.prioritas||"",langkahTambahan:p.langkahTambahan||"",pemilikRisiko:p.riskOwner||"",tanggalKaji:dateOnly_(p.tanggalKaji)||"",keterangan:p.keterangan||"",bulan:p.bulan||"",tahun:p.tahun||new Date().getFullYear(),assessmentKey:akey,rowVersion:1,namaPengisi:p.namaPengisi||"",jabatanPengisi:p.jabatanPengisi||"",createdAt:n,updatedAt:n,editToken:tok,unitId:String(p.unitId||"").trim()};
  appendObj_(s,H.RISK,o);appendHistory_(o,"Create",p.namaPengisi||"",1,{},o);audit_(p,"RISK",o.riskId,"CREATE",{},o,p.requestId,"Pembuatan assessment risiko");
  invalidateDashboardCache_();
  var resp={ok:true,duplicate:false,retry:false,id:rid,editToken:tok,dprkId:d.dprkId,tanggalPengesahan:d.tanggalPengesahan||"",tanggalWajibPembaruan:d.tanggalWajibPembaruan||""};if(d._dprkTokenIssued)resp.dprkEditToken=d._dprkTokenIssued;return json_(resp);
@@ -710,18 +726,18 @@ function updateRisk_(p){
  var old=f.obj,currentVersion=Number(old.rowVersion||1),incomingVersion=p.rowVersion===undefined?currentVersion:Number(p.rowVersion);
  if(incomingVersion!==currentVersion)return json_({ok:false,error:"Data sudah diperbarui oleh pengguna lain. Muat ulang data terbaru sebelum menyimpan.",code:"STALE_RECORD",rowVersion:currentVersion});
  // Immutable identity/period fields come from the server-side record, never the client.
- p.operatorId=old.operatorId;p.dprkId=old.dprkId;p.jenisOperator=old.jenisOperator;p.namaOperator=old.namaOperator;p.bulan=old.bulan;p.tahun=old.tahun;
+ p.operatorId=old.operatorId;p.dprkId=old.dprkId;p.jenisOperator=old.jenisOperator;p.namaOperator=old.namaOperator;p.bulan=old.bulan;p.tahun=old.tahun;p.unitId=old.unitId||"";
  // V3.36: formulir mengirim "riskOwner", kolom sheet bernama "pemilikRisiko" (sebelumnya perubahan Pemilik Risiko saat edit tidak tersimpan).
  if(p.pemilikRisiko===undefined&&p.riskOwner!==undefined)p.pemilikRisiko=p.riskOwner;
- var key=assessmentKey_(old.operatorId,old.dprkId,old.bulan,old.tahun,p.kategori,p.skenario),dup=findRiskByAssessmentKey_(key,p.id);if(dup)return json_({ok:false,error:"Perubahan akan membuat duplicate assessment.",code:"DUPLICATE_RISK",existingRiskId:dup.riskId});
+ var key=assessmentKey_(old.operatorId,old.dprkId,old.bulan,old.tahun,p.kategori,p.skenario,old.unitId),dup=findRiskByAssessmentKey_(key,p.id);if(dup)return json_({ok:false,error:"Perubahan akan membuat duplicate assessment.",code:"DUPLICATE_RISK",existingRiskId:dup.riskId});
  var n=now_(),obj={},risk=computeRisk_(p),h=f.h;h.forEach(function(k){obj[k]=p[k]!==undefined?p[k]:(old[k]===undefined?"":old[k])});
- obj.riskId=old.riskId;obj.dprkId=old.dprkId;obj.operatorId=old.operatorId;obj.jenisOperator=old.jenisOperator;obj.namaOperator=old.namaOperator;obj.bulan=old.bulan;obj.tahun=old.tahun;obj.assessmentKey=key;obj.rowVersion=currentVersion+1;obj.ancamanNilai=risk.ancamanNilai;obj.ancamanRating=risk.ancamanRating;obj.kerentananNilai=risk.kerentananNilai;obj.kerentananRating=risk.kerentananRating;obj.konsekuensiNilai=risk.konsekuensiNilai;obj.konsekuensiRating=risk.konsekuensiRating;obj.risikoNilai=risk.risikoNilai;obj.risikoRating=risk.risikoRating;obj.kategoriPenerimaan=risk.kategoriPenerimaan;obj.updatedAt=n;obj.editToken=old.editToken;obj.createdAt=old.createdAt||n;
+ obj.riskId=old.riskId;obj.dprkId=old.dprkId;obj.operatorId=old.operatorId;obj.unitId=old.unitId||"";obj.jenisOperator=old.jenisOperator;obj.namaOperator=old.namaOperator;obj.bulan=old.bulan;obj.tahun=old.tahun;obj.assessmentKey=key;obj.rowVersion=currentVersion+1;obj.ancamanNilai=risk.ancamanNilai;obj.ancamanRating=risk.ancamanRating;obj.kerentananNilai=risk.kerentananNilai;obj.kerentananRating=risk.kerentananRating;obj.konsekuensiNilai=risk.konsekuensiNilai;obj.konsekuensiRating=risk.konsekuensiRating;obj.risikoNilai=risk.risikoNilai;obj.risikoRating=risk.risikoRating;obj.kategoriPenerimaan=risk.kategoriPenerimaan;obj.updatedAt=n;obj.editToken=old.editToken;obj.createdAt=old.createdAt||n;
  sheet_(SHEETS.RISK,H.RISK).getRange(f.row,1,1,h.length).setValues([h.map(function(k){return sanitizeCell_(obj[k]===undefined?"":obj[k])})]);
  appendHistory_(obj,"Update",p.namaPengisi||"",obj.rowVersion,old,obj);audit_(p,"RISK",obj.riskId,"UPDATE",old,obj,p.requestId,"Perubahan assessment risiko");
  invalidateDashboardCache_();
  var resp={ok:true,id:obj.riskId,dprkId:obj.dprkId,rowVersion:obj.rowVersion};var dprkForResp=findCurrentDprkByOperator_(obj.operatorId);if(p.dprkEditToken&&dprkForResp&&cleanToken_(p.dprkEditToken)===cleanToken_(dprkForResp.dprkEditToken))resp.dprkEditToken=dprkForResp.dprkEditToken;return json_(resp);
 }
-function appendHistory_(r,change,user,rowVersion,beforeData,afterData){appendObj_(sheet_(SHEETS.HIST,H.HIST),H.HIST,{historyId:id_("HIST"),riskId:r.riskId,dprkId:r.dprkId,operatorId:r.operatorId,jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,tanggal:now_(),bulan:r.bulan||"",tahun:r.tahun||"",nilaiAncaman:r.ancamanNilai||"",nilaiKerentanan:r.kerentananNilai||"",nilaiKonsekuensi:r.konsekuensiNilai||"",nilaiRisiko:r.risikoNilai||"",ratingRisiko:r.risikoRating||"",versiDprk:r.versiDprk||1,perubahan:change,updatedBy:user,rowVersion:rowVersion||1,beforeData:safeJson_(beforeData||{}),afterData:safeJson_(afterData||r)})}
+function appendHistory_(r,change,user,rowVersion,beforeData,afterData){appendObj_(sheet_(SHEETS.HIST,H.HIST),H.HIST,{historyId:id_("HIST"),riskId:r.riskId,dprkId:r.dprkId,operatorId:r.operatorId,jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,tanggal:now_(),bulan:r.bulan||"",tahun:r.tahun||"",nilaiAncaman:r.ancamanNilai||"",nilaiKerentanan:r.kerentananNilai||"",nilaiKonsekuensi:r.konsekuensiNilai||"",nilaiRisiko:r.risikoNilai||"",ratingRisiko:r.risikoRating||"",versiDprk:r.versiDprk||1,perubahan:change,updatedBy:user,rowVersion:rowVersion||1,beforeData:safeJson_(beforeData||{}),afterData:safeJson_(afterData||r),unitId:r.unitId||""})}
 
 function sendReviewReminders(){
  var d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),log=sheet_(SHEETS.NOTIF,H.NOTIF),logs=objs_(log),sent={};logs.forEach(function(x){sent[x.dprkId+"|"+x.reminderType]=true});
@@ -890,4 +906,179 @@ function pasangBackupHarian(){
  ScriptApp.newTrigger("backupHarian").timeBased().everyDays(1).atHour(2).create();
  var msg=backupHarian(); // backup pertama langsung, sekaligus memastikan izin Drive sudah diberikan
  Logger.log("Trigger backup harian (±02.00) terpasang. "+msg);return "Trigger backup harian terpasang. "+msg;
+}
+
+// ============================================================
+// V3.37 — UNIT / STASIUN (P5 fondasi)
+// ============================================================
+// Unit = kantor cabang pembantu / unit kerja LPPNPI, stasiun maskapai, Satpel, dll. di bawah SATU
+// operator induk. DPRK tetap satu per operator induk; matriks unit = baris RISK_ASSESSMENT dengan
+// kolom unitId terisi. Matriks cabang utama / kantor pusat = baris tanpa unitId.
+// Daftar unit HANYA diisi Admin lewat cekImporAdmin() / terapkanImporAdmin() (keputusan 28 Okt 2026).
+var UNIT_JENIS=["Kantor Cabang Pembantu","Unit Kerja","Stasiun","Satuan Pelayanan","Lainnya"];
+var UNIT_ID_RE=/^[A-Za-z0-9_.-]{1,100}$/;
+function unitMaster_(){return objs_(sheet_(SHEETS.UNIT,H.UNIT)).map(function(u){return{unitId:String(u.unitId||""),operatorId:String(u.operatorId||""),jenisUnit:u.jenisUnit||"",namaUnit:u.namaUnit||"",kodeUnit:String(u.kodeUnit||""),provinsi:u.provinsi||"",kabkota:u.kabkota||"",aktif:String(u.aktif).toLowerCase()!=="false"}}).filter(function(u){return u.unitId})}
+function unitNames_(){var m={};cached_(CACHE_KEYS.units,unitMaster_).forEach(function(u){m[u.unitId]=u.namaUnit});return m}
+// null bila valid; pesan galat bila unit tidak ada / nonaktif / bukan milik operator.
+function checkUnit_(operatorId,unitId){
+ var id=String(unitId||"").trim();if(!id)return null;
+ var u=unitMaster_().filter(function(x){return x.unitId===id})[0];
+ if(!u)return"Unit "+id+" tidak terdaftar.";
+ if(!u.aktif)return"Unit "+id+" sudah nonaktif.";
+ if(u.operatorId!==String(operatorId||""))return"Unit "+id+" bukan milik operator ini.";
+ return null;
+}
+// Daftar unit + cakupan (sudah/belum ada matriks). Admin: semua; Operator: hanya operatorIds miliknya.
+function unitList_(u){
+ var units=cached_(CACHE_KEYS.units,unitMaster_).filter(function(x){return x.aktif&&authCanAccess_(u,x.operatorId)}),n={};
+ objs_(sheet_(SHEETS.RISK,H.RISK)).forEach(function(r){var id=String(r.unitId||"");if(id)n[id]=(n[id]||0)+1});
+ return json_({ok:true,scope:u.peran==="Admin"?"all":"own",data:units.map(function(x){var o=JSON.parse(JSON.stringify(x));o.jumlahSkenario=n[x.unitId]||0;return o})});
+}
+
+// ---------- SIMPAN PER PAKET (impor matriks) ----------
+// Satu paket = satu operator induk, maks. BATCH_MAX baris. Semua baris divalidasi dulu; bila ada
+// satu saja yang salah, TIDAK ADA yang disimpan (respons memuat daftar galat per baris).
+// Idempoten: riskId = RISK-B-<batchId>-<n>; paket yang sama dikirim ulang tidak menggandakan data.
+// Skenario yang sudah ada (operator+periode+kategori+skenario+unit sama) → galat DUPLICATE,
+// kecuali lewatiDuplikat=true (baris itu dilewati, sisanya disimpan).
+var BATCH_MAX=300;
+var BATCH_FIELDS=["unitId","kategori","idRisikoKatalog","skenario","area","langkahSaatIni","kerentananSaatIni","ancamanNilai","kerentananNilai","konsekuensiNilai","perlakuan","prioritas","langkahTambahan","riskOwner","tanggalKaji","keterangan"];
+function saveRiskBatch_(p){
+ var rows=p.rows,bid=cleanToken_(p.batchId);
+ if(!p._auth)return json_({ok:false,code:"AUTH_REQUIRED",error:"Impor matriks hanya untuk pengguna yang login."});
+ if(!/^[A-Za-z0-9_-]{8,64}$/.test(bid))return json_({ok:false,code:"VALIDATION_ERROR",error:"batchId tidak valid."});
+ if(!Array.isArray(rows)||!rows.length)return json_({ok:false,code:"VALIDATION_ERROR",error:"Paket kosong."});
+ if(rows.length>BATCH_MAX)return json_({ok:false,code:"VALIDATION_ERROR",error:"Maksimal "+BATCH_MAX+" baris per paket."});
+ var op=findBy_(sheet_(SHEETS.OP,H.OP),"operatorId",p.operatorId);
+ if(!op)return json_({ok:false,code:"VALIDATION_ERROR",error:"Operator "+p.operatorId+" tidak ada di MASTER_OPERATOR."});
+ var rs=sheet_(SHEETS.RISK,H.RISK),all=rows_(rs),hi=all.h.indexOf("riskId"),prefix="RISK-B-"+bid+"-";
+ var done=all.a.filter(function(r){return String(r[hi]).indexOf(prefix)===0}).length;
+ if(done)return json_({ok:true,duplicate:true,retry:true,saved:done,message:"Paket ini sudah pernah disimpan; tidak disimpan ulang."});
+ var o=op.obj,d0=findCurrentDprkByOperator_(o.operatorId),dprkId=d0?d0.dprkId:("DPRK-"+o.operatorId);
+ if(!d0&&!dateOnly_(p.tanggalPengesahan))return json_({ok:false,code:"VALIDATION_ERROR",error:"Tanggal pengesahan wajib diisi untuk DPRK baru."});
+ var units={};unitMaster_().forEach(function(u){units[u.unitId]=u});
+ var existing={};objs_(rs).forEach(function(x){existing[x.assessmentKey||assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario,x.unitId)]=x.riskId});
+ var errs=[],seen={},keep=[],skipped=[];
+ rows.forEach(function(r,i){
+  var q={};BATCH_FIELDS.forEach(function(k){q[k]=r?r[k]:undefined});
+  q.operatorId=o.operatorId;q.jenisOperator=o.jenisOperator;q.namaOperator=o.namaOperator;q.bulan=p.bulan;q.tahun=p.tahun;q.tanggalPengesahan=p.tanggalPengesahan||(d0&&d0.tanggalPengesahan)||"";q.isExistingDprkUpdate=!!d0;
+  var e=validate_(q),uid=String(q.unitId||"").trim();
+  if(uid){var u=units[uid];if(!u)e.push("unit "+uid+" tidak terdaftar");else if(!u.aktif)e.push("unit "+uid+" nonaktif");else if(u.operatorId!==o.operatorId)e.push("unit "+uid+" bukan milik operator ini")}
+  var key=assessmentKey_(o.operatorId,dprkId,p.bulan,p.tahun,q.kategori,q.skenario,uid);
+  if(seen[key]!==undefined)e.push("sama dengan baris "+(seen[key]+1)+" di paket ini");
+  else seen[key]=i;
+  if(!e.length&&existing[key]){if(p.lewatiDuplikat){skipped.push({baris:i+1,riskId:existing[key]});return}e.push("skenario sudah ada ("+existing[key]+")")}
+  if(e.length)errs.push({baris:i+1,unitId:uid,galat:e});else keep.push({q:q,key:key});
+ });
+ if(errs.length)return json_({ok:false,code:"VALIDATION_ERROR",error:errs.length+" baris tidak valid; tidak ada yang disimpan.",errors:errs.slice(0,200)});
+ if(!keep.length)return json_({ok:true,saved:0,skipped:skipped.length,skippedRows:skipped});
+ var d=getOrCreateDprk_({operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,bulan:p.bulan,tahun:p.tahun,tanggalPengesahan:p.tanggalPengesahan,tanggalKaji:p.tanggalKaji,namaPengisi:p.namaPengisi,jabatanPengisi:p.jabatanPengisi,linkFileDprk:p.linkFileDprk,emailRiskOwner:p.emailRiskOwner,_auth:p._auth,requestId:p.requestId});
+ var n=now_(),h=rs.getLastColumn()?rs.getRange(1,1,1,rs.getLastColumn()).getValues()[0]:H.RISK,objsOut=[];
+ var vals=keep.map(function(k,i){var q=k.q,rk=computeRisk_(q),x={riskId:prefix+(i+1),dprkId:d.dprkId,operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,unitId:String(q.unitId||"").trim(),kategori:q.kategori,idRisikoKatalog:q.idRisikoKatalog||"",skenario:q.skenario,area:q.area||"",langkahSaatIni:q.langkahSaatIni||"",kerentananSaatIni:q.kerentananSaatIni||"",ancamanNilai:rk.ancamanNilai,ancamanRating:rk.ancamanRating,kerentananNilai:rk.kerentananNilai,kerentananRating:rk.kerentananRating,konsekuensiNilai:rk.konsekuensiNilai,konsekuensiRating:rk.konsekuensiRating,risikoNilai:rk.risikoNilai,risikoRating:rk.risikoRating,kategoriPenerimaan:rk.kategoriPenerimaan,perlakuan:q.perlakuan||"",prioritas:q.prioritas||"",langkahTambahan:q.langkahTambahan||"",pemilikRisiko:q.riskOwner||"",tanggalKaji:dateOnly_(q.tanggalKaji)||dateOnly_(p.tanggalKaji)||"",keterangan:q.keterangan||"",bulan:p.bulan||"",tahun:p.tahun||new Date().getFullYear(),namaPengisi:p.namaPengisi||"",jabatanPengisi:p.jabatanPengisi||"",createdAt:n,updatedAt:n,editToken:token_(),assessmentKey:k.key,rowVersion:1};objsOut.push(x);return h.map(function(c){return sanitizeCell_(x[c]===undefined?"":x[c])})});
+ (ensureRows_(rs,vals.length),rs).getRange(rs.getLastRow()+1,1,vals.length,h.length).setValues(vals);
+ var hs=sheet_(SHEETS.HIST,H.HIST),hh=hs.getRange(1,1,1,hs.getLastColumn()).getValues()[0];
+ var hv=objsOut.map(function(r){var y={historyId:id_("HIST"),riskId:r.riskId,dprkId:r.dprkId,operatorId:r.operatorId,jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,tanggal:n,bulan:r.bulan,tahun:r.tahun,nilaiAncaman:r.ancamanNilai,nilaiKerentanan:r.kerentananNilai,nilaiKonsekuensi:r.konsekuensiNilai,nilaiRisiko:r.risikoNilai,ratingRisiko:r.risikoRating,versiDprk:1,perubahan:"Create (impor)",updatedBy:p.namaPengisi||"",rowVersion:1,beforeData:"{}",afterData:"{\"batchId\":\""+bid+"\"}",unitId:r.unitId};return hh.map(function(c){return sanitizeCell_(y[c]===undefined?"":y[c])})});
+ (ensureRows_(hs,hv.length),hs).getRange(hs.getLastRow()+1,1,hv.length,hh.length).setValues(hv);
+ audit_(p,"RISK_BATCH",bid,"BATCH_CREATE",{},{operatorId:o.operatorId,jumlah:objsOut.length,dilewati:skipped.length,unit:Object.keys(objsOut.reduce(function(m,r){if(r.unitId)m[r.unitId]=1;return m},{})).length},p.requestId,"Impor matriks per paket");
+ invalidateDashboardCache_();
+ return json_({ok:true,saved:objsOut.length,skipped:skipped.length,skippedRows:skipped,dprkId:d.dprkId,riskIds:objsOut.map(function(r){return r.riskId})});
+}
+
+// ---------- IMPOR ADMIN (dijalankan dari editor Apps Script) ----------
+// Tempel sheet dari file impor ke spreadsheet dengan nama:
+//   IMPOR_OPERATOR   (operator baru, mis. PAUA)          → kolom seperti MASTER_OPERATOR
+//   PERBAIKAN_MASTER (koreksi kolom MASTER_OPERATOR)       → operatorId, Bandara, Kolom, Nilai sekarang, Nilai baru
+//   IMPOR_UNIT       (daftar unit/stasiun)                 → unitId, operatorId, jenisUnit, namaUnit, kodeUnit, provinsi, kabkota
+// Lalu: cekImporAdmin() (hanya memeriksa, tidak mengubah apa pun) → bila bersih, terapkanImporAdmin().
+// Judul kolom cukup diawali nama kolomnya (mis. "operatorId (induk DPRK)" dikenali sebagai operatorId).
+// Aman dijalankan ulang: operator & unit di-upsert berdasarkan ID; perbaikan hanya diterapkan
+// bila "Nilai sekarang" masih sama dengan isi master.
+var IMPOR_OP_ALLOWED=["Bandar Udara","Airlines","LPPNPI","Regulated Agent"];
+var PERBAIKAN_KOLOM=["namaOperator","kodeOperator","iata","icao","provinsi","kabkota","lokasi","kelas","status","aktif"];
+// V3.37: status & aktif selalu diselaraskan (Aktif↔TRUE, Nonaktif↔FALSE). Operator Nonaktif tidak dihitung di
+// Total Operator / Completion Rate, tetapi riwayatnya (DPRK, laporan, audit) tetap ada.
+function boolText_(v){var x=String(v===undefined||v===null?"":v).trim().toLowerCase();if(x==="true"||x==="ya"||x==="aktif"||x==="1")return"true";if(x==="false"||x==="tidak"||x==="nonaktif"||x==="0")return"false";return x}
+function sameVal_(k,a,b){return k==="aktif"?boolText_(a)===boolText_(b):String(a===undefined||a===null?"":a).trim()===String(b===undefined||b===null?"":b).trim()}
+function imporRows_(name){
+ var s=ss_().getSheetByName(name);if(!s||s.getLastRow()<2)return null;
+ var raw=s.getRange(1,1,s.getLastRow(),s.getLastColumn()).getValues(),h=raw[0].map(function(x){return String(x||"").split("(")[0].replace(/\s+/g,"")}); // "operatorId (induk DPRK)"→operatorId, "Nilai baru"→Nilaibaru
+ return raw.slice(1).filter(function(r){return r.some(function(v){return String(v).trim()!==""})}).map(function(r,i){var o={_baris:i+2};h.forEach(function(k,j){if(k&&!(k in o))o[k]=typeof r[j]==="string"?r[j].trim():r[j]});return o});
+}
+function adminActor_(){var e="";try{e=Session.getEffectiveUser().getEmail()}catch(x){}return{_auth:{email:"ADMIN_IMPORT:"+(e||"editor")}}}
+function cekImporAdmin(){return imporAdmin_(false)}
+function terapkanImporAdmin(){return imporAdmin_(true)}
+function imporAdmin_(apply){
+ // V3.37: sebelum menerapkan, periksa dulu; bila bersih buat CADANGAN spreadsheet (backupHarian). Cadangan gagal → impor dibatalkan.
+ var cad="";
+ if(apply){
+  var cek=imporAdmin_(false);if(cek.indexOf("Pemeriksaan bersih")<0)return cek;
+  try{cad=backupHarian()}catch(e){var mb="Cadangan sebelum impor GAGAL ("+(e&&e.message||e)+") — impor DIBATALKAN, tidak ada yang diubah.";Logger.log(mb);return mb}
+ }
+ var lock=LockService.getScriptLock();if(apply&&!lock.tryLock(30000))throw Error("Server sibuk, coba lagi.");
+ try{
+  ensureSheetsOnly_();
+  var out=[],errs=[],n=now_(),opS=sheet_(SHEETS.OP,H.OP),ops=objs_(opS),opById={};ops.forEach(function(o){opById[String(o.operatorId)]=o});
+  // 1. Operator baru / pelengkap
+  var io=imporRows_("IMPOR_OPERATOR"),addOps=[],fillOps=[];
+  if(io){var seen={};io.forEach(function(r){
+   var id=String(r.operatorId||""),e=[];
+   if(!AUTH_OPID_RE.test(id))e.push("operatorId tidak valid");
+   if(seen[id])e.push("operatorId ganda (baris "+seen[id]+")");seen[id]=r._baris;
+   if(IMPOR_OP_ALLOWED.indexOf(r.jenisOperator)<0)e.push("jenisOperator harus salah satu: "+IMPOR_OP_ALLOWED.join(", "));
+   if(!String(r.namaOperator||""))e.push("namaOperator kosong");
+   if(e.length){errs.push("IMPOR_OPERATOR baris "+r._baris+": "+e.join("; "));return}
+   var aktif=String(r.aktif).toLowerCase()!=="false"&&String(r.status||"Aktif")!=="Nonaktif";
+   if(opById[id]){var cur=opById[id],fill={};OP_MERGE_FIELDS.forEach(function(k){if(!String(cur[k]||"").trim()&&String(r[k]||"").trim())fill[k]=r[k]});if(Object.keys(fill).length)fillOps.push({id:id,fill:fill})}
+   else addOps.push({operatorId:id,jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,kodeOperator:r.kodeOperator||"",iata:r.iata||"",icao:r.icao||"",provinsi:r.provinsi||"",kabkota:r.kabkota||"",lokasi:r.lokasi||"",kelas:r.kelas||"",status:aktif?"Aktif":"Nonaktif",aktif:aktif,createdAt:n,updatedAt:n});
+  });out.push("IMPOR_OPERATOR: "+addOps.length+" operator baru ("+addOps.filter(function(x){return x.aktif}).length+" aktif), "+fillOps.length+" operator lama dilengkapi.")}
+  var known={};ops.forEach(function(o){known[String(o.operatorId)]=true});addOps.forEach(function(o){known[o.operatorId]=true});
+  // 2. Perbaikan master
+  var pm=imporRows_("PERBAIKAN_MASTER"),fixes=[];
+  if(pm){pm.forEach(function(r){
+   var id=String(r.operatorId||""),k=String(r.Kolom||""),lama=String(r.Nilaisekarang===undefined?"":r.Nilaisekarang).trim(),baru=String(r.Nilaibaru===undefined?"":r.Nilaibaru).trim(),cur=opById[id];
+   if(!cur){errs.push("PERBAIKAN_MASTER baris "+r._baris+": operator "+id+" tidak ada");return}
+   if(PERBAIKAN_KOLOM.indexOf(k)<0){errs.push("PERBAIKAN_MASTER baris "+r._baris+": kolom "+k+" tidak boleh diubah lewat impor");return}
+   if(!baru){errs.push("PERBAIKAN_MASTER baris "+r._baris+": Nilai baru kosong");return}
+   if(k==="status"&&["Aktif","Nonaktif"].indexOf(baru)<0){errs.push("PERBAIKAN_MASTER baris "+r._baris+": status harus Aktif atau Nonaktif");return}
+   if(k==="aktif"&&["true","false"].indexOf(boolText_(baru))<0){errs.push("PERBAIKAN_MASTER baris "+r._baris+": aktif harus TRUE atau FALSE");return}
+   var now=String(cur[k]===undefined?"":cur[k]).trim();
+   if(sameVal_(k,now,baru))return; // sudah diterapkan sebelumnya
+   if(!sameVal_(k,now,lama)){errs.push("PERBAIKAN_MASTER baris "+r._baris+": "+id+"."+k+" sekarang \""+now+"\", bukan \""+lama+"\" — periksa ulang");return}
+   fixes.push({id:id,k:k,v:baru});
+  });out.push("PERBAIKAN_MASTER: "+fixes.length+" perubahan siap diterapkan.")}
+  // 3. Unit
+  var iu=imporRows_("IMPOR_UNIT"),uS=sheet_(SHEETS.UNIT,H.UNIT),uOld={},uAdd=[],uUpd=[];
+  objs_(uS).forEach(function(u){uOld[String(u.unitId)]=u});
+  if(iu){var seenU={};iu.forEach(function(r){
+   var id=String(r.unitId||""),oid=String(r.operatorId||""),e=[];
+   if(!UNIT_ID_RE.test(id))e.push("unitId tidak valid");
+   if(seenU[id])e.push("unitId ganda (baris "+seenU[id]+")");seenU[id]=r._baris;
+   if(!known[oid])e.push("operator induk "+oid+" tidak ada di MASTER_OPERATOR / IMPOR_OPERATOR");
+   if(UNIT_JENIS.indexOf(r.jenisUnit)<0)e.push("jenisUnit harus salah satu: "+UNIT_JENIS.join(", "));
+   if(!String(r.namaUnit||""))e.push("namaUnit kosong");
+   if(uOld[id]&&String(uOld[id].operatorId)!==oid)e.push("unit sudah terdaftar di bawah "+uOld[id].operatorId+" (operator induk tidak boleh berubah)");
+   if(e.length){errs.push("IMPOR_UNIT baris "+r._baris+": "+e.join("; "));return}
+   var ak=r.aktif===undefined||String(r.aktif).trim()===""?"true":boolText_(r.aktif); // kolom aktif opsional; kosong = aktif
+   if(ak!=="true"&&ak!=="false"){errs.push("IMPOR_UNIT baris "+r._baris+": aktif harus TRUE atau FALSE");return}
+   var x={unitId:id,operatorId:oid,jenisUnit:r.jenisUnit,namaUnit:r.namaUnit,kodeUnit:r.kodeUnit||"",provinsi:r.provinsi||"",kabkota:r.kabkota||"",aktif:ak==="true"};
+   if(uOld[id])uUpd.push(x);else uAdd.push(x);
+  });out.push("IMPOR_UNIT: "+uAdd.length+" unit baru, "+uUpd.length+" unit diperbarui"+(function(){var n=uAdd.concat(uUpd).filter(function(u){return!u.aktif}).length;return n?" ("+n+" dinonaktifkan)":""})()+".")}
+  if(!io&&!pm&&!iu)out.push("Tidak ada sheet IMPOR_OPERATOR / PERBAIKAN_MASTER / IMPOR_UNIT yang berisi data.");
+  if(errs.length){out.push("");out.push("DITEMUKAN "+errs.length+" MASALAH — tidak ada yang diterapkan:");errs.slice(0,100).forEach(function(x){out.push(" - "+x)});var m1=out.join("\n");Logger.log(m1);return m1}
+  if(!apply){out.push("");out.push("Pemeriksaan bersih. Jalankan terapkanImporAdmin() untuk menerapkan.");var m2=out.join("\n");Logger.log(m2);return m2}
+  // --- terapkan
+  var oh=opS.getRange(1,1,1,opS.getLastColumn()).getValues()[0];
+  if(addOps.length)(ensureRows_(opS,addOps.length),opS).getRange(opS.getLastRow()+1,1,addOps.length,oh.length).setValues(addOps.map(function(o){return oh.map(function(c){return sanitizeCell_(o[c]===undefined?"":o[c])})}));
+  fillOps.concat(fixes.map(function(f){var x={};x[f.k]=f.v;
+   if(f.k==="status")x.aktif=f.v==="Aktif";
+   if(f.k==="aktif"){x.aktif=boolText_(f.v)==="true";x.status=x.aktif?"Aktif":"Nonaktif"}
+   return{id:f.id,fill:x}})).forEach(function(f){var r=findBy_(opS,"operatorId",f.id),before=JSON.parse(JSON.stringify(r.obj));Object.keys(f.fill).forEach(function(k){r.obj[k]=f.fill[k]});r.obj.updatedAt=n;opS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})]);audit_(adminActor_(),"OPERATOR",f.id,"UPDATE",before,r.obj,"","Impor admin: "+Object.keys(f.fill).join(","))});
+  var uh=uS.getRange(1,1,1,uS.getLastColumn()).getValues()[0];
+  if(uAdd.length)(ensureRows_(uS,uAdd.length),uS).getRange(uS.getLastRow()+1,1,uAdd.length,uh.length).setValues(uAdd.map(function(u){u.createdAt=n;u.updatedAt=n;return uh.map(function(c){return sanitizeCell_(u[c]===undefined?"":u[c])})}));
+  uUpd.forEach(function(u){var r=findBy_(uS,"unitId",u.unitId);Object.keys(u).forEach(function(k){r.obj[k]=u[k]});r.obj.updatedAt=n;uS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})])});
+  if(addOps.length)audit_(adminActor_(),"OPERATOR","IMPOR_OPERATOR","BATCH_CREATE",{},{jumlah:addOps.length},"","Impor admin operator");
+  if(uAdd.length||uUpd.length)audit_(adminActor_(),"UNIT","IMPOR_UNIT","BATCH_UPSERT",{},{baru:uAdd.length,diperbarui:uUpd.length},"","Impor admin unit");
+  invalidateDashboardCache_();
+  out.push("");out.push("Cadangan sebelum impor: "+cad);out.push("SELESAI diterapkan "+n+".");var m3=out.join("\n");Logger.log(m3);return m3;
+ }finally{if(apply)try{lock.releaseLock()}catch(x){}}
 }
