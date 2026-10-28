@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.37 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.37.1 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -128,7 +128,7 @@ function issueApiKeysForAllOperators(){
   ensureSheetsOnly_();
 
   var opSheet = sheet_(SHEETS.OP, H.OP);
-  var ops = objs_(opSheet).filter(function(o){ return String(o.aktif).toLowerCase() !== "false"; });
+  var ops = objs_(opSheet).filter(opActive_);
 
   var accessSheet = sheet_(SHEETS.ACCESS, H.ACCESS);
   var accessData = rows_(accessSheet); // {h, a}
@@ -393,7 +393,7 @@ function latestCurrentRiskRows_(rows){
  return Object.keys(map).map(function(k){return map[k]});
 }
 function dashboard_(){
- var ops=objs_(sheet_(SHEETS.OP,H.OP)).filter(function(o){return String(o.aktif).toLowerCase()!=="false"}),d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),raw=objs_(sheet_(SHEETS.RISK,H.RISK));
+ var ops=objs_(sheet_(SHEETS.OP,H.OP)).filter(opActive_),d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),raw=objs_(sheet_(SHEETS.RISK,H.RISK));
  var r=latestCurrentRiskRows_(raw),filled={},activeId={};
  ops.forEach(function(o){activeId[String(o.operatorId)]=true});
  d.filter(function(x){return x.status==="Aktif"}).forEach(function(x){filled[x.operatorId]=true});
@@ -414,17 +414,20 @@ function dashboard_(){
  return{kpi:{totalEntities:total,filledEntities:fn,unfilledEntities:Math.max(0,total-fn),completionRate:total?Math.round(fn/total*100):0,completionRatePct:total?Number((fn/total*100).toFixed(1)):0,highRisk:natOk?dist.Tinggi:null,highRiskScenarios:natOk?dist.Tinggi:null,highRiskOperators:natOk?Object.keys(highOps).length:null,reviewDue:rd,totalRisks:natOk?r.length:null},byType:byType,riskDistribution:dist,categories:natOk?cl:[],analytics:an,trend:trend_()}
 }
 
+// V3.37.1 — satu definisi "operator aktif" untuk semua hitungan: wajib punya operatorId, kolom aktif bukan FALSE,
+// dan status bukan Nonaktif (baris yang hanya diubah salah satunya tetap dianggap nonaktif).
+function opActive_(o){return !!String(o.operatorId==null?"":o.operatorId).trim()&&String(o.aktif).trim().toLowerCase()!=="false"&&String(o.status==null?"":o.status).trim()!=="Nonaktif"}
 function operatorMonitoring_(){
  var ops=objs_(sheet_(SHEETS.OP,H.OP)),d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),r=objs_(sheet_(SHEETS.RISK,H.RISK)),un={},uf={};
  // V3.37: cakupan unit = unit aktif yang sudah punya minimal 1 skenario / unit aktif terdaftar.
  unitMaster_().forEach(function(u){if(u.aktif)(un[u.operatorId]=un[u.operatorId]||[]).push(u.unitId)});
  // V3.37: hitung sekali (sebelumnya menyaring seluruh RISK_ASSESSMENT untuk SETIAP operator: ±445 × 15.000 baris).
  var cnt={},dAct={};r.forEach(function(x){if(x.unitId)uf[String(x.unitId)]=1;var k=String(x.operatorId);cnt[k]=(cnt[k]||0)+1});d.forEach(function(x){if(x.status==="Aktif"&&!dAct[x.operatorId])dAct[x.operatorId]=x});
- return ops.filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
+ return ops.filter(opActive_).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
 }
 // V3.34 — daftar identitas operator aktif untuk publik (formulir, pendaftaran, pelaporan).
 function operatorMaster_(){
- return objs_(sheet_(SHEETS.OP,H.OP)).filter(function(o){return String(o.aktif).toLowerCase()!=="false"}).map(publicOp_);
+ return objs_(sheet_(SHEETS.OP,H.OP)).filter(opActive_).map(publicOp_);
 }
 // V3.34 — BACA DATA TERBATAS (wajib login). Admin: semua operator; Operator: hanya operatorIds miliknya.
 var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail","unitList"];
@@ -1018,6 +1021,16 @@ function imporAdmin_(apply){
  try{
   ensureSheetsOnly_();
   var out=[],errs=[],n=now_(),opS=sheet_(SHEETS.OP,H.OP),ops=objs_(opS),opById={};ops.forEach(function(o){opById[String(o.operatorId)]=o});
+  // V3.37.1 — kesehatan MASTER_OPERATOR (peringatan, tidak memblokir impor): baris tanpa operatorId, status/aktif tidak selaras,
+  // kode bandara/operator ganda di antara operator aktif. Ditambah jumlah yang dihitung Dashboard sebagai Total Operator.
+  (function(){var w=[],tanpaId=0,kode={};ops.forEach(function(o){var id=String(o.operatorId==null?"":o.operatorId).trim();
+   if(!id){tanpaId++;return}
+   var bt=boolText_(o.aktif),st=String(o.status==null?"":o.status).trim();
+   if((bt==="false"&&st==="Aktif")||(bt!=="false"&&st==="Nonaktif"))w.push(id+": status \""+st+"\" tetapi aktif \""+o.aktif+"\" (dihitung NONAKTIF; selaraskan lewat PERBAIKAN_MASTER)");
+   var kd=String(o.kodeOperator||"").trim().toUpperCase();if(kd&&opActive_(o)){if(kode[kd])w.push("kode "+kd+" dipakai "+kode[kd]+" dan "+id);else kode[kd]=id}});
+   if(tanpaId)w.unshift(tanpaId+" baris berisi data tetapi tanpa operatorId (mis. sel berisi spasi) — hapus barisnya");
+   out.push("MASTER_OPERATOR: "+ops.filter(opActive_).length+" operator aktif (Total Operator di Dashboard).");
+   w.forEach(function(x){out.push("  PERINGATAN: "+x)})})();
   // 1. Operator baru / pelengkap
   var io=imporRows_("IMPOR_OPERATOR"),addOps=[],fillOps=[];
   if(io){var seen={};io.forEach(function(r){

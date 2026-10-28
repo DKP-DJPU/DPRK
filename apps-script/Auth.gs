@@ -375,7 +375,7 @@ function authRegister_(p) {
   if (e.length) return json_({ ok: false, code: "VALIDATION_ERROR", error: e.join("; ") });
 
   var op = objs_(sheet_(SHEETS.OP, H.OP)).filter(function (o) {
-    return String(o.operatorId) === oid && String(o.aktif).toLowerCase() !== "false";
+    return String(o.operatorId) === oid && opActive_(o);
   })[0];
   if (!op) return json_({ ok: false, code: "VALIDATION_ERROR", error: "Operator tidak ditemukan di master." });
 
