@@ -22,6 +22,23 @@ function reset() {
   setStatus('budi@juanda.co.id', 'Aktif');
   env.cache.clear();
 }
+// V3.38: data simulasi LPP-004 + 3 unit (REKAAN) — Oktober 2026 Induk 4, Solo 3, Cilacap 2; Januari 2027 Solo kaji ulang 3.
+function simUnit() {
+  const KAT = Object.fromEntries(require('../../data/katalog-risiko.json').kategori), OP = 'LPP-004';
+  const us = env.sheets.MASTER_UNIT, uh = us._data[0];
+  [['LPP-004-U01', 'Unit Kerja', 'Unit Adisutjipto', 'JOG', 'DI Yogyakarta', 'Yogyakarta'], ['LPP-004-U02', 'Kantor Cabang Pembantu', 'Cabang Pembantu Solo', 'SOC', 'Jawa Tengah', 'Solo'], ['LPP-004-U03', 'Kantor Cabang Pembantu', 'Cabang Pembantu Cilacap', 'CXP', 'Jawa Tengah', 'Cilacap']]
+    .forEach(u => us.appendRow(uh.map(k => ({ unitId: u[0], operatorId: OP, jenisUnit: u[1], namaUnit: u[2], kodeUnit: u[3], provinsi: u[4], kabkota: u[5], aktif: true })[k] ?? '')));
+  env.post({ action: 'authRegister', nama: 'Petugas Uji', email: 'uji@airnav-rekaan.id', jabatan: 'Manager Keamanan', operatorId: OP });
+  setStatus('uji@airnav-rekaan.id', 'Aktif');
+  env.cache.clear(); env.post({ action: 'authRequestCode', email: 'uji@airnav-rekaan.id' });
+  const tk = env.post({ action: 'authVerify', email: 'uji@airnav-rekaan.id', code: env.lastCode('uji@airnav-rekaan.id') }).data.token;
+  const sv = (unitId, kode, sk, a, k, c, bulan, tahun) => env.post({ action: 'create', sessionToken: tk, operatorId: OP, jenisOperator: 'LPPNPI', namaOperator: 'AirNav Indonesia Cabang Yogyakarta (Kulonprogo)', unitId, kategori: kode + ' - ' + KAT[kode], skenario: sk, ancamanNilai: a, kerentananNilai: k, konsekuensiNilai: c, bulan, tahun, tanggalPengesahan: tahun + '-01-10', tanggalKaji: '2027-07-01', namaPengisi: 'Petugas Uji', perlakuan: 'Mitigasi', prioritas: 'Segera', riskOwner: 'GM Cabang' });
+  [['', '11', 'Siber ATC', 8, 7, 9], ['', '15', 'Penyusupan ruang peralatan', 6, 6, 8], ['', '03', 'Drone pendekatan', 7, 6, 7], ['', '14', 'Bom palsu telepon', 5, 4, 4],
+   ['LPP-004-U02', '15', 'Penyusupan ruang peralatan', 5, 7, 8], ['LPP-004-U02', '16', 'Sabotase catu daya radar', 6, 7, 9], ['LPP-004-U02', '14', 'Bom palsu telepon', 4, 4, 4],
+   ['LPP-004-U03', '15', 'Penyusupan ruang peralatan', 4, 5, 6], ['LPP-004-U03', '04', 'Unjuk rasa sisi darat', 3, 3, 4]].forEach(p => sv(p[0], p[1], p[2], p[3], p[4], p[5], 'Oktober', 2026));
+  [['LPP-004-U02', '15', 'Penyusupan ruang peralatan', 4, 5, 6], ['LPP-004-U02', '16', 'Sabotase catu daya radar', 5, 5, 7], ['LPP-004-U02', '14', 'Bom palsu telepon', 3, 3, 3]].forEach(p => sv(p[0], p[1], p[2], p[3], p[4], p[5], 'Januari', 2027));
+  env.cache.clear();
+}
 reset();
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x'); let body = '';
@@ -32,6 +49,7 @@ http.createServer((req, res) => {
       else if (u.pathname === '/__ctl') {
         const a = u.searchParams.get('a');
         if (a === 'reset') reset();
+        if (a === 'simunit') simUnit();
         if (a === 'clearcache') env.cache.clear();
         if (a === 'enforce') env.ctx.aktifkanLoginWajib();
         if (a === 'relax') env.ctx.nonaktifkanLoginWajib();

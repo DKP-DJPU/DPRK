@@ -1615,6 +1615,21 @@ canvas {
   color: var(--muted);
 }
 
+.risk-arsip {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.risk-filter-panel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 /* ===== FORMS ===== */
 
 .analytics-overview {

@@ -225,6 +225,9 @@ Seseorang mengubah skenario yang sama setelah Anda membukanya. Klik **Edit** lag
 ### Unit atau stasiun kami tidak ada di pilihan
 Daftar unit dan stasiun didaftarkan oleh Admin Direktorat Keamanan Penerbangan. Hubungi admin dengan menyebutkan nama operator dan unit yang belum terdaftar.
 
+### Kami mengkaji ulang matriks. Apakah matriks lama ikut dihitung?
+Tidak. Untuk setiap unit/stasiun (dan Induk), yang dihitung hanya matriks **periode terbaru**. Saat Anda mengisi kaji ulang dengan bulan dan tahun baru, matriks periode itu **menggantikan seluruh** matriks lama unit tersebut. Karena itu, masukkan kembali **semua** skenario unit itu pada periode baru, termasuk yang nilainya tidak berubah. Unit yang belum dikaji ulang tetap memakai matriks terakhirnya. Matriks lama tetap tersimpan dan dapat dilihat di **Monitoring Risiko** dengan pilihan Periode **Semua periode** (bertanda *Arsip*).
+
 ### Apakah setiap kategori ancaman wajib diisi?
 Isi semua skenario yang tercantum di dokumen DPRK operator Anda yang sudah disahkan. Data di sistem harus sama dengan dokumen tersebut.
 

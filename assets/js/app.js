@@ -596,7 +596,7 @@
               : '<div class="scenario-hint">Pilih dari daftar agar data tersambung ke master. Isi manual di bawah hanya jika entitas belum terdaftar.</div>') +
             "</div>"
           : "") +
-        '<div class="formgrid"><div class="field"><label>Nama Entitas / Unit</label><input id="entityName" placeholder="Nama ' +
+        '<div class="formgrid"><div class="field"><label>Nama Entitas</label><input id="entityName" placeholder="Nama ' +
         esc(state.type) +
         '"></div><div class="field"><label>Kode / ICAO / Identitas (opsional)</label><input id="entityCode" placeholder="Kode identitas"></div><div class="field"><label>Provinsi</label><select id="entityProv"><option value="">Pilih provinsi</option>' +
         PROVINSI.map(function (x) {
@@ -865,7 +865,7 @@
     ["opFilterType", "opFilterProv", "opSearch"].forEach(function (id) {
       $(id).oninput = renderOperatorTable;
     });
-    ["riskType", "riskRating", "riskCategory", "riskSearch"].forEach(function (id) {
+    ["riskType", "riskRating", "riskCategory", "riskSearch", "riskPeriod", "riskUnit"].forEach(function (id) {
       $(id).oninput = renderRiskTable;
     });
   }
@@ -1939,7 +1939,8 @@
       selectedKab = "";
       agg = ((state.data || {}).analytics || {})[selectedType || "_all"] || null;
     }
-    var all = useClient ? state.risks : [];
+    // V3.38: hanya penilaian terakhir tiap operator/unit (penilaian lama yang sudah dikaji ulang tidak dihitung lagi).
+    var all = useClient ? state.risks.filter(isCurrent) : [];
     var filtered = all.filter(function (x) {
       return (
         (!selectedType || String(x.jenisOperator || "") === selectedType) &&
@@ -2269,14 +2270,51 @@
         $("riskTbody").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>";
       });
   }
+  // V3.38: baris termasuk penilaian terakhir unitnya? (server menandai `terkini`; data lama tanpa tanda = terkini)
+  function isCurrent(x) {
+    return x.terkini !== false;
+  }
+  // Isi pilihan Unit / Stasiun dari data yang dimuat; disembunyikan bila tidak ada unit sama sekali.
+  function syncRiskUnitFilter() {
+    var sel = $("riskUnit"),
+      box = $("riskUnitField");
+    if (!sel || !box) return;
+    var seen = {},
+      list = [];
+    (state.risks || []).forEach(function (x) {
+      var id = String(x.unitId || "");
+      if (id && !seen[id]) {
+        seen[id] = 1;
+        list.push({ id: id, nama: x.namaUnit || id, op: x.namaOperator || "" });
+      }
+    });
+    box.hidden = !list.length;
+    var cur = sel.value;
+    list.sort(function (a, b) {
+      return (a.op + a.nama).localeCompare(b.op + b.nama, "id");
+    });
+    sel.innerHTML =
+      '<option value="">Semua (Induk &amp; unit)</option><option value="__induk">Induk saja</option>' +
+      list
+        .map(function (u) {
+          return '<option value="' + esc(u.id) + '">' + esc(u.nama) + (u.op ? " — " + esc(u.op) : "") + "</option>";
+        })
+        .join("");
+    sel.value = cur && (cur === "__induk" || seen[cur]) ? cur : "";
+  }
   function renderRiskTable() {
+    syncRiskUnitFilter();
     var a = state.risks || [],
       t = $("riskType").value,
       r = $("riskRating").value,
       c = $("riskCategory").value,
-      q = $("riskSearch").value.toLowerCase();
+      q = $("riskSearch").value.toLowerCase(),
+      per = ($("riskPeriod") || {}).value || "kini",
+      un = ($("riskUnit") || {}).value || "";
     a = a.filter(function (x) {
       return (
+        (per === "semua" || isCurrent(x)) &&
+        (!un || (un === "__induk" ? !x.unitId : String(x.unitId || "") === un)) &&
         (!t || x.jenisOperator === t) &&
         (!r || x.risikoRating === r) &&
         (!c || x.kategoriKode === c) &&
@@ -2302,7 +2340,7 @@
     $("riskCount").textContent = a.length;
     $("riskHighCount").textContent = high;
     $("riskAvgCount").textContent = nums.length ? avg.toFixed(1) : "—";
-    $("riskFilterState").textContent = t || r || c || q ? "Aktif" : "Semua";
+    $("riskFilterState").textContent = t || r || c || q || un || per === "semua" ? "Aktif" : "Semua";
     // V3.36: tombol Edit untuk pengguna login. riskData sudah dibatasi server (operator: miliknya; Admin: semua).
     var canEdit = !!authUser(),
       cols = canEdit ? 7 : 6,
@@ -2326,6 +2364,7 @@
             pill(rating(Number(x.risikoNilai))) +
             '</td><td class="risk-period">' +
             esc((x.bulan || "") + " " + (x.tahun || "")) +
+            (isCurrent(x) ? "" : '<div class="risk-arsip" title="Sudah digantikan penilaian yang lebih baru untuk unit ini">Arsip</div>') +
             "</td>" +
             (canEdit && x.riskId
               ? '<td class="risk-act"><button type="button" class="btn secondary btn-sm" data-risk-edit="' +

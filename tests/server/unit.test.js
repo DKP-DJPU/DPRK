@@ -131,8 +131,8 @@ env.cache.clear();
 const d1 = env.get({ action: 'dashboard' }).data;
 const st1 = env.post({ action: 'operatorStatus', sessionToken: bt }).data.find(x => x.operatorId === 'LPP-011');
 T('operatorStatus: jumlahUnit 2, unitTerisi 2', st1.jumlahUnit === 2 && st1.unitTerisi === 2, st1);
-{ const all = env.post({ action: 'operatorStatus', sessionToken: adm }).data, rr = env.rows('RISK_ASSESSMENT'), want = id => rr.filter(x => x.operatorId === id).length;
-  T('operatorStatus: jumlahSkenario setiap operator = jumlah baris risikonya (cek semua operator)', all.length > 300 && all.every(x => x.jumlahSkenario === want(x.operatorId)) && st1.jumlahSkenario === 3, all.filter(x => x.jumlahSkenario !== want(x.operatorId)).slice(0, 3));
+{ const all = env.post({ action: 'operatorStatus', sessionToken: adm }).data, rr = c.latestCurrentRiskRows_(env.rows('RISK_ASSESSMENT')), want = id => rr.filter(x => x.operatorId === id).length;
+  T('operatorStatus: jumlahSkenario setiap operator = jumlah skenario penilaian terakhirnya, sama dengan Dashboard (cek semua operator)', all.length > 300 && all.every(x => x.jumlahSkenario === want(x.operatorId)) && st1.jumlahSkenario === 3, all.filter(x => x.jumlahSkenario !== want(x.operatorId)).slice(0, 3));
   T('operatorStatus: status DPRK tetap benar setelah optimasi (14+1 Sudah Mengisi)', all.filter(x => x.statusDprk === 'Sudah Mengisi').length === 15, all.filter(x => x.statusDprk === 'Sudah Mengisi').length); }
 r = env.post({ action: 'unitList', sessionToken: bt });
 T('unitList: jumlahSkenario per unit', r.data.find(u => u.unitId === 'LPP-011-U01').jumlahSkenario === 1);
