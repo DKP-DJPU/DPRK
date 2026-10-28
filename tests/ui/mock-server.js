@@ -11,6 +11,11 @@ function reset() {
   env.seed('MASTER_DPRK', 'H.DPRK', fx('dprk').map(d => Object.assign({}, d, { tanggalKajiUlang: d.operatorId === 'BD-100' ? kaji : '' })));
   env.seed('LAPORAN_INSIDEN', 'INC_H', fx('incidents').map((x, i) => Object.assign({}, x, { statusVerifikasi: i < 3 ? 'Terverifikasi' : 'Baru' })));
   env.ctx.terapkanHitungUlangRisiko();
+  // V3.37: unit rekaan — satu milik Juanda (BD-100), satu milik operator lain (BD-007) untuk uji pembatasan.
+  env.seed('MASTER_UNIT', 'H.UNIT', [
+    { unitId: 'BD-100-U01', operatorId: 'BD-100', jenisUnit: 'Satuan Pelayanan', namaUnit: 'Satpel Uji Juanda', kodeUnit: '', provinsi: 'Jawa Timur', kabkota: 'Surabaya', aktif: true },
+    { unitId: 'BD-007-U01', operatorId: 'BD-007', jenisUnit: 'Satuan Pelayanan', namaUnit: 'Satpel Uji Semarang', kodeUnit: '', provinsi: 'Jawa Tengah', kabkota: 'Semarang', aktif: true },
+  ]);
   env.ctx.setupLogin();
   env.post({ action: 'authRegister', nama: 'Budi Santoso', email: 'budi@juanda.co.id', jabatan: 'Kepala AVSEC', operatorId: 'BD-100' });
   env.post({ action: 'authRegister', nama: 'Sari', email: 'sari@garuda.co.id', jabatan: 'Security Manager', operatorId: 'AIR-GARUDA-INDONESIA' });

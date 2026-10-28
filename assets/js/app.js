@@ -173,7 +173,7 @@
       });
   }
   // Aksi baca data Terbatas (wajib login). Lihat READ_ACTIONS di Code.gs V3.34/V3.36.
-  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList", "riskDetail"];
+  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList", "riskDetail", "unitList"];
   function authUser() {
     return window.SIRISK_AUTH ? window.SIRISK_AUTH.user() : null;
   }
@@ -275,6 +275,7 @@
     renderLocalHistory();
     loadDashboard();
     loadRisks();
+    loadUnits();
     state.initDone = true;
     renderEditMode();
     loadOperatorMasterForForm();
@@ -427,7 +428,79 @@
       };
     });
   }
+  // V3.37 — Unit/Stasiun: pilihan muncul bila operator terpilih punya unit terdaftar (MASTER_UNIT, diisi Admin).
+  // Kosong = matriks induk (kantor pusat / cabang utama). Unit tidak bisa diubah saat edit.
+  function unitsOf(oid) {
+    return (state.units || []).filter(function (u) {
+      return u.operatorId === oid && u.aktif !== false;
+    });
+  }
+  function loadUnits() {
+    if (!authUser()) {
+      state.units = [];
+      renderUnitField();
+      return Promise.resolve([]);
+    }
+    return readTerbatas("unitList")
+      .then(function (d) {
+        state.units = d;
+        renderUnitField();
+        renderRiskTable();
+        document.dispatchEvent(new CustomEvent("sirisk:units"));
+        return d;
+      })
+      .catch(function () {
+        state.units = [];
+        renderUnitField();
+        return [];
+      });
+  }
+  function selectedUnitId() {
+    var a = $("unitArea"),
+      sel = $("unitSelect");
+    return a && !a.hidden && sel ? sel.value : "";
+  }
+  function renderUnitField() {
+    var a = $("unitArea"),
+      sel = $("unitSelect");
+    if (!a || !sel) return;
+    var oid = entityOperatorId(state.entity),
+      list = oid ? unitsOf(oid) : [],
+      want = state.edit ? state.edit.unitId || "" : sel.value;
+    if (!list.length) {
+      a.hidden = true;
+      sel.innerHTML = "";
+      return;
+    }
+    a.hidden = false;
+    sel.innerHTML =
+      '<option value="">Induk — ' +
+      esc((state.entity && (state.entity.nama || state.entity[1])) || "kantor pusat / cabang utama") +
+      "</option>" +
+      list
+        .map(function (u) {
+          return (
+            '<option value="' +
+            esc(u.unitId) +
+            '">' +
+            esc(u.namaUnit + (u.kodeUnit ? " (" + u.kodeUnit + ")" : "")) +
+            "</option>"
+          );
+        })
+        .join("");
+    sel.value = list.some(function (u) {
+      return u.unitId === want;
+    })
+      ? want
+      : "";
+    sel.disabled = !!state.edit;
+    $("unitCount").textContent = list.length + " unit terdaftar";
+  }
   function renderEntityArea() {
+    renderEntityAreaCore();
+    renderUnitField();
+  }
+  function renderEntityAreaCore() {
     var a = $("entityArea");
     if (!state.type) {
       a.innerHTML = '<div class="notice">Pilih salah satu dari 4 jenis operator untuk melanjutkan.</div>';
@@ -1100,7 +1173,7 @@
       .trim()
       .replace(/\s+/g, " ");
   }
-  function buildDuplicateKey(e, category, scenario, bulan, tahun) {
+  function buildDuplicateKey(e, category, scenario, bulan, tahun, unitId) {
     return [
       String((e && e.operatorId) || "")
         .trim()
@@ -1111,6 +1184,7 @@
         .toLowerCase(),
       normalizeCategory(category),
       normalizeDuplicateText(scenario),
+      String(unitId || ""),
     ].join("|");
   }
   function recordDuplicateKey(x) {
@@ -1120,6 +1194,7 @@
       (x && x.skenario) || "",
       (x && x.bulan) || "",
       (x && x.tahun) || "",
+      (x && x.unitId) || "",
     );
   }
   function buildRecordFingerprint(x) {
@@ -1155,8 +1230,8 @@
       (x && x.keterangan) || "",
     ].join("|");
   }
-  function findDuplicateRisk(e, category, scenario, bulan, tahun, excludeId) {
-    var key = buildDuplicateKey(e, category, scenario, bulan, tahun);
+  function findDuplicateRisk(e, category, scenario, bulan, tahun, excludeId, unitId) {
+    var key = buildDuplicateKey(e, category, scenario, bulan, tahun, unitId);
     var hit = (state.risks || []).filter(function (x) {
       return String(x.riskId || x.id || "") !== String(excludeId || "") && recordDuplicateKey(x) === key;
     })[0];
@@ -1324,7 +1399,7 @@
         return ensureRecentRisks();
       })
       .then(function () {
-        var dup = findDuplicateRisk(e, cat, sc, bulan, tahun, wasEdit ? state.edit.id : "");
+        var dup = findDuplicateRisk(e, cat, sc, bulan, tahun, wasEdit ? state.edit.id : "", wasEdit ? state.edit.unitId : selectedUnitId());
         if (dup) {
           throw Error(
             "Skenario yang sama sudah tersimpan untuk operator dan periode ini (" +
@@ -1358,7 +1433,8 @@
           bulan: bulan,
           tahun: tahun,
           periodKey: buildPeriodKey(e),
-          duplicateKey: buildDuplicateKey(e, cat, sc, bulan, tahun),
+          duplicateKey: buildDuplicateKey(e, cat, sc, bulan, tahun, wasEdit ? state.edit.unitId : selectedUnitId()),
+          unitId: wasEdit ? state.edit.unitId || "" : selectedUnitId(),
           namaPengisi: $("namaPengisi").value.trim(),
           jabatanPengisi: $("jabatanPengisi").value.trim(),
           riskOwner: $("riskOwner").value.trim(),
@@ -1401,6 +1477,7 @@
             state.pendingCreateFingerprint = null;
           }
           state.edit = null;
+          renderUnitField();
           var dprkTok = getDprkToken(p.operatorId, p.tahun);
           var dprkLine = dprkTok
             ? "<br>Kode Edit DPRK entitas ini (simpan untuk memperbarui email/link/tanggal kaji di lain waktu): <code>" +
@@ -1496,6 +1573,7 @@
       editToken: editToken || "",
       rowVersion: x.rowVersion != null && x.rowVersion !== "" ? Number(x.rowVersion) : undefined,
       viaLogin: !editToken,
+      unitId: String(x.unitId || ""),
       originalOperatorId: x.operatorId || "",
       originalJenisOperator: x.jenisOperator || "",
       baseFingerprint: buildRecordFingerprint(x),
@@ -2202,7 +2280,7 @@
         (!t || x.jenisOperator === t) &&
         (!r || x.risikoRating === r) &&
         (!c || x.kategoriKode === c) &&
-        (!q || ((x.namaOperator || "") + " " + (x.kategori || "")).toLowerCase().indexOf(q) > -1)
+        (!q || ((x.namaOperator || "") + " " + (x.namaUnit || "") + " " + (x.kategori || "")).toLowerCase().indexOf(q) > -1)
       );
     });
     var nums = a
@@ -2238,7 +2316,9 @@
             esc(x.jenisOperator) +
             "</td><td><b>" +
             esc(x.namaOperator) +
-            '</b></td><td class="risk-cat">' +
+            "</b>" +
+            (x.unitId ? '<div class="risk-unit">' + esc(x.namaUnit || x.unitId) + "</div>" : "") +
+            '</td><td class="risk-cat">' +
             esc(x.kategori) +
             '</td><td class="risk-number">' +
             esc(x.risikoNilai) +
@@ -2465,6 +2545,7 @@
   document.addEventListener("sirisk:auth", function () {
     if (!state.initDone) return;
     loadRisks();
+    loadUnits();
     var active = document.querySelector(".nav button.active");
     var v = active ? active.dataset.view : "";
     if (v === "operator") loadOperators();
@@ -2475,6 +2556,9 @@
     GAS_URL: GAS_URL,
     opStatus: function () {
       return state.opStatus || [];
+    },
+    units: function () {
+      return state.units || [];
     },
     loadOperatorStatus: loadOperators,
     applyAuthScope: applyAuthScope,
