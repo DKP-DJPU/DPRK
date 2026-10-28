@@ -7,22 +7,30 @@ function makeSheet(name, ssRef) {
   const width = () => data.reduce((m, r) => Math.max(m, r.length), 0);
   // Tiru Sheets: teks diawali apostrof disimpan sebagai teks; teks berbentuk angka berubah jadi Number (nol di depan hilang).
   const norm = v => (typeof v === 'string' && v[0] === "'" ? v.slice(1) : (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v));
+  // Ukuran grid seperti Google Sheets: sheet baru 1000 baris × 26 kolom; getRange di luar grid = galat,
+  // appendRow memperluas grid otomatis. (V3.37: produksi RISK_ASSESSMENT tepat 35 kolom.)
+  let maxRows = 1000, maxCols = 26;
+  const OUT = 'Exception: The coordinates of the range are outside the dimensions of the sheet.';
   const sh = {
     _data: data,
+    getMaxRows: () => maxRows, getMaxColumns: () => maxCols,
+    _setGrid: (r, c) => { if (r != null) maxRows = r; if (c != null) maxCols = c; },
+    insertRowsAfter: (after, n) => { maxRows += n; return sh; },
+    insertColumnsAfter: (after, n) => { maxCols += n; return sh; },
     getName: () => name,
     setName: n => { if (ssRef) { if (ssRef._sheets[n] && ssRef._sheets[n] !== sh) throw new Error('Sheet ' + n + ' sudah ada'); delete ssRef._sheets[name]; ssRef._sheets[n] = sh; } name = n; return sh; },
     copyTo: dest => { const c = dest.insertSheet('Salinan dari ' + name); data.forEach(r => c._data.push(r.slice())); return c; },
     getLastRow: () => { let n = data.length; while (n > 0 && data[n - 1].every(v => v === '' || v == null)) n--; return n; },
     getLastColumn: () => width(),
-    appendRow: arr => { data.push(arr.map(norm)); },
-    getRange: (r, c, nr = 1, nc = 1) => ({
+    appendRow: arr => { data.push(arr.map(norm)); if (data.length > maxRows) maxRows = data.length; if (arr.length > maxCols) maxCols = arr.length; },
+    getRange: (r, c, nr = 1, nc = 1) => { if (r < 1 || c < 1 || nr < 1 || nc < 1 || r + nr - 1 > maxRows || c + nc - 1 > maxCols) throw new Error(OUT + ' (' + name + ' r' + r + '+' + nr + ' c' + c + '+' + nc + ' grid ' + maxRows + 'x' + maxCols + ')'); return ({
       getSheet: () => sh, getRow: () => r, getColumn: () => c, getLastRow: () => r + nr - 1, getLastColumn: () => c + nc - 1,
       getValues: () => { const out = []; for (let i = 0; i < nr; i++) { const row = []; for (let j = 0; j < nc; j++) { const v = (data[r - 1 + i] || [])[c - 1 + j]; row.push(v === undefined ? '' : v); } out.push(row); } return out; },
       getValue: () => { const v = (data[r - 1] || [])[c - 1]; return v === undefined ? '' : v; },
       setValues: vals => { vals.forEach((row, i) => { while (data.length < r + i) data.push([]); row.forEach((v, j) => { data[r - 1 + i][c - 1 + j] = norm(v); }); }); },
       setValue: v => { while (data.length < r) data.push([]); data[r - 1][c - 1] = norm(v); },
       clearContent: () => {},
-    }),
+    }); },
   };
   return sh;
 }

@@ -209,7 +209,11 @@ function json_(o){return ContentService.createTextOutput(JSON.stringify(o)).setM
 function now_(){return new Date().toISOString()}
 function ss_(){return SpreadsheetApp.getActiveSpreadsheet()}
 function sheet_(name,headers){var s=ss_().getSheetByName(name);if(!s)s=ss_().insertSheet(name);ensureHeaders_(s,headers);return s}
-function ensureHeaders_(s,headers){var cur=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(!cur.length){s.getRange(1,1,1,headers.length).setValues([headers]);return headers}var add=headers.filter(function(h){return cur.indexOf(h)<0});if(add.length)s.getRange(1,cur.length+1,1,add.length).setValues([add]);return s.getRange(1,1,1,s.getLastColumn()).getValues()[0]}
+// V3.37: getRange di luar ukuran grid = galat di Google Sheets. RISK_ASSESSMENT produksi tepat 35 kolom,
+// sheet baru 26 kolom × 1000 baris → perluas grid dulu sebelum menulis header/baris.
+function ensureCols_(s,n){var m=s.getMaxColumns();if(n>m)s.insertColumnsAfter(m,n-m)}
+function ensureRows_(s,n){var need=s.getLastRow()+n-s.getMaxRows();if(need>0)s.insertRowsAfter(s.getMaxRows(),need)}
+function ensureHeaders_(s,headers){var cur=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(!cur.length){ensureCols_(s,headers.length);s.getRange(1,1,1,headers.length).setValues([headers]);return headers}var add=headers.filter(function(h){return cur.indexOf(h)<0});if(add.length){ensureCols_(s,cur.length+add.length);s.getRange(1,cur.length+1,1,add.length).setValues([add])}return s.getRange(1,1,1,s.getLastColumn()).getValues()[0]}
 function rows_(s){var h=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(s.getLastRow()<2)return{h:h,a:[]};return{h:h,a:s.getRange(2,1,s.getLastRow()-1,h.length).getValues().filter(function(r){return r.some(function(v){return v!==""})})}}
 function objs_(s){var x=rows_(s);return x.a.map(function(r){var o={};x.h.forEach(function(h,i){o[h]=r[i]});return o})}
 function sanitizeCell_(v){
@@ -282,7 +286,7 @@ function seedAirports_(){
  var s=sheet_(SHEETS.OP,H.OP),old=objs_(s),seen={};old.forEach(function(x){seen[String(x.operatorId)]=true});
  var n=now_(),batch=[];
  AIRPORT_SEED.forEach(function(x){if(!seen[x.operatorId])batch.push(H.OP.map(function(k){return x[k]!==undefined?x[k]:(k==="createdAt"||k==="updatedAt"?n:"")}))});
- if(batch.length)s.getRange(s.getLastRow()+1,1,batch.length,H.OP.length).setValues(batch);
+ if(batch.length)(ensureRows_(s,batch.length),s).getRange(s.getLastRow()+1,1,batch.length,H.OP.length).setValues(batch);
 }
 
 function cleanToken_(v){return String(v||"").trim();}
@@ -971,10 +975,10 @@ function saveRiskBatch_(p){
  var d=getOrCreateDprk_({operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,bulan:p.bulan,tahun:p.tahun,tanggalPengesahan:p.tanggalPengesahan,tanggalKaji:p.tanggalKaji,namaPengisi:p.namaPengisi,jabatanPengisi:p.jabatanPengisi,linkFileDprk:p.linkFileDprk,emailRiskOwner:p.emailRiskOwner,_auth:p._auth,requestId:p.requestId});
  var n=now_(),h=rs.getLastColumn()?rs.getRange(1,1,1,rs.getLastColumn()).getValues()[0]:H.RISK,objsOut=[];
  var vals=keep.map(function(k,i){var q=k.q,rk=computeRisk_(q),x={riskId:prefix+(i+1),dprkId:d.dprkId,operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,unitId:String(q.unitId||"").trim(),kategori:q.kategori,idRisikoKatalog:q.idRisikoKatalog||"",skenario:q.skenario,area:q.area||"",langkahSaatIni:q.langkahSaatIni||"",kerentananSaatIni:q.kerentananSaatIni||"",ancamanNilai:rk.ancamanNilai,ancamanRating:rk.ancamanRating,kerentananNilai:rk.kerentananNilai,kerentananRating:rk.kerentananRating,konsekuensiNilai:rk.konsekuensiNilai,konsekuensiRating:rk.konsekuensiRating,risikoNilai:rk.risikoNilai,risikoRating:rk.risikoRating,kategoriPenerimaan:rk.kategoriPenerimaan,perlakuan:q.perlakuan||"",prioritas:q.prioritas||"",langkahTambahan:q.langkahTambahan||"",pemilikRisiko:q.riskOwner||"",tanggalKaji:dateOnly_(q.tanggalKaji)||dateOnly_(p.tanggalKaji)||"",keterangan:q.keterangan||"",bulan:p.bulan||"",tahun:p.tahun||new Date().getFullYear(),namaPengisi:p.namaPengisi||"",jabatanPengisi:p.jabatanPengisi||"",createdAt:n,updatedAt:n,editToken:token_(),assessmentKey:k.key,rowVersion:1};objsOut.push(x);return h.map(function(c){return sanitizeCell_(x[c]===undefined?"":x[c])})});
- rs.getRange(rs.getLastRow()+1,1,vals.length,h.length).setValues(vals);
+ (ensureRows_(rs,vals.length),rs).getRange(rs.getLastRow()+1,1,vals.length,h.length).setValues(vals);
  var hs=sheet_(SHEETS.HIST,H.HIST),hh=hs.getRange(1,1,1,hs.getLastColumn()).getValues()[0];
  var hv=objsOut.map(function(r){var y={historyId:id_("HIST"),riskId:r.riskId,dprkId:r.dprkId,operatorId:r.operatorId,jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,tanggal:n,bulan:r.bulan,tahun:r.tahun,nilaiAncaman:r.ancamanNilai,nilaiKerentanan:r.kerentananNilai,nilaiKonsekuensi:r.konsekuensiNilai,nilaiRisiko:r.risikoNilai,ratingRisiko:r.risikoRating,versiDprk:1,perubahan:"Create (impor)",updatedBy:p.namaPengisi||"",rowVersion:1,beforeData:"{}",afterData:"{\"batchId\":\""+bid+"\"}",unitId:r.unitId};return hh.map(function(c){return sanitizeCell_(y[c]===undefined?"":y[c])})});
- hs.getRange(hs.getLastRow()+1,1,hv.length,hh.length).setValues(hv);
+ (ensureRows_(hs,hv.length),hs).getRange(hs.getLastRow()+1,1,hv.length,hh.length).setValues(hv);
  audit_(p,"RISK_BATCH",bid,"BATCH_CREATE",{},{operatorId:o.operatorId,jumlah:objsOut.length,dilewati:skipped.length,unit:Object.keys(objsOut.reduce(function(m,r){if(r.unitId)m[r.unitId]=1;return m},{})).length},p.requestId,"Impor matriks per paket");
  invalidateDashboardCache_();
  return json_({ok:true,saved:objsOut.length,skipped:skipped.length,skippedRows:skipped,dprkId:d.dprkId,riskIds:objsOut.map(function(r){return r.riskId})});
@@ -1064,13 +1068,13 @@ function imporAdmin_(apply){
   if(!apply){out.push("");out.push("Pemeriksaan bersih. Jalankan terapkanImporAdmin() untuk menerapkan.");var m2=out.join("\n");Logger.log(m2);return m2}
   // --- terapkan
   var oh=opS.getRange(1,1,1,opS.getLastColumn()).getValues()[0];
-  if(addOps.length)opS.getRange(opS.getLastRow()+1,1,addOps.length,oh.length).setValues(addOps.map(function(o){return oh.map(function(c){return sanitizeCell_(o[c]===undefined?"":o[c])})}));
+  if(addOps.length)(ensureRows_(opS,addOps.length),opS).getRange(opS.getLastRow()+1,1,addOps.length,oh.length).setValues(addOps.map(function(o){return oh.map(function(c){return sanitizeCell_(o[c]===undefined?"":o[c])})}));
   fillOps.concat(fixes.map(function(f){var x={};x[f.k]=f.v;
    if(f.k==="status")x.aktif=f.v==="Aktif";
    if(f.k==="aktif"){x.aktif=boolText_(f.v)==="true";x.status=x.aktif?"Aktif":"Nonaktif"}
    return{id:f.id,fill:x}})).forEach(function(f){var r=findBy_(opS,"operatorId",f.id),before=JSON.parse(JSON.stringify(r.obj));Object.keys(f.fill).forEach(function(k){r.obj[k]=f.fill[k]});r.obj.updatedAt=n;opS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})]);audit_(adminActor_(),"OPERATOR",f.id,"UPDATE",before,r.obj,"","Impor admin: "+Object.keys(f.fill).join(","))});
   var uh=uS.getRange(1,1,1,uS.getLastColumn()).getValues()[0];
-  if(uAdd.length)uS.getRange(uS.getLastRow()+1,1,uAdd.length,uh.length).setValues(uAdd.map(function(u){u.createdAt=n;u.updatedAt=n;return uh.map(function(c){return sanitizeCell_(u[c]===undefined?"":u[c])})}));
+  if(uAdd.length)(ensureRows_(uS,uAdd.length),uS).getRange(uS.getLastRow()+1,1,uAdd.length,uh.length).setValues(uAdd.map(function(u){u.createdAt=n;u.updatedAt=n;return uh.map(function(c){return sanitizeCell_(u[c]===undefined?"":u[c])})}));
   uUpd.forEach(function(u){var r=findBy_(uS,"unitId",u.unitId);Object.keys(u).forEach(function(k){r.obj[k]=u[k]});r.obj.updatedAt=n;uS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})])});
   if(addOps.length)audit_(adminActor_(),"OPERATOR","IMPOR_OPERATOR","BATCH_CREATE",{},{jumlah:addOps.length},"","Impor admin operator");
   if(uAdd.length||uUpd.length)audit_(adminActor_(),"UNIT","IMPOR_UNIT","BATCH_UPSERT",{},{baru:uAdd.length,diperbarui:uUpd.length},"","Impor admin unit");
