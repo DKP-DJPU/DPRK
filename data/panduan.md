@@ -88,7 +88,7 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi. Nama, kode, provinsi, kabupaten/kota, dan lokasi diambil dari data induk dan **tidak dapat diubah** di formulir. Jangan menulis nama stasiun atau cabang di sini; gunakan pilihan **Unit / Stasiun** (langkah 5). Bila data induk salah, hubungi Admin.
 3. Isi **Bulan Penilaian**, **Tahun**, **Nama Pengisi**, **Jabatan Pengisi**, dan **Tanggal Pengesahan** dokumen DPRK.
 4. **Email Pemilik Risiko** dan **Link File DPRK** (misalnya tautan Google Drive) dianjurkan diisi.
-5. Bila operator Anda memiliki **unit atau stasiun** (cabang pembantu, unit kerja, stasiun maskapai), muncul pilihan **Unit / Stasiun**. Pilih **Induk** untuk matriks kantor pusat atau cabang utama, atau pilih unitnya untuk matriks lampiran unit tersebut. Unit tidak dapat dipindah setelah skenario disimpan.
+5. Bila operator Anda memiliki **unit atau stasiun** (cabang pembantu, unit kerja, stasiun maskapai), muncul isian **Lokasi yang dinilai** yang **wajib dipilih**. Ketik kode bandara, nama bandara, atau kota (misalnya `CGK`, `Soekarno`, atau `Tangerang`), lalu klik lokasinya; tekan **Enter** untuk memilih hasil teratas. Pilih **Kantor pusat / matriks induk** hanya bila Anda mengisi matriks kantor pusat atau cabang utama. Lokasi terpilih tampil di bagian atas Langkah 02 ("Anda menilai: …") dan tetap terpilih untuk skenario berikutnya; klik **Ganti lokasi** untuk berpindah. Unit tidak dapat dipindah setelah skenario disimpan.
 
 ![Langkah 01: identitas entitas](assets/panduan/form-identitas@2x.png)
 

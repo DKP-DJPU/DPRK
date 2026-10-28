@@ -55,6 +55,7 @@ try:
         pg.click('button[data-view=form]'); pg.wait_for_timeout(1200)
         pg.select_option('#bulan', 'Oktober'); pg.fill('#namaPengisi', 'Budi Santoso'); pg.fill('#jabatanPengisi', 'Kepala Unit AVSEC')
         pg.fill('#tanggalPengesahan', '2026-10-01'); pg.fill('#emailRiskOwner', 'risk.owner@contoh.co.id'); pg.fill('#linkDprk', 'https://drive.google.com/file/d/contoh')
+        pg.fill('#unitSearch', 'satpel'); pg.press('#unitSearch', 'Enter'); pg.wait_for_timeout(200)
         pg.evaluate("document.querySelector('#authGate').style.display='none'")
         shot(pg.locator('#view-form .step-card').first, 'form-identitas@2x.png')
         pg.select_option('#kategori', index=1); pg.wait_for_timeout(200); pg.select_option('#riskCatalog', index=1); pg.wait_for_timeout(200)

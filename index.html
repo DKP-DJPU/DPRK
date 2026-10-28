@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261028c">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261028c">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261028c">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261028d">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261028d">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261028d">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261028c">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261028c">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261028c">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261028c">
-<link rel="stylesheet" href="assets/css/panduan.css?v=20261028c">
+<link rel="stylesheet" href="assets/css/app.css?v=20261028d">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261028d">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261028d">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261028d">
+<link rel="stylesheet" href="assets/css/panduan.css?v=20261028d">
 </head>
 <body>
 <div class="app">
@@ -110,7 +110,7 @@
     <div class="step-head"><span class="step-no">01</span><div><h2>Identitas Entitas / Operator</h2><div class="sub">Pilih jenis entitas terlebih dahulu. Bandara tidak menjadi field wajib untuk Airlines, LPPNPI, dan Regulated Agent.</div></div></div>
     <div class="typegrid" id="types"></div>
     <div id="entityArea" class="entity-area"></div>
-    <div id="unitArea" class="field unit-area" hidden><label for="unitSelect">Unit / Stasiun <span class="unit-count" id="unitCount"></span></label><select id="unitSelect"></select><div class="scenario-hint">Pilih <b>Induk</b> untuk matriks kantor pusat / cabang utama, atau pilih unit/stasiun untuk matriks lampirannya.</div></div>
+    <div id="unitArea" class="field unit-area" hidden><label for="unitSearch">Lokasi yang dinilai <span class="unit-req">wajib</span> <span class="unit-count" id="unitCount"></span></label><div id="unitPicked" class="unit-picked" hidden></div><div id="unitPicker"><div class="unit-search-wrap"><input id="unitSearch" type="search" autocomplete="off" placeholder="Ketik kode bandara, nama bandara, atau kota — mis. CGK, Soekarno, Tangerang"></div><div class="scenario-hint" id="unitHint"></div><div id="unitList" class="unit-list"></div></div></div>
     <div class="formgrid">
       <div class="field"><label>Bulan Penilaian</label><select id="bulan"></select></div>
       <div class="field"><label>Tahun</label><input id="tahun" type="number" min="2024" max="2040" value="2026"></div>
@@ -121,6 +121,7 @@
       <div class="field full"><label>Link File DPRK</label><input id="linkDprk" placeholder="https://drive.google.com/..."></div>
     </div>
   </div>
+  <div id="lokasiBanner" class="lokasi-banner" hidden></div>
   <div class="card step-card">
     <div class="step-head"><span class="step-no">02</span><div><h2>Skenario & Penilaian Risiko</h2><div class="sub">Katalog skenario merupakan contoh/acuan yang dapat digunakan lintas jenis operator. Sesuaikan dengan kondisi dan DPRK aktual operator.</div></div></div>
     <div class="formgrid">
@@ -430,10 +431,10 @@
 </main>
 </div>
 
-<script src="assets/js/app.js?v=20261028c"></script>
-<script src="assets/js/pelaporan.js?v=20261028c"></script>
-<script src="assets/js/operator-detail.js?v=20261028c"></script>
-<script src="assets/js/auth.js?v=20261028c"></script>
-<script src="assets/js/panduan.js?v=20261028c"></script>
+<script src="assets/js/app.js?v=20261028d"></script>
+<script src="assets/js/pelaporan.js?v=20261028d"></script>
+<script src="assets/js/operator-detail.js?v=20261028d"></script>
+<script src="assets/js/auth.js?v=20261028d"></script>
+<script src="assets/js/panduan.js?v=20261028d"></script>
 </body>
 </html>
