@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.37.2 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.38 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -384,9 +384,18 @@ function doGet(e){
   return json_({ok:false,error:"Action tidak dikenali."});
  }catch(err){Logger.log("doGet error: "+err+" | stack: "+(err&&err.stack));return json_({ok:false,error:"Terjadi kesalahan saat membaca data. Coba lagi beberapa saat.",code:"READ_ERROR"})}
 }
+// V3.38 — PENILAIAN TERAKHIR PER OPERATOR & UNIT. Setiap unit/stasiun (dan Induk) punya siklus kaji sendiri:
+// yang dihitung hanya matriks periode (bulan+tahun) TERBARU milik unit itu. Matriks periode lama yang sudah
+// dikaji ulang tidak ikut dihitung lagi (sebelumnya ikut → hitung ganda), dan unit yang belum dikaji ulang
+// tetap memakai matriks terakhirnya (tidak hilang). Di dalam satu periode, satu skenario = baris terbaru.
+var BULAN_ID=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+function periodNum_(x){var m=BULAN_ID.indexOf(String(x.bulan||"").trim());return(Number(x.tahun)||0)*100+(m+1)}
+function scopeKey_(x){return String(x.operatorId||"")+"|"+String(x.unitId||"")}
 function latestCurrentRiskRows_(rows){
- var map={};
+ var last={},map={};
+ (rows||[]).forEach(function(x){var u=scopeKey_(x),p=periodNum_(x);if(!(u in last)||p>last[u])last[u]=p});
  (rows||[]).forEach(function(x){
+  if(periodNum_(x)!==last[scopeKey_(x)])return;
   var key=assessmentKey_(x.operatorId,x.dprkId,x.bulan,x.tahun,x.kategori,x.skenario,x.unitId),dt=String(x.updatedAt||x.createdAt||"");
   if(!map[key]||dt>String(map[key].updatedAt||map[key].createdAt||""))map[key]=x;
  });
@@ -422,7 +431,7 @@ function operatorMonitoring_(){
  // V3.37: cakupan unit = unit aktif yang sudah punya minimal 1 skenario / unit aktif terdaftar.
  unitMaster_().forEach(function(u){if(u.aktif)(un[u.operatorId]=un[u.operatorId]||[]).push(u.unitId)});
  // V3.37: hitung sekali (sebelumnya menyaring seluruh RISK_ASSESSMENT untuk SETIAP operator: ±445 × 15.000 baris).
- var cnt={},dAct={};r.forEach(function(x){if(x.unitId)uf[String(x.unitId)]=1;var k=String(x.operatorId);cnt[k]=(cnt[k]||0)+1});d.forEach(function(x){if(x.status==="Aktif"&&!dAct[x.operatorId])dAct[x.operatorId]=x});
+ var cnt={},dAct={};r=latestCurrentRiskRows_(r);r.forEach(function(x){if(x.unitId)uf[String(x.unitId)]=1;var k=String(x.operatorId);cnt[k]=(cnt[k]||0)+1});d.forEach(function(x){if(x.status==="Aktif"&&!dAct[x.operatorId])dAct[x.operatorId]=x});
  return ops.filter(opActive_).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
 }
 // V3.34 — daftar identitas operator aktif untuk publik (formulir, pendaftaran, pelaporan).
@@ -488,7 +497,8 @@ function riskAnalytics_(rows){
  if(rem>0&&rem<MIN_GROUP)["Bandar Udara","Airlines","LPPNPI","Regulated Agent"].forEach(function(t){if(!out[t].suppressed)out[t]={suppressed:true,complementary:true,operators:out[t].operators,minGroup:MIN_GROUP}});
  return out;
 }
-function riskMonitoring_(){var un=unitNames_();return objs_(sheet_(SHEETS.RISK,H.RISK)).map(function(r){var u=String(r.unitId||"");return{riskId:r.riskId,operatorId:String(r.operatorId||""),unitId:u,namaUnit:u?(un[u]||u):"",kategoriPenerimaan:r.kategoriPenerimaan||"",jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,kategori:r.kategori,kategoriKode:String(r.kategori||"").split(" - ")[0],risikoNilai:Number(r.risikoNilai)||0,risikoRating:r.risikoRating,bulan:r.bulan,tahun:r.tahun}})}
+// V3.38: terkini=true bila baris termasuk penilaian terakhir unitnya (dipakai rekap & filter Monitoring Risiko).
+function riskMonitoring_(){var un=unitNames_(),all=objs_(sheet_(SHEETS.RISK,H.RISK)),cur={};latestCurrentRiskRows_(all).forEach(function(x){cur[String(x.riskId)]=1});return all.map(function(r){var u=String(r.unitId||"");return{riskId:r.riskId,terkini:!!cur[String(r.riskId)],operatorId:String(r.operatorId||""),unitId:u,namaUnit:u?(un[u]||u):"",kategoriPenerimaan:r.kategoriPenerimaan||"",jenisOperator:r.jenisOperator,namaOperator:r.namaOperator,kategori:r.kategori,kategoriKode:String(r.kategori||"").split(" - ")[0],risikoNilai:Number(r.risikoNilai)||0,risikoRating:r.risikoRating,bulan:r.bulan,tahun:r.tahun}})}
 function trend_(){
  var d=objs_(sheet_(SHEETS.DPRK,H.DPRK)),r=objs_(sheet_(SHEETS.RISK,H.RISK));
  var completion={},risk={};
@@ -935,7 +945,7 @@ function checkUnit_(operatorId,unitId){
 // Daftar unit + cakupan (sudah/belum ada matriks). Admin: semua; Operator: hanya operatorIds miliknya.
 function unitList_(u){
  var units=cached_(CACHE_KEYS.units,unitMaster_).filter(function(x){return x.aktif&&authCanAccess_(u,x.operatorId)}),n={};
- objs_(sheet_(SHEETS.RISK,H.RISK)).forEach(function(r){var id=String(r.unitId||"");if(id)n[id]=(n[id]||0)+1});
+ latestCurrentRiskRows_(objs_(sheet_(SHEETS.RISK,H.RISK))).forEach(function(r){var id=String(r.unitId||"");if(id)n[id]=(n[id]||0)+1});
  return json_({ok:true,scope:u.peran==="Admin"?"all":"own",data:units.map(function(x){var o=JSON.parse(JSON.stringify(x));o.jumlahSkenario=n[x.unitId]||0;return o})});
 }
 

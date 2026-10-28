@@ -4,7 +4,7 @@ Menjalankan sendiri: server statis (port 8350) + tests/ui/mock-server.js (port 8
     python3 tests/ui/smoke.py
 Butuh: Node 18+, Python 3, `pip install playwright` + `python -m playwright install chromium`.
 """
-import json, os, subprocess, sys, time, urllib.request
+import json, os, re, subprocess, sys, time, urllib.request
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -234,6 +234,26 @@ try:
         pg.click('.pdn-video-btn'); pg.wait_for_timeout(300)
         T('panduan: klik video → iframe youtube-nocookie', (pg.get_attribute('#pdnContent iframe', 'src') or '').startswith('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'))
         pg.close()
+
+        # ================= V3.38: penilaian terakhir per unit (simulasi LPP-004) =================
+        ctl('/__ctl?a=simunit'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'operator')
+        pg.fill('#opSearch', 'yogyakarta'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="LPP-004"]'); pg.wait_for_timeout(1500)
+        txt = pg.inner_text('#opDetail')
+        T('rekap unit: 9 skenario berlaku (Induk Okt + Cilacap Okt + Solo Jan), bukan 3 atau 12', re.search(r'SKENARIO DINILAI\s*9\b', txt, re.I) is not None, txt[:300])
+        T('rekap unit: rentang periode Oktober 2026 – Januari 2027 & rata-rata 15.9', 'Oktober 2026 – Januari 2027' in txt and '15.9' in txt)
+        row = pg.locator('.opd-table tr:has-text("Cabang Pembantu Solo")').first
+        cells = [row.locator('td').nth(i).inner_text().strip() for i in (3, 4)]
+        T('Cakupan Unit: Solo 3 skenario (bukan 6), rata-rata 13.7', cells == ['3', '13.7'], cells)
+        T('5 Risiko Tertinggi menyebut unit / Induk', pg.locator('.opd-table .risk-unit:has-text("Induk")').count() > 0)
+        tab(pg, 'risk'); pg.fill('#riskSearch', 'yogyakarta'); pg.dispatch_event('#riskSearch', 'input'); pg.wait_for_timeout(300)
+        T('Monitoring Risiko: default penilaian terkini → 9 baris', pg.locator('#riskTbody tr').count() == 9 and not pg.is_hidden('#riskUnitField'), pg.locator('#riskTbody tr').count())
+        pg.select_option('#riskPeriod', 'semua'); pg.wait_for_timeout(300)
+        T('Monitoring Risiko: semua periode → 12 baris, 3 bertanda Arsip', pg.locator('#riskTbody tr').count() == 12 and pg.locator('#riskTbody .risk-arsip').count() == 3)
+        pg.select_option('#riskPeriod', 'kini'); pg.select_option('#riskUnit', 'LPP-004-U02'); pg.wait_for_timeout(300)
+        T('Monitoring Risiko: filter unit Solo → 3 baris Januari 2027', pg.locator('#riskTbody tr').count() == 3 and pg.locator('#riskTbody tr:has-text("Januari 2027")').count() == 3)
+        pg.select_option('#riskUnit', '__induk'); pg.wait_for_timeout(300)
+        T('Monitoring Risiko: filter Induk saja → 4 baris tanpa nama unit', pg.locator('#riskTbody tr').count() == 4 and pg.locator('#riskTbody .risk-unit').count() == 0)
+        pg.close(); ctl('/__ctl?a=reset')
 
         # ================= HP =================
         m = page(b, w=390); tab(m, 'operator')

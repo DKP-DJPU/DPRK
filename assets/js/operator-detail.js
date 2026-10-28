@@ -153,19 +153,37 @@
   }
 
   /* ---------------- Rekap ---------------- */
+  // V3.38 — setiap unit/stasiun (dan Induk) punya siklus kaji sendiri. "Penilaian terkini" = matriks periode
+  // terbaru milik masing-masing unit (server menandai baris `terkini`). Tren = kondisi seluruh matriks yang
+  // berlaku pada tiap periode: unit yang belum dikaji ulang tetap memakai matriks terakhirnya.
+  function scopeOf(x) {
+    return String(x.unitId || "");
+  }
   function summarize(rows) {
-    var periods = {};
+    var byScope = {};
     rows.forEach(function (x) {
-      var k = periodKey(x);
-      (periods[k] = periods[k] || []).push(x);
+      var s = scopeOf(x),
+        k = periodKey(x);
+      ((byScope[s] = byScope[s] || {})[k] = byScope[s][k] || []).push(x);
     });
-    var keys = Object.keys(periods)
+    var lastOf = {};
+    Object.keys(byScope).forEach(function (s) {
+      lastOf[s] = Math.max.apply(null, Object.keys(byScope[s]).map(Number));
+    });
+    var latest = rows.filter(function (x) {
+      return x.terkini === undefined ? periodKey(x) === lastOf[scopeOf(x)] : !!x.terkini;
+    });
+    var curKeys = {};
+    latest.forEach(function (x) {
+      curKeys[periodKey(x)] = 1;
+    });
+    var ck = Object.keys(curKeys)
       .map(Number)
       .sort(function (a, b) {
         return a - b;
       });
-    var latestKey = keys.length ? keys[keys.length - 1] : null;
-    var latest = latestKey !== null ? periods[latestKey] : [];
+    var latestKey = ck.length ? ck[ck.length - 1] : null,
+      firstKey = ck.length ? ck[0] : null;
     var dist = {};
     S.ratings.forEach(function (r) {
       dist[r] = 0;
@@ -177,30 +195,43 @@
         v = Number(x.risikoNilai) || 0;
       if (dist.hasOwnProperty(r)) dist[r]++;
       sum += v;
-      var k = String(
-        x.kategoriKode || String(x.kategori || "").split(" - ")[0],
-      ).trim();
+      var k = String(x.kategoriKode || String(x.kategori || "").split(" - ")[0]).trim();
       if (!/^\d{2}$/.test(k)) return;
       if (!cats[k]) cats[k] = { sum: 0, n: 0, max: 0 };
       cats[k].sum += v;
       cats[k].n++;
       cats[k].max = Math.max(cats[k].max, v);
     });
-    var trend = keys.map(function (k) {
-      var a = periods[k],
-        s = 0;
-      a.forEach(function (x) {
-        s += Number(x.risikoNilai) || 0;
+    var allKeys = {};
+    rows.forEach(function (x) {
+      allKeys[periodKey(x)] = 1;
+    });
+    var keys = Object.keys(allKeys)
+      .map(Number)
+      .sort(function (a, b) {
+        return a - b;
       });
-      return {
-        key: k,
-        n: a.length,
-        avg: a.length ? s / a.length : 0,
-        high: a.filter(function (x) {
-          var r = ratingOf(x);
-          return r === "Tinggi" || r === "Menengah-Tinggi";
-        }).length,
-      };
+    var isHigh = function (x) {
+      var r = ratingOf(x);
+      return r === "Tinggi" || r === "Menengah-Tinggi";
+    };
+    var trend = keys.map(function (k, i) {
+      var a = [];
+      if (i === keys.length - 1) a = latest;
+      else
+        Object.keys(byScope).forEach(function (s) {
+          var best = null;
+          Object.keys(byScope[s]).forEach(function (pk) {
+            pk = Number(pk);
+            if (pk <= k && (best === null || pk > best)) best = pk;
+          });
+          if (best !== null) a = a.concat(byScope[s][best]);
+        });
+      var t = 0;
+      a.forEach(function (x) {
+        t += Number(x.risikoNilai) || 0;
+      });
+      return { key: k, n: a.length, avg: a.length ? t / a.length : 0, high: a.filter(isHigh).length };
     });
     var top = latest
       .slice()
@@ -210,6 +241,14 @@
       .slice(0, 5);
     return {
       latestKey: latestKey,
+      firstKey: firstKey,
+      periodText:
+        latestKey === null
+          ? "—"
+          : firstKey !== latestKey
+            ? periodLabel(firstKey) + " – " + periodLabel(latestKey)
+            : periodLabel(latestKey),
+      mixed: firstKey !== latestKey,
       latest: latest,
       dist: dist,
       avg: latest.length ? sum / latest.length : 0,
@@ -346,7 +385,7 @@
     );
   }
 
-  function topHtml(top) {
+  function topHtml(top, hasUnits) {
     if (!top.length) return '<div class="empty">Belum ada skenario.</div>';
     return (
       '<div class="tablewrap opd-table"><table><thead><tr><th>Kategori</th><th>Nilai</th><th>Rating</th></tr></thead><tbody>' +
@@ -360,6 +399,7 @@
             esc(k) +
             "</b> " +
             esc(kategoriNama(k) || x.kategori || "") +
+            (hasUnits ? '<div class="risk-unit">' + esc(x.unitId ? x.namaUnit || x.unitId : "Induk") + "</div>" : "") +
             '</td><td class="risk-number">' +
             esc(x.risikoNilai) +
             "</td><td>" +
@@ -524,16 +564,18 @@
         ? "…"
         : inc.length + '<small class="opd-of"> · ' + avsec + " AVSEC</small>") +
       "</b></div></div>" +
-      '<div class="opd-meta">Periode penilaian terakhir: <b>' +
-      esc(sm.latestKey !== null ? periodLabel(sm.latestKey) : "—") +
+      '<div class="opd-meta">' +
+      (sm.mixed ? "Penilaian terkini (tiap unit memakai matriks terakhirnya): <b>" : "Periode penilaian terakhir: <b>") +
+      esc(sm.periodText) +
       "</b> • Tanggal kaji ulang: <b>" +
       esc(fmtDate(op.tanggalKaji)) +
       "</b></div></div>";
 
     var riskSections = sm.latest.length
       ? '<div class="opd-grid">' +
-        '<div class="card"><div class="section-head"><div><div class="section-kicker">RISK SNAPSHOT</div><h2>Distribusi Rating Risiko</h2><div class="sub">Periode ' +
-        esc(periodLabel(sm.latestKey)) +
+        '<div class="card"><div class="section-head"><div><div class="section-kicker">RISK SNAPSHOT</div><h2>Distribusi Rating Risiko</h2><div class="sub">' +
+        (sm.mixed ? "Penilaian terkini " : "Periode ") +
+        esc(sm.periodText) +
         ".</div></div></div>" +
         donutHtml(sm.dist, sm.latest.length) +
         "</div>" +
@@ -541,12 +583,13 @@
         catBarsHtml(sm.cats) +
         "</div></div>" +
         '<div class="opd-grid">' +
-        '<div class="card"><div class="section-head"><div><div class="section-kicker">TOP RISK</div><h2>5 Risiko Tertinggi</h2><div class="sub">Periode ' +
-        esc(periodLabel(sm.latestKey)) +
+        '<div class="card"><div class="section-head"><div><div class="section-kicker">TOP RISK</div><h2>5 Risiko Tertinggi</h2><div class="sub">' +
+        (sm.mixed ? "Penilaian terkini " : "Periode ") +
+        esc(sm.periodText) +
         ".</div></div></div>" +
-        topHtml(sm.top) +
+        topHtml(sm.top, sm.latest.some(function (x) { return !!x.unitId; })) +
         "</div>" +
-        '<div class="card"><div class="section-head"><div><div class="section-kicker">TREND</div><h2>Tren Nilai Risiko</h2><div class="sub">Rata-rata nilai risiko per periode penilaian.</div></div></div>' +
+        '<div class="card"><div class="section-head"><div><div class="section-kicker">TREND</div><h2>Tren Nilai Risiko</h2><div class="sub">Rata-rata nilai seluruh matriks yang berlaku pada tiap periode (unit yang belum dikaji ulang memakai matriks terakhirnya).</div></div></div>' +
         trendHtml(sm.trend) +
         "</div></div>"
       : '<div class="card"><div class="notice">' +
@@ -560,7 +603,7 @@
       incidentsHtml(inc) +
       "</div>";
 
-    $("opDetail").innerHTML = head + kpi + unitsHtml(op, rows) + riskSections + incSection;
+    $("opDetail").innerHTML = head + kpi + unitsHtml(op, sm.latest) + riskSections + incSection;
     $("opdBack").onclick = close;
     $("opdCopy").onclick = function () {
       var url =

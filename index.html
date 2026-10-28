@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261028a">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261028a">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261028a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261028b">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261028b">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261028b">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261028a">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261028a">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261028a">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261028a">
-<link rel="stylesheet" href="assets/css/panduan.css?v=20261028a">
+<link rel="stylesheet" href="assets/css/app.css?v=20261028b">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261028b">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261028b">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261028b">
+<link rel="stylesheet" href="assets/css/panduan.css?v=20261028b">
 </head>
 <body>
 <div class="app">
@@ -189,7 +189,9 @@
       <div class="toolbar-field"><label>Jenis Operator</label><select id="riskType"><option value="">Semua Jenis Operator</option></select></div>
       <div class="toolbar-field"><label>Rating Risiko</label><select id="riskRating"><option value="">Semua Rating</option></select></div>
       <div class="toolbar-field"><label>Kategori</label><select id="riskCategory"><option value="">Semua Kategori</option></select></div>
-      <div class="toolbar-field"><label>Pencarian</label><input id="riskSearch" placeholder="Cari entitas/kategori..."></div>
+      <div class="toolbar-field"><label>Periode</label><select id="riskPeriod"><option value="kini">Penilaian terkini</option><option value="semua">Semua periode (termasuk arsip)</option></select></div>
+      <div class="toolbar-field" id="riskUnitField" hidden><label>Unit / Stasiun</label><select id="riskUnit"><option value="">Semua (Induk &amp; unit)</option></select></div>
+      <div class="toolbar-field"><label>Pencarian</label><input id="riskSearch" placeholder="Cari entitas/unit/kategori..."></div>
     </div>
     <div class="tablewrap risk-table"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Kategori</th><th>Risiko</th><th>Rating</th><th>Periode</th><th id="riskActCol" hidden>Aksi</th></tr></thead><tbody id="riskTbody"></tbody></table></div>
   </div>
@@ -428,10 +430,10 @@
 </main>
 </div>
 
-<script src="assets/js/app.js?v=20261028a"></script>
-<script src="assets/js/pelaporan.js?v=20261028a"></script>
-<script src="assets/js/operator-detail.js?v=20261028a"></script>
-<script src="assets/js/auth.js?v=20261028a"></script>
-<script src="assets/js/panduan.js?v=20261028a"></script>
+<script src="assets/js/app.js?v=20261028b"></script>
+<script src="assets/js/pelaporan.js?v=20261028b"></script>
+<script src="assets/js/operator-detail.js?v=20261028b"></script>
+<script src="assets/js/auth.js?v=20261028b"></script>
+<script src="assets/js/panduan.js?v=20261028b"></script>
 </body>
 </html>
