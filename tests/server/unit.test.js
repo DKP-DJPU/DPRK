@@ -22,7 +22,7 @@ stage('IMPOR_OPERATOR', OPH, [
 ]);
 stage('PERBAIKAN_MASTER', ['operatorId', 'Bandara', 'Kolom', 'Nilai sekarang', 'Nilai baru', 'Dasar'], [
   ['BD-277', 'Dekai', 'iata', 'DEK', 'DEX', 'uji'], ['BD-277', 'Dekai', 'kodeOperator', 'DEK', 'DEX', 'uji'],
-  ['BD-207', 'Kolaka', 'iata', 'SALAH', 'KXB', 'uji'], ['BD-207', 'Kolaka', 'status', 'Aktif', 'Nonaktif', 'uji'],
+  ['BD-207', 'Kolaka', 'iata', 'SALAH', 'KXB', 'uji'], ['BD-207', 'Kolaka', 'jenisOperator', 'Bandar Udara', 'Airlines', 'uji'],
 ]);
 const UH = ['unitId', 'operatorId (induk DPRK)', 'Nama operator induk', 'jenisUnit', 'namaUnit', 'kodeUnit (IATA)', 'provinsi', 'kabkota', 'Lokasi acuan (bandara di master)', 'Cek', 'Catatan'];
 stage('IMPOR_UNIT', UH, [
@@ -38,7 +38,7 @@ stage('IMPOR_UNIT', UH, [
 const before = ops().length;
 let m = c.cekImporAdmin();
 T('cek: semua masalah dilaporkan (jenis operator, nilai sekarang beda, kolom terlarang, induk tidak ada, jenis unit, unit ganda)',
-  /AIR-SALAH|jenisOperator/.test(m) && /BD-207\.iata sekarang "SQR", bukan "SALAH"/.test(m) && /kolom status tidak boleh/.test(m) && /LPP-999/.test(m) && /jenisUnit harus/.test(m) && /unitId ganda/.test(m), m);
+  /AIR-SALAH|jenisOperator/.test(m) && /BD-207\.iata sekarang "SQR", bukan "SALAH"/.test(m) && /kolom jenisOperator tidak boleh/.test(m) && /LPP-999/.test(m) && /jenisUnit harus/.test(m) && /unitId ganda/.test(m), m);
 m = c.terapkanImporAdmin();
 T('terapkan dengan masalah → TIDAK ada yang diubah', ops().length === before && units().length === 0 && /tidak ada yang diterapkan/.test(m), m);
 // perbaiki staging
@@ -67,12 +67,34 @@ T('terapkan: operator lama hanya dilengkapi kolom kosong (Thai AirAsia kelas = P
 T('terapkan: perbaikan kode bandara (DEK→DEX iata & kode, SQR→KXB)', byId['BD-277'].iata === 'DEX' && byId['BD-277'].kodeOperator === 'DEX' && byId['BD-207'].iata === 'KXB');
 T('terapkan: 5 unit di MASTER_UNIT dengan kolom benar (judul kolom bertambahan dikenali)', units().length === 5 && units().find(u => u.unitId === 'AIR-GARUDA-INDONESIA-SUB').kabkota === 'Surabaya' && units().every(u => u.aktif === true || u.aktif === 'true'), units()[0]);
 T('dashboard: Total Operator naik 1 (PAUA nonaktif tidak dihitung)', env.get({ action: 'dashboard' }).data.kpi.totalEntities === dash0 + 1);
+T('cadangan spreadsheet dibuat otomatis sebelum impor diterapkan', /Cadangan sebelum impor: Backup .* selesai/.test(m) && Object.values(env.drive.files).filter(f => /^SI-RISK BACKUP /.test(f._name)).length === 1, m);
 T('audit mencatat impor admin + email pemilik script', env.rows('AUDIT_LOG').some(a => a.entityType === 'UNIT' && a.action === 'BATCH_UPSERT' && /ADMIN_IMPORT:owner@dkp.go.id/.test(a.actorId)));
 m = c.terapkanImporAdmin();
 T('dijalankan ulang: tidak menggandakan (0 operator baru, perbaikan sudah diterapkan dilewati, unit diperbarui)', ops().length === before + 2 && units().length === 5 && /0 operator baru/.test(m) && /0 perubahan/.test(m) && /0 unit baru, 5 unit diperbarui/.test(m), m);
 stage('IMPOR_UNIT', UH, [['LPP-011-U01', 'LPP-012', 'x', 'Unit Kerja', 'Pindah induk', '', '', '', '', '', '']]);
 T('unit tidak boleh pindah operator induk', /tidak boleh berubah/.test(c.cekImporAdmin()));
-stage('IMPOR_UNIT', UH, []); stage('IMPOR_OPERATOR', OPH, []); stage('PERBAIKAN_MASTER', ['operatorId'], []);
+// --- status operator & unit nonaktif (V3.37 perbaikan 28 Okt)
+stage('IMPOR_UNIT', UH, []);
+const PMH = ['operatorId', 'Bandara', 'Kolom', 'Nilai sekarang', 'Nilai baru', 'Dasar'];
+env.cache.clear(); const tot0 = env.get({ action: 'dashboard' }).data.kpi.totalEntities;
+stage('PERBAIKAN_MASTER', PMH, [['AIR-BBN-AIRLINES-INDONESIA', 'BBN', 'status', 'Aktif', 'Nonaktif', 'berhenti Feb 2025']]);
+m = c.terapkanImporAdmin();
+let bbn = ops().find(x => x.operatorId === 'AIR-BBN-AIRLINES-INDONESIA');
+env.cache.clear();
+T('PERBAIKAN_MASTER status Aktif→Nonaktif: status & aktif selaras, Total Operator turun 1, baris tetap ada', bbn.status === 'Nonaktif' && bbn.aktif === false && env.get({ action: 'dashboard' }).data.kpi.totalEntities === tot0 - 1, [bbn, m]);
+T('perubahan status tercatat di AUDIT_LOG', env.rows('AUDIT_LOG').some(a => a.entityType === 'OPERATOR' && a.entityId === 'AIR-BBN-AIRLINES-INDONESIA' && /status/.test(a.reason)));
+stage('PERBAIKAN_MASTER', PMH, [['AIR-BBN-AIRLINES-INDONESIA', 'BBN', 'aktif', 'FALSE', 'TRUE', 'aktif lagi']]);
+c.terapkanImporAdmin(); bbn = ops().find(x => x.operatorId === 'AIR-BBN-AIRLINES-INDONESIA');
+T('PERBAIKAN_MASTER aktif FALSE→TRUE: diaktifkan kembali (status ikut Aktif)', bbn.aktif === true && bbn.status === 'Aktif', bbn);
+stage('PERBAIKAN_MASTER', PMH, [['AIR-BBN-AIRLINES-INDONESIA', 'BBN', 'status', 'Aktif', 'Tutup', 'x']]);
+T('status selain Aktif/Nonaktif ditolak', /status harus Aktif atau Nonaktif/.test(c.cekImporAdmin()));
+stage('PERBAIKAN_MASTER', PMH, []);
+stage('IMPOR_UNIT', UH.concat(['aktif']), [['LPP-011-U02', 'LPP-011', 'x', 'Unit Kerja', 'Unit Kediri', 'DHX', 'Jawa Timur', 'Kediri', '', 'OK', 'ditutup', 'FALSE']]);
+m = c.terapkanImporAdmin();
+T('IMPOR_UNIT kolom aktif FALSE → unit dinonaktifkan (bukan dihapus)', /1 dinonaktifkan/.test(m) && units().length === 5 && String(units().find(u => u.unitId === 'LPP-011-U02').aktif) === 'false', m);
+stage('IMPOR_UNIT', UH.concat(['aktif']), [['LPP-011-U02', 'LPP-011', 'x', 'Unit Kerja', 'Unit Kediri', 'DHX', 'Jawa Timur', 'Kediri', '', 'OK', '', 'mungkin']]);
+T('IMPOR_UNIT nilai aktif tidak jelas ditolak', /aktif harus TRUE atau FALSE/.test(c.cekImporAdmin()));
+stage('IMPOR_UNIT', UH, []);
 
 // ================= UNIT LIST & SKENARIO BER-UNIT =================
 activate('budi@airnav.co.id', 'LPP-011'); activate('sari@garuda.co.id', 'AIR-GARUDA-INDONESIA');
@@ -80,11 +102,14 @@ const bt = login('budi@airnav.co.id'), st = login('sari@garuda.co.id'), adm = lo
 let r = env.post({ action: 'unitList' });
 T('unitList tanpa login → AUTH_REQUIRED', !r.ok && r.code === 'AUTH_REQUIRED');
 r = env.post({ action: 'unitList', sessionToken: bt });
-T('unitList operator: hanya unit miliknya (2 unit LPP-011)', r.ok && r.scope === 'own' && r.data.length === 2 && r.data.every(u => u.operatorId === 'LPP-011'), r);
-T('unitList admin: semua 5 unit', env.post({ action: 'unitList', sessionToken: adm }).data.length === 5);
+T('unitList operator: hanya unit AKTIF miliknya (1 unit LPP-011; U02 dinonaktifkan)', r.ok && r.scope === 'own' && r.data.length === 1 && r.data.every(u => u.operatorId === 'LPP-011'), r);
+T('unitList admin: semua 4 unit aktif', env.post({ action: 'unitList', sessionToken: adm }).data.length === 4);
 const base = (extra) => Object.assign({ action: 'create', operatorId: 'LPP-011', jenisOperator: 'LPPNPI', namaOperator: 'AirNav Indonesia Cabang Surabaya', kategori: '01 - Uji', skenario: 'Skenario unit uji', ancamanNilai: 5, kerentananNilai: 5, konsekuensiNilai: 5, bulan: 'Oktober', tahun: 2026, tanggalPengesahan: '2026-10-01', tanggalKaji: '2027-04-01', namaPengisi: 'Budi', perlakuan: 'Mitigasi', prioritas: 'Segera', riskOwner: 'GM' }, extra);
 let a1 = env.post(base({ sessionToken: bt }));
 let a2 = env.post(base({ sessionToken: bt, unitId: 'LPP-011-U01' }));
+let a3n = env.post(base({ sessionToken: bt, unitId: 'LPP-011-U02' }));
+T('skenario ke unit NONAKTIF ditolak', !a3n.ok && a3n.code === 'UNIT_INVALID', a3n);
+c.SpreadsheetApp.getActive(); { const us = env.sheets.MASTER_UNIT, h = us._data[0]; us._data.find(x => x[0] === 'LPP-011-U02')[h.indexOf('aktif')] = true; } env.cache.clear();
 let a3 = env.post(base({ sessionToken: bt, unitId: 'LPP-011-U02' }));
 T('skenario sama di induk dan 2 unit berbeda → BUKAN duplikat (3 tersimpan)', a1.ok && a2.ok && a3.ok, [a1, a2, a3]);
 r = env.post(base({ sessionToken: bt, unitId: 'LPP-011-U01' }));
@@ -106,6 +131,9 @@ env.cache.clear();
 const d1 = env.get({ action: 'dashboard' }).data;
 const st1 = env.post({ action: 'operatorStatus', sessionToken: bt }).data.find(x => x.operatorId === 'LPP-011');
 T('operatorStatus: jumlahUnit 2, unitTerisi 2', st1.jumlahUnit === 2 && st1.unitTerisi === 2, st1);
+{ const all = env.post({ action: 'operatorStatus', sessionToken: adm }).data, rr = env.rows('RISK_ASSESSMENT'), want = id => rr.filter(x => x.operatorId === id).length;
+  T('operatorStatus: jumlahSkenario setiap operator = jumlah baris risikonya (cek semua operator)', all.length > 300 && all.every(x => x.jumlahSkenario === want(x.operatorId)) && st1.jumlahSkenario === 3, all.filter(x => x.jumlahSkenario !== want(x.operatorId)).slice(0, 3));
+  T('operatorStatus: status DPRK tetap benar setelah optimasi (14+1 Sudah Mengisi)', all.filter(x => x.statusDprk === 'Sudah Mengisi').length === 15, all.filter(x => x.statusDprk === 'Sudah Mengisi').length); }
 r = env.post({ action: 'unitList', sessionToken: bt });
 T('unitList: jumlahSkenario per unit', r.data.find(u => u.unitId === 'LPP-011-U01').jumlahSkenario === 1);
 
@@ -153,4 +181,11 @@ T('paket saat server sibuk → BUSY (tidak setengah tersimpan)', lock.code === '
 const big = mk(300, 'AIR-GARUDA-INDONESIA-SUB', 'Besar ');
 const t0 = Date.now(); r = env.post(pack({ sessionToken: st, batchId: 'BATCHBESAR02' }, big));
 T('paket 300 baris tersimpan', r.ok && r.saved === 300, r);
+// cadangan gagal → impor dibatalkan
+const env2 = newEnv({ now: Date.parse('2026-10-28T03:00:00Z'), failCreate: 'Drive penuh' }); seedAll(env2, { risks: false, incidents: false });
+{ const s = env2.ctx.SpreadsheetApp.getActive().insertSheet('PERBAIKAN_MASTER'); s.appendRow(PMH); s.appendRow(['BD-277', 'Dekai', 'iata', 'DEK', 'DEX', 'uji']); }
+const mf = env2.ctx.terapkanImporAdmin();
+T('cadangan sebelum impor gagal → impor DIBATALKAN, master tidak berubah', /DIBATALKAN/.test(mf) && env2.rows('MASTER_OPERATOR').find(x => x.operatorId === 'BD-277').iata === 'DEK', mf);
+const mh = env2.ctx.cekImporAdmin();
+T('cekImporAdmin tidak membuat cadangan (hanya memeriksa)', /Pemeriksaan bersih/.test(mh) && Object.keys(env2.drive.files).length === 0);
 T.done();

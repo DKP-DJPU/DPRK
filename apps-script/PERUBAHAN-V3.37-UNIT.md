@@ -12,7 +12,7 @@ baris skenario biasa dengan kolom `unitId` terisi. Matriks kantor pusat / cabang
 | Simpan skenario | Boleh menyertakan unit; server menolak unit yang tidak terdaftar, nonaktif, atau milik operator lain. Unit tidak bisa dipindah saat edit. |
 | **Simpan per paket** (`saveRiskBatch`) | Untuk impor matriks Excel (tahap berikutnya): maks. 300 baris per paket, wajib login, semua baris diperiksa dulu — satu saja salah, tidak ada yang disimpan. Paket yang sama dikirim ulang tidak tersimpan ganda. |
 | Baca (login) | `unitList` (unit milik akun + jumlah skenario per unit); `riskData`/`riskDetail` memuat unit; status operator memuat `jumlahUnit` & `unitTerisi`. |
-| **Impor Admin** | `cekImporAdmin()` (hanya memeriksa) dan `terapkanImporAdmin()` untuk operator baru (PAUA), perbaikan kolom master, dan daftar unit. |
+| **Impor Admin** | `cekImporAdmin()` (hanya memeriksa) dan `terapkanImporAdmin()` untuk operator baru (PAUA), perbaikan kolom master (termasuk **status Aktif/Nonaktif**), dan daftar unit (termasuk **menonaktifkan unit**). Sebelum menerapkan, sistem **otomatis membuat cadangan spreadsheet**; bila cadangan gagal, impor dibatalkan. |
 | Website | Pilihan **Unit / Stasiun** di formulir (muncul bila operator punya unit), nama unit di Monitoring Risiko, bagian **Cakupan Unit / Stasiun** di rekap operator. |
 
 ## Langkah pemasangan
@@ -41,7 +41,7 @@ Bahan: file **`Final_Impor_Unit_dan_PAUA.xlsx`** (sudah Anda periksa 28 Okt).
    Pemeriksaan bersih. Jalankan terapkanImporAdmin() untuk menerapkan.
    ```
    Bila ada baris "DITEMUKAN … MASALAH", tidak ada yang diubah — perbaiki baris yang disebut lalu ulangi.
-4. Jalankan **`terapkanImporAdmin`** → log berakhir "SELESAI diterapkan …".
+4. Jalankan **`terapkanImporAdmin`**. Sistem memeriksa ulang, membuat **cadangan** ke folder SI-RISK BACKUP, lalu menerapkan. Log berakhir dengan baris "Cadangan sebelum impor: …" dan "SELESAI diterapkan …".
 5. Periksa di website: Dashboard → Total Operator **445**; masuk sebagai Admin → Monitoring Operator → buka mis. *PT Wings Abadi* → bagian **Cakupan Unit / Stasiun** (81 stasiun).
 6. Setelah benar, tiga sheet IMPOR_* / PERBAIKAN_MASTER boleh dihapus (atau dibiarkan; menjalankan ulang aman — tidak menggandakan data).
 
@@ -50,3 +50,19 @@ Bahan: file **`Final_Impor_Unit_dan_PAUA.xlsx`** (sudah Anda periksa 28 Okt).
 ## Belum termasuk (tahap berikutnya)
 - **Impor matriks dari Excel** di website — menunggu contoh file matriks (`Data_Penilaian_Risiko_AU_dan_RA_2024…xlsx`).
 - Rekap gabungan per kabupaten/kota — menunggu keputusan penyamaan nama kab/kota di MASTER_OPERATOR.
+
+## Operator Aktif / Nonaktif
+**Kriteria (usulan, ditetapkan Alex):**
+- **Aktif** = memegang izin yang berlaku **dan** beroperasi di Indonesia → wajib menyusun DPRK, dihitung di Total Operator & Completion Rate.
+- **Nonaktif** = izin dicabut/berakhir, berhenti beroperasi, PAUA tanpa penerbangan ke Indonesia, atau dibekukan sementara. **Tidak dihapus**: riwayat DPRK, laporan, dan audit tetap ada; bisa diaktifkan kembali.
+
+**Mengubah status** lewat sheet **PERBAIKAN_MASTER** (diperiksa & dicatat di AUDIT_LOG):
+
+| operatorId | Bandara | Kolom | Nilai sekarang | Nilai baru | Dasar |
+|---|---|---|---|---|---|
+| AIR-BBN-AIRLINES-INDONESIA | PT BBN Airlines Indonesia | status | Aktif | Nonaktif | Berhenti beroperasi Feb 2025 (Statistik Angkutan Udara 2025) |
+
+Kolom `status` dan `aktif` selalu diselaraskan otomatis. Lalu `cekImporAdmin` → `terapkanImporAdmin`.
+
+## Menonaktifkan unit / stasiun
+Tambahkan kolom **`aktif`** di IMPOR_UNIT dan isi **FALSE** untuk unit yang ditutup (kosong = aktif). Unit nonaktif tidak muncul di formulir dan tidak bisa diberi skenario baru; skenario lamanya tetap tersimpan.
