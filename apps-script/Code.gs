@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.38 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.39 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -630,26 +630,21 @@ function doPost(e){
 // Apps Script, bukan lewat endpoint publik doPost.
 // ============================================================
 var OP_MERGE_FIELDS=["kodeOperator","iata","icao","provinsi","kabkota","lokasi","kelas"];
+// V3.39 — DATA INDUK OPERATOR DIKUNCI. Simpan skenario TIDAK lagi mengubah MASTER_OPERATOR untuk operator yang
+// sudah terdaftar: nama, jenis, kode, dan lokasi selalu diambil dari master. Sebelumnya nama operator ditimpa
+// isian formulir (mis. "Super Air Jet Cabang CGK") dan lokasi kosong diisi lokasi stasiun pengisi pertama.
+// Koreksi data induk hanya lewat Admin (PERBAIKAN_MASTER → cekImporAdmin/terapkanImporAdmin).
+function masterIdentity_(p){
+ var f=findBy_(sheet_(SHEETS.OP,H.OP),"operatorId",p.operatorId);if(!f)return null;
+ ["jenisOperator","namaOperator"].concat(OP_MERGE_FIELDS).forEach(function(k){p[k]=f.obj[k]===undefined?"":f.obj[k]});
+ return f.obj;
+}
 function upsertOperator_(p){
  var s=sheet_(SHEETS.OP,H.OP),f=findBy_(s,"operatorId",p.operatorId),n=now_();
- if(!f){
-  var fresh={operatorId:p.operatorId,jenisOperator:p.jenisOperator,namaOperator:p.namaOperator,kodeOperator:p.kodeOperator||"",iata:p.iata||"",icao:p.icao||"",provinsi:p.provinsi||"",kabkota:p.kabkota||"",lokasi:p.lokasi||"",kelas:p.kelas||"",status:"Aktif",aktif:true,createdAt:n,updatedAt:n};
-  appendObj_(s,H.OP,fresh);
-  return fresh;
- }
- var merged={};
- H.OP.forEach(function(k){merged[k]=f.obj[k]});
- OP_MERGE_FIELDS.forEach(function(k){
-  var current=String(merged[k]||"").trim();
-  var incoming=String(p[k]||"").trim();
-  if(!current&&incoming)merged[k]=incoming; // hanya isi kalau saat ini kosong
- });
- // namaOperator/jenisOperator boleh sinkron ulang (bukan data referensi rawan-korup)
- merged.namaOperator=p.namaOperator||merged.namaOperator;
- merged.jenisOperator=p.jenisOperator||merged.jenisOperator;
- merged.updatedAt=n;
- s.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(k){return sanitizeCell_(merged[k]!==undefined?merged[k]:"")})]);
- return merged;
+ if(f)return f.obj;
+ var fresh={operatorId:p.operatorId,jenisOperator:p.jenisOperator,namaOperator:p.namaOperator,kodeOperator:p.kodeOperator||"",iata:p.iata||"",icao:p.icao||"",provinsi:p.provinsi||"",kabkota:p.kabkota||"",lokasi:p.lokasi||"",kelas:p.kelas||"",status:"Aktif",aktif:true,createdAt:n,updatedAt:n};
+ appendObj_(s,H.OP,fresh);
+ return fresh;
 }
 
 // ============================================================
@@ -716,6 +711,7 @@ function renewDprk_(p){
 }
 
 function createRisk_(p){
+ masterIdentity_(p); // V3.39: identitas dari master, bukan dari formulir
  var er=validate_(p);if(er.length)return json_({ok:false,error:er.join(";"),code:"VALIDATION_ERROR"});
  if(!verifyApiKey_(p.operatorId,p.apiKey))return json_({ok:false,error:"Kunci akses tidak valid, sudah dicabut, atau tidak sesuai dengan operator ini. Hubungi admin sistem untuk mendapatkan kunci akses.",code:"FORBIDDEN"});
  var rid=cleanToken_(p.id)||id_("RISK"),tok=cleanToken_(p.editToken)||token_(),existing=findRiskById_(rid);

@@ -235,6 +235,15 @@ try:
         T('panduan: klik video → iframe youtube-nocookie', (pg.get_attribute('#pdnContent iframe', 'src') or '').startswith('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'))
         pg.close()
 
+        # ================= V3.39: data induk dikunci di formulir (admin memilih operator dari master) =================
+        pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'form')
+        pg.click('.type:has(input[name=entityType][value="Airlines"])'); pg.wait_for_timeout(300)
+        pg.fill('#masterSearch', 'super air'); pg.dispatch_event('#masterSearch', 'input'); pg.wait_for_timeout(300)
+        T('admin: isian identitas bisa diketik sebelum memilih dari master', not pg.is_disabled('#entityName'))
+        pg.click('#masterResults [data-oid="AIR-SUPER-AIR-JET"]'); pg.wait_for_timeout(400)
+        T('admin: setelah memilih dari master, nama & lokasi terkunci + keterangan', all(pg.is_disabled('#' + i) for i in ['entityName', 'entityCode', 'entityProv', 'entityKab', 'entityLoc']) and pg.is_visible('.master-lock') and pg.input_value('#entityName') == 'PT Super Air Jet')
+        pg.close()
+
         # ================= V3.38: penilaian terakhir per unit (simulasi LPP-004) =================
         ctl('/__ctl?a=simunit'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'operator')
         pg.fill('#opSearch', 'yogyakarta'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="LPP-004"]'); pg.wait_for_timeout(1500)
