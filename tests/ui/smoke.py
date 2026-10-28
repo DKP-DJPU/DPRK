@@ -256,6 +256,26 @@ try:
         T('admin: isian identitas bisa diketik sebelum memilih dari master', not pg.is_disabled('#entityName'))
         pg.click('#masterResults [data-oid="AIR-SUPER-AIR-JET"]'); pg.wait_for_timeout(400)
         T('admin: setelah memilih dari master, nama & lokasi terkunci + keterangan', all(pg.is_disabled('#' + i) for i in ['entityName', 'entityCode', 'entityProv', 'entityKab', 'entityLoc']) and pg.is_visible('.master-lock') and pg.input_value('#entityName') == 'PT Super Air Jet')
+        # V3.40a: operator tanpa unit → keterangan jelas (bukan kolom hilang), simpan sebagai Induk diizinkan
+        T('admin: operator tanpa unit → keterangan "Belum ada unit/stasiun terdaftar" + banner Kantor pusat (tanpa unit)', pg.is_visible('#unitInfo') and 'Belum ada unit/stasiun terdaftar' in pg.inner_text('#unitInfo') and 'Kantor pusat (tanpa unit)' in pg.inner_text('#lokasiBanner') and not pg.is_visible('#unitSearch') and not pg.is_visible('.unit-req'), pg.inner_text('#lokasiBanner'))
+        pg.click('.type:has(input[name=entityType][value="Bandar Udara"])'); pg.wait_for_timeout(300)
+        pg.fill('#entitySearch', 'soekarno'); pg.dispatch_event('#entitySearch', 'input'); pg.wait_for_timeout(300)
+        pg.click('#entityResults [data-id]') if pg.locator('#entityResults [data-id]').count() else pg.click('#entityResults div >> nth=0'); pg.wait_for_timeout(400)
+        T('admin: bandara tanpa unit → petunjuk stasiun maskapai dipilih lewat Airlines', 'lewat jenis Airlines' in pg.inner_text('#unitInfo'), pg.inner_text('#unitInfo') if pg.is_visible('#unitInfo') else '-')
+        pg.close()
+        # daftar unit gagal dimuat → peringatan + simpan diblokir (bukan diam-diam jadi Induk)
+        pg = b.new_page(viewport={'width': 1300, 'height': 900}); pg._errs = []
+        def route_fail(r):
+            if 'script.google.com' in r.request.url and '"unitList"' in (r.request.post_data or ''):
+                return r.fulfill(status=200, content_type='application/json', body='{"ok":false,"error":"Gagal uji"}')
+            return route(r)
+        pg.route('**/*', route_fail); pg.goto(f'http://localhost:{WEB}/'); pg.wait_for_timeout(2500)
+        login(pg, 'budi@juanda.co.id'); tab(pg, 'form'); pg.wait_for_timeout(500)
+        T('lokasi: daftar unit gagal dimuat → peringatan + tombol muat ulang', pg.is_visible('#unitInfo') and 'gagal dimuat' in pg.inner_text('#unitInfo') and pg.is_visible('#unitRetry'), pg.inner_text('#unitInfo') if pg.is_visible('#unitInfo') else '-')
+        fill_form(pg, 'Uji gagal unit'); n0 = len(ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT'))
+        pg.click('#saveBtn'); pg.wait_for_timeout(800)
+        T('lokasi: daftar unit gagal → simpan diblokir dengan pesan muat ulang', 'gagal dimuat' in pg.inner_text('#formNotice') and len(ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT')) == n0, pg.inner_text('#formNotice'))
+        pg.close(); pg = page(b)
         # V3.40: admin mencari stasiun/unit → satu klik memilih operator + lokasinya (data simulasi LPP-004)
         pg.close(); ctl('/__ctl?a=simunit'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'form')
         pg.click('.type:has(input[name=entityType][value="LPPNPI"])'); pg.wait_for_timeout(300)

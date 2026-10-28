@@ -2549,6 +2549,29 @@ main {
 #unitPicker[hidden] {
   display: none;
 }
+.unit-info {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f3f6f9;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #334155;
+}
+.unit-area-none .unit-req {
+  display: none;
+}
+.unit-info[hidden] {
+  display: none;
+}
+.unit-info-warn {
+  background: #fff7e6;
+  border-color: #efd39c;
+  color: #5c470c;
+}
+.unit-info .btn {
+  margin-left: 6px;
+}
 .unit-lock {
   font-size: 12px;
   color: var(--muted);
