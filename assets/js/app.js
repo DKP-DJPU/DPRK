@@ -672,10 +672,25 @@
         $("entityKab").value = state.entity.kabkota || "";
         $("entityLoc").value = state.entity.lokasi || "";
       }
-      if (state.edit || authScope()) {
+      // V3.39: entitas yang tersambung ke MASTER_OPERATOR dikunci — server memakai data induk, bukan isian ini.
+      var linked =
+        state.entity &&
+        state.entity.operatorId &&
+        (state.operators || []).some(function (o) {
+          return String(o.operatorId) === String(state.entity.operatorId);
+        });
+      if (state.edit || authScope() || linked) {
         ["entityName", "entityCode", "entityProv", "entityKab", "entityLoc"].forEach(function (id) {
           if ($(id)) $(id).disabled = true;
         });
+        var fg = $("entityName") && $("entityName").closest(".formgrid");
+        if (fg && !fg.querySelector(".master-lock")) {
+          var hint = document.createElement("div");
+          hint.className = "scenario-hint master-lock field full";
+          hint.textContent =
+            "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila ada yang salah, hubungi Admin.";
+          fg.appendChild(hint);
+        }
       }
     }
   }

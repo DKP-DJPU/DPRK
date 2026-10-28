@@ -85,7 +85,7 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 ### Langkah 01 — Identitas entitas
 
 1. Buka tab **Pengisian DPRK** (pastikan Anda sudah masuk).
-2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi.
+2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi. Nama, kode, provinsi, kabupaten/kota, dan lokasi diambil dari data induk dan **tidak dapat diubah** di formulir. Jangan menulis nama stasiun atau cabang di sini; gunakan pilihan **Unit / Stasiun** (langkah 5). Bila data induk salah, hubungi Admin.
 3. Isi **Bulan Penilaian**, **Tahun**, **Nama Pengisi**, **Jabatan Pengisi**, dan **Tanggal Pengesahan** dokumen DPRK.
 4. **Email Pemilik Risiko** dan **Link File DPRK** (misalnya tautan Google Drive) dianjurkan diisi.
 5. Bila operator Anda memiliki **unit atau stasiun** (cabang pembantu, unit kerja, stasiun maskapai), muncul pilihan **Unit / Stasiun**. Pilih **Induk** untuk matriks kantor pusat atau cabang utama, atau pilih unitnya untuk matriks lampiran unit tersebut. Unit tidak dapat dipindah setelah skenario disimpan.
