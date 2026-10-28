@@ -455,48 +455,181 @@
         return [];
       });
   }
+  // V3.40 — "Lokasi yang dinilai": pencarian stasiun/unit (kode IATA, nama bandara, kota), WAJIB dipilih
+  // (tanpa pilihan bawaan), Induk = pilihan tersendiri "Kantor pusat / matriks induk". state.unitPick:
+  // null = belum dipilih, "" = Induk, selain itu unitId. Unit tidak dapat dipindah saat edit.
+  function unitAreaShown() {
+    var a = $("unitArea");
+    return !!(a && !a.hidden);
+  }
   function selectedUnitId() {
-    var a = $("unitArea"),
-      sel = $("unitSelect");
-    return a && !a.hidden && sel ? sel.value : "";
+    if (!unitAreaShown()) return "";
+    if (state.edit) return state.edit.unitId || "";
+    return state.unitPick || "";
+  }
+  function needsUnitPick() {
+    return unitAreaShown() && !state.edit && (state.unitPick === null || state.unitPick === undefined);
+  }
+  function entityLabel() {
+    return (state.entity && (state.entity.nama || state.entity[1])) || "";
+  }
+  function unitInfo(id) {
+    var oid = entityOperatorId(state.entity);
+    if (id === "") return { badge: "INDUK", judul: "Kantor pusat (matriks induk)", sub: "Matriks kantor pusat / cabang utama " + entityLabel() };
+    var u = unitsOf(oid).filter(function (x) {
+      return x.unitId === id;
+    })[0] || (state.units || []).filter(function (x) {
+      return x.unitId === id;
+    })[0];
+    if (!u) return { badge: "?", judul: id, sub: "" };
+    return {
+      badge: u.kodeUnit || "UNIT",
+      judul: u.namaUnit,
+      sub: [[u.kabkota, u.provinsi].filter(Boolean).join(", "), u.jenisUnit].filter(Boolean).join(" · "),
+    };
+  }
+  function unitMatches(u, q) {
+    return (
+      !q ||
+      [u.kodeUnit, u.namaUnit, u.kabkota, u.provinsi, u.jenisUnit].join(" ").toLowerCase().indexOf(q) > -1
+    );
+  }
+  function renderUnitList() {
+    var box = $("unitList");
+    if (!box) return;
+    var oid = entityOperatorId(state.entity),
+      list = unitsOf(oid),
+      q = ($("unitSearch").value || "").trim().toLowerCase(),
+      hits = list.filter(function (u) {
+        return unitMatches(u, q);
+      });
+    hits.sort(function (x, y) {
+      var ex = String(x.kodeUnit || "").toLowerCase() === q ? 0 : 1,
+        ey = String(y.kodeUnit || "").toLowerCase() === q ? 0 : 1;
+      return ex - ey || String(x.kodeUnit || x.namaUnit).localeCompare(String(y.kodeUnit || y.namaUnit));
+    });
+    var showInduk = !q || "induk kantor pusat".indexOf(q) > -1;
+    var row = function (id, info, induk) {
+      return (
+        '<button type="button" class="unit-opt' +
+        (induk ? " unit-opt-induk" : "") +
+        '" data-unit-pick="' +
+        esc(id) +
+        '"><span class="unit-badge' +
+        (induk ? " unit-badge-induk" : "") +
+        '">' +
+        esc(info.badge) +
+        '</span><span class="unit-opt-txt"><b>' +
+        esc(info.judul) +
+        "</b><small>" +
+        esc(info.sub) +
+        "</small></span></button>"
+      );
+    };
+    box.innerHTML =
+      (showInduk
+        ? row(
+            "",
+            { badge: "INDUK", judul: "Kantor pusat / matriks induk", sub: "Pilih hanya bila Anda mengisi matriks kantor pusat, bukan stasiun/unit." },
+            true,
+          )
+        : "") +
+      hits
+        .map(function (u) {
+          return row(u.unitId, unitInfo(u.unitId), false);
+        })
+        .join("") +
+      (!hits.length && q
+        ? '<div class="empty unit-empty">Tidak ada unit/stasiun yang cocok dengan “' +
+          esc(q) +
+          "”. Belum terdaftar? Hubungi Admin — unit tidak dapat ditambahkan dari formulir.</div>"
+        : "");
+    $("unitHint").textContent = q
+      ? hits.length + " dari " + list.length + " unit/stasiun cocok"
+      : list.length + " unit/stasiun terdaftar. Wajib dipilih — tidak ada pilihan bawaan.";
+  }
+  function renderLokasiBanner() {
+    var b = $("lokasiBanner");
+    if (!b) return;
+    if (!state.entity) {
+      b.hidden = true;
+      return;
+    }
+    b.hidden = false;
+    var lok = "";
+    if (unitAreaShown()) {
+      lok = needsUnitPick()
+        ? ' › <span class="lokasi-belum">lokasi belum dipilih</span>'
+        : " › <b>" + esc(unitInfo(selectedUnitId()).judul) + "</b>";
+    }
+    b.classList.toggle("lokasi-banner-warn", needsUnitPick());
+    b.innerHTML = '<span class="lokasi-ic" aria-hidden="true">' + (needsUnitPick() ? "!" : "✓") + "</span><span>Anda menilai: <b>" + esc(entityLabel()) + "</b>" + lok + "</span>";
   }
   function renderUnitField() {
-    var a = $("unitArea"),
-      sel = $("unitSelect");
-    if (!a || !sel) return;
+    var a = $("unitArea");
+    if (!a) return;
     var oid = entityOperatorId(state.entity),
-      list = oid ? unitsOf(oid) : [],
-      want = state.edit ? state.edit.unitId || "" : sel.value;
+      list = oid ? unitsOf(oid) : [];
+    if (oid !== state.unitPickOid) {
+      state.unitPickOid = oid;
+      state.unitPick = null;
+      if ($("unitSearch")) $("unitSearch").value = "";
+    }
     if (!list.length) {
       a.hidden = true;
-      sel.innerHTML = "";
+      renderLokasiBanner();
       return;
     }
     a.hidden = false;
-    sel.innerHTML =
-      '<option value="">Induk — ' +
-      esc((state.entity && (state.entity.nama || state.entity[1])) || "kantor pusat / cabang utama") +
-      "</option>" +
-      list
-        .map(function (u) {
-          return (
-            '<option value="' +
-            esc(u.unitId) +
-            '">' +
-            esc(u.namaUnit + (u.kodeUnit ? " (" + u.kodeUnit + ")" : "")) +
-            "</option>"
-          );
-        })
-        .join("");
-    sel.value = list.some(function (u) {
-      return u.unitId === want;
-    })
-      ? want
-      : "";
-    sel.disabled = !!state.edit;
     $("unitCount").textContent = list.length + " unit terdaftar";
+    var pick = state.edit ? state.edit.unitId || "" : state.unitPick,
+      chosen = pick !== null && pick !== undefined,
+      card = $("unitPicked");
+    card.hidden = !chosen;
+    $("unitPicker").hidden = chosen;
+    if (chosen) {
+      var info = unitInfo(pick);
+      card.innerHTML =
+        '<span class="unit-badge unit-badge-lg' +
+        (pick === "" ? " unit-badge-induk" : "") +
+        '">' +
+        esc(info.badge) +
+        '</span><span class="unit-opt-txt"><b>' +
+        esc(info.judul) +
+        "</b><small>" +
+        esc(info.sub) +
+        "</small></span>" +
+        (state.edit
+          ? '<span class="unit-lock">Tidak dapat dipindah saat edit</span>'
+          : '<button type="button" class="btn secondary" id="unitChange">Ganti lokasi</button>');
+      if ($("unitChange"))
+        $("unitChange").onclick = function () {
+          state.unitPick = null;
+          renderUnitField();
+          $("unitSearch").focus();
+        };
+    } else renderUnitList();
+    renderLokasiBanner();
+  }
+  function bindUnitPicker() {
+    if (!$("unitList") || bindUnitPicker.done) return;
+    bindUnitPicker.done = true;
+    $("unitList").addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-unit-pick]");
+      if (!b) return;
+      state.unitPick = b.getAttribute("data-unit-pick");
+      renderUnitField();
+    });
+    $("unitSearch").addEventListener("input", renderUnitList);
+    $("unitSearch").addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      var first = $("unitList").querySelector(".unit-opt:not(.unit-opt-induk)") || $("unitList").querySelector(".unit-opt");
+      if (first) first.click();
+    });
   }
   function renderEntityArea() {
+    bindUnitPicker();
     renderEntityAreaCore();
     renderUnitField();
   }
@@ -626,6 +759,21 @@
                 );
               })
               .slice(0, 30),
+            // V3.40: stasiun/unit operator jenis ini ikut dicari (kode IATA, nama bandara, kota) → satu klik memilih operator + lokasinya.
+            uhits =
+              q.length >= 2
+                ? (state.units || [])
+                    .filter(function (u) {
+                      return (
+                        u.aktif !== false &&
+                        mlist.some(function (o) {
+                          return String(o.operatorId) === String(u.operatorId);
+                        }) &&
+                        unitMatches(u, q)
+                      );
+                    })
+                    .slice(0, 60)
+                : [],
             box = $("masterResults");
           box.innerHTML =
             arr
@@ -642,7 +790,32 @@
                   "</small></div>"
                 );
               })
-              .join("") || '<div class="empty">Tidak ditemukan di master. Isi manual di bawah.</div>';
+              .join("") +
+            (uhits.length
+              ? '<div class="master-group">Stasiun / unit (' +
+                uhits.length +
+                ")</div>" +
+                uhits
+                  .map(function (u) {
+                    var op = mlist.filter(function (o) {
+                      return String(o.operatorId) === String(u.operatorId);
+                    })[0];
+                    return (
+                      '<div style="padding:9px;border-bottom:1px solid #edf1f5;cursor:pointer" data-oid="' +
+                      esc(u.operatorId) +
+                      '" data-uid="' +
+                      esc(u.unitId) +
+                      '"><b>' +
+                      esc(op ? op.namaOperator : u.operatorId) +
+                      " › " +
+                      esc(u.namaUnit) +
+                      "</b><br><small>" +
+                      esc([u.kabkota, u.provinsi].filter(Boolean).join(", ")) +
+                      "</small></div>"
+                    );
+                  })
+                  .join("")
+              : "") || '<div class="empty">Tidak ditemukan di master. Isi manual di bawah.</div>';
           box.style.display = "block";
           Array.prototype.forEach.call(box.querySelectorAll("[data-oid]"), function (el) {
             el.onclick = function () {
@@ -651,6 +824,11 @@
                   return String(x.operatorId) === oid;
                 })[0];
               if (!o) return;
+              var uid = this.getAttribute("data-uid");
+              if (uid !== null) {
+                state.unitPickOid = oid;
+                state.unitPick = uid;
+              }
               state.entity = {
                 operatorId: String(o.operatorId),
                 jenisOperator: state.type,
@@ -964,6 +1142,7 @@
     $("refBox").style.display = "none";
     $("editNotice").innerHTML = "";
     $("saveBtn").textContent = "Simpan Skenario";
+    if (state.edit) state.unitPick = null; // keluar dari mode edit: pilih lokasi lagi
     state.edit = null;
     state.pendingCreateId = null;
     state.pendingCreateToken = null;
@@ -1320,6 +1499,8 @@
     var catalogId = $("riskCatalog") ? $("riskCatalog").value : "";
     if (!e) errors.push("Identitas entitas/operator belum dipilih atau diisi.");
     if (!state.type) errors.push("Jenis operator belum dipilih.");
+    if (needsUnitPick())
+      errors.push("Lokasi yang dinilai belum dipilih: pilih stasiun/unit, atau Kantor pusat (Induk).");
     if (
       state.edit &&
       state.edit.originalOperatorId &&
