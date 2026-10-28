@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.37.1 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.37.2 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -918,6 +918,7 @@ function pasangBackupHarian(){
 // operator induk. DPRK tetap satu per operator induk; matriks unit = baris RISK_ASSESSMENT dengan
 // kolom unitId terisi. Matriks cabang utama / kantor pusat = baris tanpa unitId.
 // Daftar unit HANYA diisi Admin lewat cekImporAdmin() / terapkanImporAdmin() (keputusan 28 Okt 2026).
+var UNIT_CMP=["operatorId","jenisUnit","namaUnit","kodeUnit","provinsi","kabkota","aktif"];
 var UNIT_JENIS=["Kantor Cabang Pembantu","Unit Kerja","Stasiun","Satuan Pelayanan","Lainnya"];
 var UNIT_ID_RE=/^[A-Za-z0-9_.-]{1,100}$/;
 function unitMaster_(){return objs_(sheet_(SHEETS.UNIT,H.UNIT)).map(function(u){return{unitId:String(u.unitId||""),operatorId:String(u.operatorId||""),jenisUnit:u.jenisUnit||"",namaUnit:u.namaUnit||"",kodeUnit:String(u.kodeUnit||""),provinsi:u.provinsi||"",kabkota:u.kabkota||"",aktif:String(u.aktif).toLowerCase()!=="false"}}).filter(function(u){return u.unitId})}
@@ -1060,7 +1061,7 @@ function imporAdmin_(apply){
    fixes.push({id:id,k:k,v:baru});
   });out.push("PERBAIKAN_MASTER: "+fixes.length+" perubahan siap diterapkan.")}
   // 3. Unit
-  var iu=imporRows_("IMPOR_UNIT"),uS=sheet_(SHEETS.UNIT,H.UNIT),uOld={},uAdd=[],uUpd=[];
+  var iu=imporRows_("IMPOR_UNIT"),uS=sheet_(SHEETS.UNIT,H.UNIT),uOld={},uAdd=[],uUpd=[],uSama=0;
   objs_(uS).forEach(function(u){uOld[String(u.unitId)]=u});
   if(iu){var seenU={};iu.forEach(function(r){
    var id=String(r.unitId||""),oid=String(r.operatorId||""),e=[];
@@ -1074,8 +1075,10 @@ function imporAdmin_(apply){
    var ak=r.aktif===undefined||String(r.aktif).trim()===""?"true":boolText_(r.aktif); // kolom aktif opsional; kosong = aktif
    if(ak!=="true"&&ak!=="false"){errs.push("IMPOR_UNIT baris "+r._baris+": aktif harus TRUE atau FALSE");return}
    var x={unitId:id,operatorId:oid,jenisUnit:r.jenisUnit,namaUnit:r.namaUnit,kodeUnit:r.kodeUnit||"",provinsi:r.provinsi||"",kabkota:r.kabkota||"",aktif:ak==="true"};
-   if(uOld[id])uUpd.push(x);else uAdd.push(x);
-  });out.push("IMPOR_UNIT: "+uAdd.length+" unit baru, "+uUpd.length+" unit diperbarui"+(function(){var n=uAdd.concat(uUpd).filter(function(u){return!u.aktif}).length;return n?" ("+n+" dinonaktifkan)":""})()+".")}
+   // V3.37.2: unit yang sudah terdaftar dan isinya SAMA dilewati (sebelumnya selalu ditulis ulang satu per satu → batas waktu 6 menit).
+   if(uOld[id]){if(UNIT_CMP.some(function(k){return k==="aktif"?boolText_(uOld[id].aktif)!==boolText_(x.aktif):String(uOld[id][k]==null?"":uOld[id][k]).trim()!==String(x[k]).trim()}))uUpd.push(x);else uSama++}
+   else uAdd.push(x);
+  });out.push("IMPOR_UNIT: "+uAdd.length+" unit baru, "+uUpd.length+" unit diperbarui"+(uSama?", "+uSama+" tidak berubah":"")+(function(){var n=uAdd.concat(uUpd).filter(function(u){return!u.aktif}).length;return n?" ("+n+" dinonaktifkan)":""})()+".")}
   if(!io&&!pm&&!iu)out.push("Tidak ada sheet IMPOR_OPERATOR / PERBAIKAN_MASTER / IMPOR_UNIT yang berisi data.");
   if(errs.length){out.push("");out.push("DITEMUKAN "+errs.length+" MASALAH — tidak ada yang diterapkan:");errs.slice(0,100).forEach(function(x){out.push(" - "+x)});var m1=out.join("\n");Logger.log(m1);return m1}
   if(!apply){out.push("");out.push("Pemeriksaan bersih. Jalankan terapkanImporAdmin() untuk menerapkan.");var m2=out.join("\n");Logger.log(m2);return m2}
@@ -1088,7 +1091,10 @@ function imporAdmin_(apply){
    return{id:f.id,fill:x}})).forEach(function(f){var r=findBy_(opS,"operatorId",f.id),before=JSON.parse(JSON.stringify(r.obj));Object.keys(f.fill).forEach(function(k){r.obj[k]=f.fill[k]});r.obj.updatedAt=n;opS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})]);audit_(adminActor_(),"OPERATOR",f.id,"UPDATE",before,r.obj,"","Impor admin: "+Object.keys(f.fill).join(","))});
   var uh=uS.getRange(1,1,1,uS.getLastColumn()).getValues()[0];
   if(uAdd.length)(ensureRows_(uS,uAdd.length),uS).getRange(uS.getLastRow()+1,1,uAdd.length,uh.length).setValues(uAdd.map(function(u){u.createdAt=n;u.updatedAt=n;return uh.map(function(c){return sanitizeCell_(u[c]===undefined?"":u[c])})}));
-  uUpd.forEach(function(u){var r=findBy_(uS,"unitId",u.unitId);Object.keys(u).forEach(function(k){r.obj[k]=u[k]});r.obj.updatedAt=n;uS.getRange(r.row,1,1,r.h.length).setValues([r.h.map(function(c){return sanitizeCell_(r.obj[c]===undefined?"":r.obj[c])})])});
+  // V3.37.2: perbarui unit dalam SATU baca + SATU tulis (bukan cari & tulis per baris).
+  if(uUpd.length&&uS.getLastRow()>1){var ub=uS.getRange(2,1,uS.getLastRow()-1,uh.length).getValues(),ui=uh.indexOf("unitId"),pos={};ub.forEach(function(r,i){pos[String(r[ui])]=i});
+   uUpd.forEach(function(u){var i=pos[u.unitId];if(i===undefined)return;u.updatedAt=n;uh.forEach(function(c,j){if(c in u)ub[i][j]=sanitizeCell_(u[c])})});
+   uS.getRange(2,1,ub.length,uh.length).setValues(ub)}
   if(addOps.length)audit_(adminActor_(),"OPERATOR","IMPOR_OPERATOR","BATCH_CREATE",{},{jumlah:addOps.length},"","Impor admin operator");
   if(uAdd.length||uUpd.length)audit_(adminActor_(),"UNIT","IMPOR_UNIT","BATCH_UPSERT",{},{baru:uAdd.length,diperbarui:uUpd.length},"","Impor admin unit");
   invalidateDashboardCache_();

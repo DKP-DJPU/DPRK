@@ -70,7 +70,7 @@ T('dashboard: Total Operator naik 1 (PAUA nonaktif tidak dihitung)', env.get({ a
 T('cadangan spreadsheet dibuat otomatis sebelum impor diterapkan', /Cadangan sebelum impor: Backup .* selesai/.test(m) && Object.values(env.drive.files).filter(f => /^SI-RISK BACKUP /.test(f._name)).length === 1, m);
 T('audit mencatat impor admin + email pemilik script', env.rows('AUDIT_LOG').some(a => a.entityType === 'UNIT' && a.action === 'BATCH_UPSERT' && /ADMIN_IMPORT:owner@dkp.go.id/.test(a.actorId)));
 m = c.terapkanImporAdmin();
-T('dijalankan ulang: tidak menggandakan (0 operator baru, perbaikan sudah diterapkan dilewati, unit diperbarui)', ops().length === before + 2 && units().length === 5 && /0 operator baru/.test(m) && /0 perubahan/.test(m) && /0 unit baru, 5 unit diperbarui/.test(m), m);
+T('dijalankan ulang: tidak menggandakan (0 operator baru, perbaikan sudah diterapkan dilewati, unit sama dilewati)', ops().length === before + 2 && units().length === 5 && /0 operator baru/.test(m) && /0 perubahan/.test(m) && /0 unit baru, 0 unit diperbarui, 5 tidak berubah/.test(m), m);
 stage('IMPOR_UNIT', UH, [['LPP-011-U01', 'LPP-012', 'x', 'Unit Kerja', 'Pindah induk', '', '', '', '', '', '']]);
 T('unit tidak boleh pindah operator induk', /tidak boleh berubah/.test(c.cekImporAdmin()));
 // --- status operator & unit nonaktif (V3.37 perbaikan 28 Okt)
