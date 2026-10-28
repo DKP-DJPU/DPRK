@@ -18,10 +18,17 @@ baris skenario biasa dengan kolom `unitId` terisi. Matriks kantor pusat / cabang
 ## Langkah pemasangan
 1. Merge PR ini (website ±1 menit).
 2. Apps Script → ganti seluruh isi **`Code.gs`** dan **`Auth.gs`** dari repo → Simpan. (`Pelaporan.gs` tidak berubah.)
+   Pakai **Code.gs versi terbaru** (berisi perbaikan batas grid): RISK_ASSESSMENT produksi tepat 35 kolom, sehingga
+   kolom baru `unitId` (kolom ke-36) harus ditambahkan dulu ke grid. Versi sebelum perbaikan ini akan membuat **semua**
+   simpan/login gagal.
 3. **Deploy → Manage deployments → Edit ✏️ → New version → Deploy.**
 
 ## Mengimpor PAUA, perbaikan kode bandara, dan 538 unit
 Bahan: file **`Final_Impor_Unit_dan_PAUA.xlsx`** (sudah Anda periksa 28 Okt).
+
+> **Status 28 Okt 2026:** tiga sheet di bawah **sudah diisi langsung** di spreadsheet produksi (tab oranye:
+> IMPOR_OPERATOR 64 baris, PERBAIKAN_MASTER 8 baris, IMPOR_UNIT 538 baris — hanya kolom yang dibaca impor).
+> Lewati langkah 1–2 dan mulai dari langkah 3. MASTER_* belum disentuh; perubahan baru terjadi saat `terapkanImporAdmin` dijalankan.
 
 1. Buka spreadsheet **DPRK NASIONAL – DATABASE & MONITORING**.
 2. Salin tiga sheet dari file final ke spreadsheet (klik kanan tab → *Copy to* → *Existing spreadsheet*, atau buat sheet baru lalu tempel), lalu **ganti namanya**:
