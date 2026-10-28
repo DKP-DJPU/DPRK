@@ -73,3 +73,17 @@ Kolom `status` dan `aktif` selalu diselaraskan otomatis. Lalu `cekImporAdmin` �
 
 ## Menonaktifkan unit / stasiun
 Tambahkan kolom **`aktif`** di IMPOR_UNIT dan isi **FALSE** untuk unit yang ditutup (kosong = aktif). Unit nonaktif tidak muncul di formulir dan tidak bisa diberi skenario baru; skenario lamanya tetap tersimpan.
+
+## V3.37.1 — definisi tunggal "operator aktif" (28 Okt 2026)
+Temuan setelah impor: Total Operator 448, bukan 444. Penyebab: dua baris salinan tidak sengaja
+(`…AVIATION01`, `…INDONESIA1`), satu baris tanpa operatorId yang hanya berisi spasi, dan BBN dengan
+status Nonaktif tetapi `aktif` masih TRUE. Baris salinan & kosong sudah dihapus; BBN dan kode BD-001
+(KXB → ABU) diperbaiki lewat PERBAIKAN_MASTER.
+
+Perubahan kode (`opActive_`), dipakai Dashboard, Monitoring Operator, daftar operator publik,
+pendaftaran akun, dan penerbitan API key:
+- operator dihitung aktif hanya bila **punya operatorId**, `aktif` bukan FALSE, **dan** `status` bukan Nonaktif;
+- `cekImporAdmin` kini menampilkan jumlah Total Operator dan **PERINGATAN** (tidak memblokir) untuk baris tanpa
+  operatorId, status/aktif yang tidak selaras, dan kode bandara/operator ganda di antara operator aktif.
+
+Pasang: ganti **Code.gs** dan **Auth.gs** → Deploy New version → `cekImporAdmin` → `terapkanImporAdmin`.
