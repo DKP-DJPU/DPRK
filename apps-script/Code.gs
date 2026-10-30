@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.39 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.41 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -930,8 +930,12 @@ var UNIT_ID_RE=/^[A-Za-z0-9_.-]{1,100}$/;
 function unitMaster_(){return objs_(sheet_(SHEETS.UNIT,H.UNIT)).map(function(u){return{unitId:String(u.unitId||""),operatorId:String(u.operatorId||""),jenisUnit:u.jenisUnit||"",namaUnit:u.namaUnit||"",kodeUnit:String(u.kodeUnit||""),provinsi:u.provinsi||"",kabkota:u.kabkota||"",aktif:String(u.aktif).toLowerCase()!=="false"}}).filter(function(u){return u.unitId})}
 function unitNames_(){var m={};cached_(CACHE_KEYS.units,unitMaster_).forEach(function(u){m[u.unitId]=u.namaUnit});return m}
 // null bila valid; pesan galat bila unit tidak ada / nonaktif / bukan milik operator.
+// V3.41 — PAUA: SATU DPRK untuk seluruh operasi di Indonesia (keputusan Alex 30 Okt). Stasiun PAUA hanya
+// menunjukkan cakupan/wilayah, bukan matriks terpisah → skenario PAUA tidak boleh memakai unit.
+function isPaua_(operatorId){var f=findBy_(sheet_(SHEETS.OP,H.OP),"operatorId",operatorId);return!!(f&&String(f.obj.kelas||"").trim().toUpperCase()==="PAUA")}
 function checkUnit_(operatorId,unitId){
  var id=String(unitId||"").trim();if(!id)return null;
+ if(isPaua_(operatorId))return"DPRK PAUA berlaku untuk seluruh operasi di Indonesia; skenario tidak dicatat per stasiun.";
  var u=unitMaster_().filter(function(x){return x.unitId===id})[0];
  if(!u)return"Unit "+id+" tidak terdaftar.";
  if(!u.aktif)return"Unit "+id+" sudah nonaktif.";
@@ -973,7 +977,7 @@ function saveRiskBatch_(p){
   var q={};BATCH_FIELDS.forEach(function(k){q[k]=r?r[k]:undefined});
   q.operatorId=o.operatorId;q.jenisOperator=o.jenisOperator;q.namaOperator=o.namaOperator;q.bulan=p.bulan;q.tahun=p.tahun;q.tanggalPengesahan=p.tanggalPengesahan||(d0&&d0.tanggalPengesahan)||"";q.isExistingDprkUpdate=!!d0;
   var e=validate_(q),uid=String(q.unitId||"").trim();
-  if(uid){var u=units[uid];if(!u)e.push("unit "+uid+" tidak terdaftar");else if(!u.aktif)e.push("unit "+uid+" nonaktif");else if(u.operatorId!==o.operatorId)e.push("unit "+uid+" bukan milik operator ini")}
+  if(uid){var u=units[uid];if(String(o.kelas||"").trim().toUpperCase()==="PAUA")e.push("DPRK PAUA berlaku untuk seluruh operasi di Indonesia; kosongkan unit");else if(!u)e.push("unit "+uid+" tidak terdaftar");else if(!u.aktif)e.push("unit "+uid+" nonaktif");else if(u.operatorId!==o.operatorId)e.push("unit "+uid+" bukan milik operator ini")}
   var key=assessmentKey_(o.operatorId,dprkId,p.bulan,p.tahun,q.kategori,q.skenario,uid);
   if(seen[key]!==undefined)e.push("sama dengan baris "+(seen[key]+1)+" di paket ini");
   else seen[key]=i;

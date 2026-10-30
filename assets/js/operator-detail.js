@@ -418,6 +418,27 @@
       return u.operatorId === op.operatorId && u.aktif !== false;
     });
     if (!list.length) return "";
+    // V3.41: PAUA — satu DPRK untuk seluruh operasi di Indonesia; stasiun = cakupan, bukan matriks per stasiun.
+    if (String(op.kelas || "").toUpperCase() === "PAUA")
+      return (
+        '<div class="card"><div class="section-head"><div><div class="section-kicker">STASIUN</div><h2>Stasiun di Indonesia</h2><div class="sub">PAUA menyusun <b>satu DPRK</b> untuk seluruh operasinya di Indonesia; stasiun di bawah ini tercakup dalam DPRK tersebut.</div></div><div class="section-badge">' +
+        list.length +
+        ' STASIUN</div></div><div class="tablewrap opd-table"><table><thead><tr><th>Stasiun</th><th>Kab/Kota</th><th>Provinsi</th></tr></thead><tbody>' +
+        list
+          .map(function (u) {
+            return (
+              "<tr><td><b>" +
+              esc(u.namaUnit) +
+              "</b></td><td>" +
+              esc(u.kabkota || "—") +
+              "</td><td>" +
+              esc(u.provinsi || "—") +
+              "</td></tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table></div></div>"
+      );
     var by = {};
     rows.forEach(function (r) {
       var k = String(r.unitId || "");

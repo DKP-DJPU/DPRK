@@ -479,6 +479,17 @@
     var a = $("unitArea");
     return !!(a && !a.hidden);
   }
+  // V3.41 — PAUA: satu DPRK untuk seluruh operasi di Indonesia; stasiun hanya cakupan/wilayah (bukan matriks terpisah).
+  function isPauaOp(oid) {
+    var o = (state.operators || []).filter(function (x) {
+      return String(x.operatorId) === String(oid);
+    })[0];
+    return !!(o && String(o.kelas || "").trim().toUpperCase() === "PAUA");
+  }
+  function pauaStations() {
+    var oid = entityOperatorId(state.entity);
+    return isPauaOp(oid) ? unitsOf(oid) : [];
+  }
   function unitMode() {
     return state.unitMode || "";
   }
@@ -589,6 +600,27 @@
     if (!p || !k || !l || !state.entity || state.type === "Bandar Udara") return;
     var u = chosenUnit(),
       hint = document.querySelector(".master-lock");
+    if (unitMode() === "paua") {
+      var ps = pauaStations();
+      if (ps.length === 1) u = ps[0];
+      else if (ps.length > 1) {
+        p.value = "";
+        k.value = "";
+        k.placeholder = "Beberapa wilayah (" + ps.length + " stasiun)";
+        l.value =
+          ps.length +
+          " stasiun: " +
+          ps
+            .map(function (x) {
+              return x.kodeUnit || x.namaUnit;
+            })
+            .join(", ");
+        if (hint)
+          hint.textContent =
+            "PAUA: satu DPRK untuk seluruh operasi di Indonesia. Wilayah mengikuti stasiun-stasiunnya; data tidak dapat diubah di formulir.";
+        return;
+      }
+    }
     var prov = u ? u.provinsi || "" : state.entity.provinsi || "";
     if (prov && !Array.prototype.some.call(p.options, function (o) {
       return o.value === prov;
@@ -620,7 +652,9 @@
     }
     b.hidden = false;
     var lok = "";
-    if (unitAreaShown() && unitMode() === "none") lok = " › <b>Kantor pusat (tanpa unit)</b>";
+    if (unitAreaShown() && unitMode() === "paua")
+      lok = " › <b>seluruh operasi di Indonesia (" + pauaStations().length + " stasiun)</b>";
+    else if (unitAreaShown() && unitMode() === "none") lok = " › <b>Kantor pusat (tanpa unit)</b>";
     else if (unitAreaShown() && unitMode() !== "pick")
       lok = ' › <span class="lokasi-belum">' + (unitMode() === "error" ? "daftar unit gagal dimuat" : "memuat daftar unit…") + "</span>";
     else if (unitAreaShown()) {
@@ -668,6 +702,27 @@
                 ? " Stasiun maskapai di bandara ini dipilih lewat jenis <b>Airlines</b> (pilih maskapainya, lalu stasiunnya)."
                 : " Unit/stasiun belum terdaftar? Hubungi Admin.");
       if ($("unitRetry")) $("unitRetry").onclick = loadUnits;
+      renderLokasiBanner();
+      return;
+    }
+    if (isPauaOp(oid)) {
+      state.unitMode = "paua";
+      state.unitPick = "";
+      a.hidden = false;
+      a.classList.add("unit-area-none");
+      $("unitPicked").hidden = true;
+      $("unitPicker").hidden = true;
+      $("unitCount").textContent = list.length + " stasiun";
+      info0.hidden = false;
+      info0.className = "unit-info";
+      info0.innerHTML =
+        "<b>Satu DPRK untuk seluruh operasi di Indonesia.</b> Skenario PAUA tidak dicatat per stasiun. Stasiun tercakup: " +
+        list
+          .map(function (u) {
+            return "<b>" + esc(u.kodeUnit || u.namaUnit) + "</b>" + (u.kabkota ? " (" + esc(u.kabkota) + ")" : "");
+          })
+          .join(", ") +
+        ".";
       renderLokasiBanner();
       return;
     }
@@ -2135,7 +2190,21 @@
     (state.units || []).forEach(function (u) {
       unitById[u.unitId] = u;
     });
+    // V3.41: PAUA (satu DPRK untuk seluruh Indonesia) → skenarionya masuk ke SETIAP wilayah stasiunnya.
+    var pauaSt = {};
+    (state.units || []).forEach(function (u) {
+      if (u.aktif !== false && isPauaOp(u.operatorId)) (pauaSt[u.operatorId] = pauaSt[u.operatorId] || []).push(u);
+    });
     risks.forEach(function (r) {
+      var ps = !r.unitId && pauaSt[String(r.operatorId)];
+      if (ps && ps.length) {
+        r._wilayah = ps.map(function (u) {
+          return { p: String(u.provinsi || "").trim(), k: String(u.kabkota || "").trim() };
+        });
+        r.provinsi = ps.length === 1 ? r._wilayah[0].p : "";
+        r.kabkota = ps.length === 1 ? r._wilayah[0].k : "";
+        return;
+      }
       var un = r.unitId ? unitById[r.unitId] : null;
       if (un && (un.provinsi || un.kabkota)) {
         r.provinsi = un.provinsi || "";
@@ -2163,6 +2232,14 @@
       }
     });
   }
+  function riskPlaces(x) {
+    return x._wilayah || [{ p: String(x.provinsi || "").trim(), k: String(x.kabkota || "").trim() }];
+  }
+  function inRegion(x, prov, kab) {
+    return riskPlaces(x).some(function (w) {
+      return (!prov || w.p === prov) && (!kab || w.k === kab);
+    });
+  }
   function initDashboardLocationFilters() {
     var p = $("dashboardProvinceFilter"),
       k = $("dashboardKabkotaFilter");
@@ -2172,8 +2249,9 @@
       source = risks.length ? risks : state.operators || [];
     var vals = [];
     source.forEach(function (x) {
-      var v = String(x.provinsi || "").trim();
-      if (v && vals.indexOf(v) < 0) vals.push(v);
+      riskPlaces(x).forEach(function (w) {
+        if (w.p && vals.indexOf(w.p) < 0) vals.push(w.p);
+      });
     });
     vals.sort(function (a, b) {
       return a.localeCompare(b, "id");
@@ -2188,15 +2266,11 @@
         .join("");
     p.value = vals.indexOf(cur) >= 0 ? cur : "";
     if (k) {
-      var list = p.value
-          ? source.filter(function (x) {
-              return String(x.provinsi || "").trim() === p.value;
-            })
-          : source,
-        ks = [];
-      list.forEach(function (x) {
-        var v = String(x.kabkota || "").trim();
-        if (v && ks.indexOf(v) < 0) ks.push(v);
+      var ks = [];
+      source.forEach(function (x) {
+        riskPlaces(x).forEach(function (w) {
+          if (w.k && (!p.value || w.p === p.value) && ks.indexOf(w.k) < 0) ks.push(w.k);
+        });
       });
       ks.sort(function (a, b) {
         return a.localeCompare(b, "id");
@@ -2254,8 +2328,7 @@
     var filtered = all.filter(function (x) {
       return (
         (!selectedType || String(x.jenisOperator || "") === selectedType) &&
-        (!selectedProv || String(x.provinsi || "").trim() === selectedProv) &&
-        (!selectedKab || String(x.kabkota || "").trim() === selectedKab)
+        ((!selectedProv && !selectedKab) || inRegion(x, selectedProv, selectedKab))
       );
     });
     initDashboardLocationFilters();

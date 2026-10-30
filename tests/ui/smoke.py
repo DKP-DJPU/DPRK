@@ -293,6 +293,23 @@ try:
         pg.close(); ctl('/__ctl?a=reset'); pg = page(b)
         pg.close()
 
+        # ================= V3.41: PAUA — satu DPRK untuk seluruh operasi di Indonesia =================
+        ctl('/__ctl?a=simpaua'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'form')
+        pg.click('.type:has(input[name=entityType][value="Airlines"])'); pg.wait_for_timeout(300)
+        pg.fill('#masterSearch', 'thai airasia'); pg.dispatch_event('#masterSearch', 'input'); pg.wait_for_timeout(300)
+        pg.click('#masterResults [data-oid="AIR-THAI-AIRASIA"]'); pg.wait_for_timeout(400)
+        T('PAUA: tanpa pilihan stasiun, keterangan "Satu DPRK untuk seluruh operasi di Indonesia" + daftar stasiun', pg.is_visible('#unitInfo') and 'Satu DPRK untuk seluruh operasi di Indonesia' in pg.inner_text('#unitInfo') and 'DPS' in pg.inner_text('#unitInfo') and 'CGK' in pg.inner_text('#unitInfo') and not pg.is_visible('#unitSearch'), pg.inner_text('#unitInfo') if pg.is_visible('#unitInfo') else '-')
+        T('PAUA: banner "seluruh operasi di Indonesia (2 stasiun)" & lokasi "2 stasiun: DPS, CGK"', 'seluruh operasi di Indonesia (2 stasiun)' in pg.inner_text('#lokasiBanner') and pg.input_value('#entityLoc') == '2 stasiun: DPS, CGK', [pg.inner_text('#lokasiBanner'), pg.input_value('#entityLoc')])
+        fill_form(pg, 'Uji PAUA satu DPRK'); pg.click('#saveBtn'); pg.wait_for_timeout(1800)
+        pr = [r for r in ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT') if r['skenario'] == 'Uji PAUA satu DPRK']
+        T('PAUA: simpan berhasil sebagai matriks seluruh operasi (tanpa unit)', len(pr) == 1 and pr[0]['unitId'] == '', pr)
+        tab(pg, 'dashboard'); pg.wait_for_timeout(1000)
+        w = pg.evaluate("SIRISK.risks().filter(r=>r.operatorId==='AIR-THAI-AIRASIA').map(r=>(r._wilayah||[]).map(x=>x.p+'/'+x.k).join(';'))")
+        T('dashboard: skenario PAUA masuk ke wilayah setiap stasiunnya (Bali/Kab. Badung; Banten/Kota Tangerang)', len(w) > 0 and all('Bali/Kab. Badung' in x and 'Banten/Kota Tangerang' in x for x in w), w)
+        tab(pg, 'operator'); pg.fill('#opSearch', 'thai airasia'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="AIR-THAI-AIRASIA"]'); pg.wait_for_timeout(1500)
+        T('rekap PAUA: "Stasiun di Indonesia" (bukan cakupan unit %)', 'Stasiun di Indonesia' in pg.inner_text('#opDetail') and 'UNIT' not in pg.inner_text('#opDetail').split('Stasiun di Indonesia')[0][-40:] and '% UNIT' not in pg.inner_text('#opDetail'))
+        pg.close(); ctl('/__ctl?a=reset')
+
         # ================= V3.38: penilaian terakhir per unit (simulasi LPP-004) =================
         ctl('/__ctl?a=simunit'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'operator')
         pg.fill('#opSearch', 'yogyakarta'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="LPP-004"]'); pg.wait_for_timeout(1500)
