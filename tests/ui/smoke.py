@@ -258,6 +258,7 @@ try:
         T('admin: setelah memilih dari master, nama & lokasi terkunci + keterangan', all(pg.is_disabled('#' + i) for i in ['entityName', 'entityCode', 'entityProv', 'entityKab', 'entityLoc']) and pg.is_visible('.master-lock') and pg.input_value('#entityName') == 'PT Super Air Jet')
         # V3.40a: operator tanpa unit → keterangan jelas (bukan kolom hilang), simpan sebagai Induk diizinkan
         T('admin: operator tanpa unit → keterangan "Belum ada unit/stasiun terdaftar" + banner Kantor pusat (tanpa unit)', pg.is_visible('#unitInfo') and 'Belum ada unit/stasiun terdaftar' in pg.inner_text('#unitInfo') and 'Kantor pusat (tanpa unit)' in pg.inner_text('#lokasiBanner') and not pg.is_visible('#unitSearch') and not pg.is_visible('.unit-req'), pg.inner_text('#lokasiBanner'))
+        T('lokasi: operator tanpa data wilayah induk → kolom bertanda "Belum tercatat di data induk"', pg.get_attribute('#entityKab', 'placeholder') == 'Belum tercatat di data induk' and pg.get_attribute('#entityLoc', 'placeholder') == 'Belum tercatat di data induk')
         pg.click('.type:has(input[name=entityType][value="Bandar Udara"])'); pg.wait_for_timeout(300)
         pg.fill('#entitySearch', 'soekarno'); pg.dispatch_event('#entitySearch', 'input'); pg.wait_for_timeout(300)
         pg.click('#entityResults [data-id]') if pg.locator('#entityResults [data-id]').count() else pg.click('#entityResults div >> nth=0'); pg.wait_for_timeout(400)
@@ -283,8 +284,31 @@ try:
         T('admin: cari "solo" → kelompok Stasiun / unit berisi Cabang Pembantu Solo', 'Stasiun / unit (1)' in pg.inner_text('#masterResults') and pg.locator('#masterResults [data-uid="LPP-004-U02"]').count() == 1, pg.inner_text('#masterResults'))
         pg.click('#masterResults [data-uid="LPP-004-U02"]'); pg.wait_for_timeout(400)
         T('admin: klik unit → AirNav Yogyakarta + Cabang Pembantu Solo terpilih sekaligus', 'Cabang Pembantu Solo' in pg.inner_text('#unitPicked') and 'Yogyakarta' in pg.inner_text('#lokasiBanner') and 'Cabang Pembantu Solo' in pg.inner_text('#lokasiBanner'), pg.inner_text('#lokasiBanner'))
+        T('lokasi: unit terpilih → Provinsi/Kab-Kota/Lokasi mengikuti unit (Jawa Tengah · Solo · Cabang Pembantu Solo)', pg.input_value('#entityProv') == 'Jawa Tengah' and pg.input_value('#entityKab') == 'Solo' and 'Cabang Pembantu Solo' in pg.input_value('#entityLoc') and 'mengikuti unit' in pg.inner_text('.master-lock'), [pg.input_value('#entityProv'), pg.input_value('#entityKab'), pg.input_value('#entityLoc')])
+        pg.click('#unitChange'); pg.click('#unitList [data-unit-pick=""]'); pg.wait_for_timeout(200)
+        T('lokasi: ganti ke Induk → kolom kembali ke data induk operator (Kab. Kulon Progo)', pg.input_value('#entityKab') == 'Kab. Kulon Progo' and pg.input_value('#entityProv') == 'DI Yogyakarta', [pg.input_value('#entityProv'), pg.input_value('#entityKab')])
+        tab(pg, 'dashboard'); pg.wait_for_timeout(800)
+        loc = pg.evaluate("SIRISK.risks().filter(r=>r.operatorId==='LPP-004').map(r=>(r.unitId||'-')+'|'+r.provinsi+'|'+r.kabkota)")
+        T('dashboard: skenario unit berlokasi di wilayah unit (Cilacap/Solo, Jawa Tengah), Induk di Kulon Progo', any(x.startswith('LPP-004-U03|Jawa Tengah|Cilacap') for x in loc) and any(x.startswith('LPP-004-U02|Jawa Tengah|Solo') for x in loc) and any(x.startswith('-|DI Yogyakarta|') for x in loc), loc)
         pg.close(); ctl('/__ctl?a=reset'); pg = page(b)
         pg.close()
+
+        # ================= V3.41: PAUA — satu DPRK untuk seluruh operasi di Indonesia =================
+        ctl('/__ctl?a=simpaua'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'form')
+        pg.click('.type:has(input[name=entityType][value="Airlines"])'); pg.wait_for_timeout(300)
+        pg.fill('#masterSearch', 'thai airasia'); pg.dispatch_event('#masterSearch', 'input'); pg.wait_for_timeout(300)
+        pg.click('#masterResults [data-oid="AIR-THAI-AIRASIA"]'); pg.wait_for_timeout(400)
+        T('PAUA: tanpa pilihan stasiun, keterangan "Satu DPRK untuk seluruh operasi di Indonesia" + daftar stasiun', pg.is_visible('#unitInfo') and 'Satu DPRK untuk seluruh operasi di Indonesia' in pg.inner_text('#unitInfo') and 'DPS' in pg.inner_text('#unitInfo') and 'CGK' in pg.inner_text('#unitInfo') and not pg.is_visible('#unitSearch'), pg.inner_text('#unitInfo') if pg.is_visible('#unitInfo') else '-')
+        T('PAUA: banner "seluruh operasi di Indonesia (2 stasiun)" & lokasi "2 stasiun: DPS, CGK"', 'seluruh operasi di Indonesia (2 stasiun)' in pg.inner_text('#lokasiBanner') and pg.input_value('#entityLoc') == '2 stasiun: DPS, CGK', [pg.inner_text('#lokasiBanner'), pg.input_value('#entityLoc')])
+        fill_form(pg, 'Uji PAUA satu DPRK'); pg.click('#saveBtn'); pg.wait_for_timeout(1800)
+        pr = [r for r in ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT') if r['skenario'] == 'Uji PAUA satu DPRK']
+        T('PAUA: simpan berhasil sebagai matriks seluruh operasi (tanpa unit)', len(pr) == 1 and pr[0]['unitId'] == '', pr)
+        tab(pg, 'dashboard'); pg.wait_for_timeout(1000)
+        w = pg.evaluate("SIRISK.risks().filter(r=>r.operatorId==='AIR-THAI-AIRASIA').map(r=>(r._wilayah||[]).map(x=>x.p+'/'+x.k).join(';'))")
+        T('dashboard: skenario PAUA masuk ke wilayah setiap stasiunnya (Bali/Kab. Badung; Banten/Kota Tangerang)', len(w) > 0 and all('Bali/Kab. Badung' in x and 'Banten/Kota Tangerang' in x for x in w), w)
+        tab(pg, 'operator'); pg.fill('#opSearch', 'thai airasia'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="AIR-THAI-AIRASIA"]'); pg.wait_for_timeout(1500)
+        T('rekap PAUA: "Stasiun di Indonesia" (bukan cakupan unit %)', 'Stasiun di Indonesia' in pg.inner_text('#opDetail') and 'UNIT' not in pg.inner_text('#opDetail').split('Stasiun di Indonesia')[0][-40:] and '% UNIT' not in pg.inner_text('#opDetail'))
+        pg.close(); ctl('/__ctl?a=reset')
 
         # ================= V3.38: penilaian terakhir per unit (simulasi LPP-004) =================
         ctl('/__ctl?a=simunit'); pg = page(b); login(pg, 'admin@dkp.go.id'); tab(pg, 'operator')

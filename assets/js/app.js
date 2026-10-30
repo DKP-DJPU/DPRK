@@ -451,6 +451,16 @@
         state.units = d || [];
         state.unitsStatus = "ok";
         renderUnitField();
+        if ((state.risks || []).length) {
+          enrichRiskLocations();
+          initDashboardLocationFilters();
+          if (state.data && $("dashboardOperatorFilter"))
+            renderDashboardRiskAnalytics(
+              $("dashboardOperatorFilter").value,
+              $("dashboardProvinceFilter").value,
+              $("dashboardKabkotaFilter").value,
+            );
+        }
         renderRiskTable();
         document.dispatchEvent(new CustomEvent("sirisk:units"));
         return d;
@@ -468,6 +478,17 @@
   function unitAreaShown() {
     var a = $("unitArea");
     return !!(a && !a.hidden);
+  }
+  // V3.41 — PAUA: satu DPRK untuk seluruh operasi di Indonesia; stasiun hanya cakupan/wilayah (bukan matriks terpisah).
+  function isPauaOp(oid) {
+    var o = (state.operators || []).filter(function (x) {
+      return String(x.operatorId) === String(oid);
+    })[0];
+    return !!(o && String(o.kelas || "").trim().toUpperCase() === "PAUA");
+  }
+  function pauaStations() {
+    var oid = entityOperatorId(state.entity);
+    return isPauaOp(oid) ? unitsOf(oid) : [];
   }
   function unitMode() {
     return state.unitMode || "";
@@ -560,7 +581,69 @@
       ? hits.length + " dari " + list.length + " unit/stasiun cocok"
       : list.length + " unit/stasiun terdaftar. Wajib dipilih — tidak ada pilihan bawaan.";
   }
+  // V3.40b — kolom Provinsi / Kabupaten/Kota / Lokasi mengikuti LOKASI YANG DINILAI: unit/stasiun terpilih →
+  // wilayah unit itu (MASTER_UNIT); Induk/tanpa unit → data induk operator. Hanya tampilan: server memakai master.
+  function chosenUnit() {
+    if (unitMode() !== "pick") return null;
+    var id = state.edit ? state.edit.unitId || "" : state.unitPick;
+    if (!id) return null;
+    return (
+      (state.units || []).filter(function (u) {
+        return u.unitId === id;
+      })[0] || null
+    );
+  }
+  function syncEntityLocation() {
+    var p = $("entityProv"),
+      k = $("entityKab"),
+      l = $("entityLoc");
+    if (!p || !k || !l || !state.entity || state.type === "Bandar Udara") return;
+    var u = chosenUnit(),
+      hint = document.querySelector(".master-lock");
+    if (unitMode() === "paua") {
+      var ps = pauaStations();
+      if (ps.length === 1) u = ps[0];
+      else if (ps.length > 1) {
+        p.value = "";
+        k.value = "";
+        k.placeholder = "Beberapa wilayah (" + ps.length + " stasiun)";
+        l.value =
+          ps.length +
+          " stasiun: " +
+          ps
+            .map(function (x) {
+              return x.kodeUnit || x.namaUnit;
+            })
+            .join(", ");
+        if (hint)
+          hint.textContent =
+            "PAUA: satu DPRK untuk seluruh operasi di Indonesia. Wilayah mengikuti stasiun-stasiunnya; data tidak dapat diubah di formulir.";
+        return;
+      }
+    }
+    var prov = u ? u.provinsi || "" : state.entity.provinsi || "";
+    if (prov && !Array.prototype.some.call(p.options, function (o) {
+      return o.value === prov;
+    })) {
+      var opt = document.createElement("option");
+      opt.textContent = prov;
+      p.appendChild(opt);
+    }
+    p.value = prov;
+    k.value = u ? u.kabkota || "" : state.entity.kabkota || "";
+    l.value = u ? u.namaUnit + (u.kodeUnit && u.namaUnit.indexOf(u.kodeUnit) < 0 ? " (" + u.kodeUnit + ")" : "") : state.entity.lokasi || "";
+    var empty = "Belum tercatat di data induk";
+    k.placeholder = u ? "" : state.entity.operatorId ? empty : "Kabupaten/Kota";
+    l.placeholder = u ? "" : state.entity.operatorId ? empty : "Lokasi operasional";
+    if (hint)
+      hint.textContent = u
+        ? "Provinsi, kabupaten/kota, dan lokasi mengikuti unit/stasiun terpilih (" +
+          u.namaUnit +
+          "). Nama tetap nama operator induk. Data tidak dapat diubah di formulir; bila salah, hubungi Admin."
+        : "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila ada yang salah, hubungi Admin.";
+  }
   function renderLokasiBanner() {
+    syncEntityLocation();
     var b = $("lokasiBanner");
     if (!b) return;
     if (!state.entity) {
@@ -569,7 +652,9 @@
     }
     b.hidden = false;
     var lok = "";
-    if (unitAreaShown() && unitMode() === "none") lok = " › <b>Kantor pusat (tanpa unit)</b>";
+    if (unitAreaShown() && unitMode() === "paua")
+      lok = " › <b>seluruh operasi di Indonesia (" + pauaStations().length + " stasiun)</b>";
+    else if (unitAreaShown() && unitMode() === "none") lok = " › <b>Kantor pusat (tanpa unit)</b>";
     else if (unitAreaShown() && unitMode() !== "pick")
       lok = ' › <span class="lokasi-belum">' + (unitMode() === "error" ? "daftar unit gagal dimuat" : "memuat daftar unit…") + "</span>";
     else if (unitAreaShown()) {
@@ -617,6 +702,27 @@
                 ? " Stasiun maskapai di bandara ini dipilih lewat jenis <b>Airlines</b> (pilih maskapainya, lalu stasiunnya)."
                 : " Unit/stasiun belum terdaftar? Hubungi Admin.");
       if ($("unitRetry")) $("unitRetry").onclick = loadUnits;
+      renderLokasiBanner();
+      return;
+    }
+    if (isPauaOp(oid)) {
+      state.unitMode = "paua";
+      state.unitPick = "";
+      a.hidden = false;
+      a.classList.add("unit-area-none");
+      $("unitPicked").hidden = true;
+      $("unitPicker").hidden = true;
+      $("unitCount").textContent = list.length + " stasiun";
+      info0.hidden = false;
+      info0.className = "unit-info";
+      info0.innerHTML =
+        "<b>Satu DPRK untuk seluruh operasi di Indonesia.</b> Skenario PAUA tidak dicatat per stasiun. Stasiun tercakup: " +
+        list
+          .map(function (u) {
+            return "<b>" + esc(u.kodeUnit || u.namaUnit) + "</b>" + (u.kabkota ? " (" + esc(u.kabkota) + ")" : "");
+          })
+          .join(", ") +
+        ".";
       renderLokasiBanner();
       return;
     }
@@ -978,6 +1084,7 @@
     var n = $("entityName") && $("entityName").value.trim();
     if (!n) return null;
     var code = $("entityCode") ? $("entityCode").value.trim() : "";
+    var linkedMaster = !!(state.entity && state.entity.operatorId && String(state.entity.nama || "").trim() === n);
     var stableId =
       state.entity && state.entity.operatorId && String(state.entity.nama || "").trim() === n
         ? String(state.entity.operatorId)
@@ -988,9 +1095,9 @@
       namaOperator: n,
       kodeOperator: code,
       iata: "",
-      provinsi: $("entityProv").value,
-      kabkota: $("entityKab").value.trim(),
-      lokasi: $("entityLoc").value.trim(),
+      provinsi: linkedMaster ? state.entity.provinsi || "" : $("entityProv").value,
+      kabkota: linkedMaster ? state.entity.kabkota || "" : $("entityKab").value.trim(),
+      lokasi: linkedMaster ? state.entity.lokasi || "" : $("entityLoc").value.trim(),
       kelas: "",
     };
   }
@@ -2077,7 +2184,34 @@
   function enrichRiskLocations() {
     var risks = state.risks || [],
       ops = state.operators || [];
+    // V3.40b: skenario unit/stasiun berlokasi di WILAYAH UNIT-nya (mis. Super Air Jet › Stasiun BWX → Banyuwangi,
+    // Jawa Timur), bukan alamat kantor pusat operator — filter wilayah Dashboard memakai ini.
+    var unitById = {};
+    (state.units || []).forEach(function (u) {
+      unitById[u.unitId] = u;
+    });
+    // V3.41: PAUA (satu DPRK untuk seluruh Indonesia) → skenarionya masuk ke SETIAP wilayah stasiunnya.
+    var pauaSt = {};
+    (state.units || []).forEach(function (u) {
+      if (u.aktif !== false && isPauaOp(u.operatorId)) (pauaSt[u.operatorId] = pauaSt[u.operatorId] || []).push(u);
+    });
     risks.forEach(function (r) {
+      var ps = !r.unitId && pauaSt[String(r.operatorId)];
+      if (ps && ps.length) {
+        r._wilayah = ps.map(function (u) {
+          return { p: String(u.provinsi || "").trim(), k: String(u.kabkota || "").trim() };
+        });
+        r.provinsi = ps.length === 1 ? r._wilayah[0].p : "";
+        r.kabkota = ps.length === 1 ? r._wilayah[0].k : "";
+        return;
+      }
+      var un = r.unitId ? unitById[r.unitId] : null;
+      if (un && (un.provinsi || un.kabkota)) {
+        r.provinsi = un.provinsi || "";
+        r.kabkota = un.kabkota || "";
+        r._lokasiUnit = true;
+        return;
+      }
       if (String(r.provinsi || "").trim() && String(r.kabkota || "").trim()) return;
       var name = String(r.namaOperator || "")
         .trim()
@@ -2098,6 +2232,14 @@
       }
     });
   }
+  function riskPlaces(x) {
+    return x._wilayah || [{ p: String(x.provinsi || "").trim(), k: String(x.kabkota || "").trim() }];
+  }
+  function inRegion(x, prov, kab) {
+    return riskPlaces(x).some(function (w) {
+      return (!prov || w.p === prov) && (!kab || w.k === kab);
+    });
+  }
   function initDashboardLocationFilters() {
     var p = $("dashboardProvinceFilter"),
       k = $("dashboardKabkotaFilter");
@@ -2107,8 +2249,9 @@
       source = risks.length ? risks : state.operators || [];
     var vals = [];
     source.forEach(function (x) {
-      var v = String(x.provinsi || "").trim();
-      if (v && vals.indexOf(v) < 0) vals.push(v);
+      riskPlaces(x).forEach(function (w) {
+        if (w.p && vals.indexOf(w.p) < 0) vals.push(w.p);
+      });
     });
     vals.sort(function (a, b) {
       return a.localeCompare(b, "id");
@@ -2123,15 +2266,11 @@
         .join("");
     p.value = vals.indexOf(cur) >= 0 ? cur : "";
     if (k) {
-      var list = p.value
-          ? source.filter(function (x) {
-              return String(x.provinsi || "").trim() === p.value;
-            })
-          : source,
-        ks = [];
-      list.forEach(function (x) {
-        var v = String(x.kabkota || "").trim();
-        if (v && ks.indexOf(v) < 0) ks.push(v);
+      var ks = [];
+      source.forEach(function (x) {
+        riskPlaces(x).forEach(function (w) {
+          if (w.k && (!p.value || w.p === p.value) && ks.indexOf(w.k) < 0) ks.push(w.k);
+        });
       });
       ks.sort(function (a, b) {
         return a.localeCompare(b, "id");
@@ -2189,8 +2328,7 @@
     var filtered = all.filter(function (x) {
       return (
         (!selectedType || String(x.jenisOperator || "") === selectedType) &&
-        (!selectedProv || String(x.provinsi || "").trim() === selectedProv) &&
-        (!selectedKab || String(x.kabkota || "").trim() === selectedKab)
+        ((!selectedProv && !selectedKab) || inRegion(x, selectedProv, selectedKab))
       );
     });
     initDashboardLocationFilters();

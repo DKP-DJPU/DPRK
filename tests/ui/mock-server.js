@@ -39,6 +39,15 @@ function simUnit() {
   [['LPP-004-U02', '15', 'Penyusupan ruang peralatan', 4, 5, 6], ['LPP-004-U02', '16', 'Sabotase catu daya radar', 5, 5, 7], ['LPP-004-U02', '14', 'Bom palsu telepon', 3, 3, 3]].forEach(p => sv(p[0], p[1], p[2], p[3], p[4], p[5], 'Januari', 2027));
   env.cache.clear();
 }
+// V3.41: Thai AirAsia sebagai PAUA dengan 2 stasiun (REKAAN) — satu DPRK untuk seluruh operasi di Indonesia.
+function simPaua() {
+  const OP = 'AIR-THAI-AIRASIA', s = env.sheets.MASTER_OPERATOR, h = s._data[0];
+  s._data.find(r => r[0] === OP)[h.indexOf('kelas')] = 'PAUA';
+  const us = env.sheets.MASTER_UNIT, uh = us._data[0];
+  [['DPS', 'Stasiun DPS – Ngurah Rai', 'Bali', 'Kab. Badung'], ['CGK', 'Stasiun CGK – Soekarno-Hatta', 'Banten', 'Kota Tangerang']]
+    .forEach(u => us.appendRow(uh.map(k => ({ unitId: OP + '-' + u[0], operatorId: OP, jenisUnit: 'Stasiun', namaUnit: u[1], kodeUnit: u[0], provinsi: u[2], kabkota: u[3], aktif: true })[k] ?? '')));
+  env.cache.clear();
+}
 reset();
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x'); let body = '';
@@ -50,6 +59,7 @@ http.createServer((req, res) => {
         const a = u.searchParams.get('a');
         if (a === 'reset') reset();
         if (a === 'simunit') simUnit();
+        if (a === 'simpaua') simPaua();
         if (a === 'clearcache') env.cache.clear();
         if (a === 'enforce') env.ctx.aktifkanLoginWajib();
         if (a === 'relax') env.ctx.nonaktifkanLoginWajib();
