@@ -2640,3 +2640,182 @@ main {
   color: var(--muted);
   margin-top: 2px;
 }
+/* V3.42 — Usulan Lokasi */
+.usul-lokasi {
+  margin: 4px 0 14px;
+}
+.usul-lokasi[hidden] {
+  display: none;
+}
+.usul-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f3f6f9;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+}
+.usul-txt {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.usul-txt b {
+  color: var(--text);
+}
+.usul-txt small {
+  color: var(--muted);
+}
+.usul-ic {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 13px;
+  background: var(--blue);
+  color: #fff;
+}
+.usul-act {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-self: center;
+}
+.usul-act .btn,
+.usul-form-act .btn {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+.usul-kosong,
+.usul-tolak {
+  background: #fff7e6;
+  border-color: #efd39c;
+  color: #5c470c;
+}
+.usul-kosong .usul-ic,
+.usul-tolak .usul-ic {
+  background: var(--gold);
+}
+.usul-tolak .usul-ic {
+  background: var(--high);
+}
+.usul-alasan {
+  font-weight: 600;
+  color: #7a2a24;
+}
+.usul-pending {
+  background: #eef6fb;
+  border-color: #bcd6ea;
+}
+.usul-link-row {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--navy2);
+}
+.usul-form {
+  border: 1px solid #bcd6ea;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.usul-form-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 14px;
+  font-size: 14px;
+}
+.usul-form-head span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.usul-now {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: #f3f6f9;
+}
+.usul-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.usul-grid .field.full {
+  grid-column: 1 / -1;
+}
+.usul-grid .field {
+  margin: 0;
+}
+.opt {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.usul-info {
+  font-size: 12.5px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: #eef6fb;
+  color: #17466f;
+}
+.usul-err {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9b2c24;
+}
+.usul-err[hidden] {
+  display: none;
+}
+.usul-form-act {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .usul-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.chip-lokasi {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef6fb;
+  color: #17466f;
+  border: 1px solid #bcd6ea;
+}
+.chip-lokasi-warn {
+  background: #fff7e6;
+  color: #7a5200;
+  border-color: #efd39c;
+}
