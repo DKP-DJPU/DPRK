@@ -972,6 +972,7 @@ var USUL_MAX_TERBUKA=30; // per akun
 function kodeWil_(v){if(typeof v==="number"&&isFinite(v))return v.toFixed(2);return String(v==null?"":v).trim()}
 function usulRowsIfAny_(){var s=ss_().getSheetByName(SHEETS.USUL);return s&&s.getLastRow()>1?objs_(s):[]}
 function usulTerbuka_(x){return !String(x.diputuskanAt||"").trim()&&String(x.status||"").trim()!=="Dibatalkan"&&!!String(x.usulanId||"").trim()}
+function usulCacheOff_(){try{CacheService.getScriptCache().remove(CACHE_KEYS.operators)}catch(e){}} // jumlah usulan di Monitoring Operator
 function usulScope_(x){return String(x.operatorId||"")+"|"+String(x.unitId||"")}
 // Lokasi tercatat sekarang untuk operator induk (unitId kosong) atau unit/stasiunnya.
 function usulTarget_(operatorId,unitId){
@@ -1021,6 +1022,7 @@ function usulLokasi_(p){
   kodeWilayah:w.kode,provinsi:w.provinsi,kabkota:w.kabkota,alamat:alamat,catatan:catatan,provinsiSekarang:t.provinsi,kabkotaSekarang:t.kabkota,jenis:t.provinsi||t.kabkota?"Koreksi":"Isi baru",status:"Menunggu",alasan:"",peringatan:"",diputuskanAt:"",diputuskanOleh:"",updatedAt:n};
  if(same){var f=findBy_(s,"usulanId",same.usulanId);s.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(c){return sanitizeCell_(x[c]===undefined?f.obj[c]:x[c])})]);audit_(p,"USULAN_LOKASI",x.usulanId,"UPDATE",f.obj,x,p.requestId,"Usulan lokasi diperbarui oleh pengusul")}
  else{appendObj_(s,s.getRange(1,1,1,s.getLastColumn()).getValues()[0],x);audit_(p,"USULAN_LOKASI",x.usulanId,"CREATE",{},x,p.requestId,"Usulan lokasi")}
+ usulCacheOff_();
  return json_({ok:true,diperbarui:!!same,data:usulPublic_(x,p._auth)});
 }
 function batalUsulLokasi_(p){
@@ -1031,6 +1033,7 @@ function batalUsulLokasi_(p){
  var before=JSON.parse(JSON.stringify(f.obj));f.obj.status="Dibatalkan";f.obj.updatedAt=now_();
  s.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(c){return sanitizeCell_(f.obj[c]===undefined?"":f.obj[c])})]);
  audit_(p,"USULAN_LOKASI",f.obj.usulanId,"CANCEL",before,f.obj,p.requestId,"Usulan lokasi dibatalkan");
+ usulCacheOff_();
  return json_({ok:true});
 }
 

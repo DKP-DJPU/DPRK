@@ -173,7 +173,7 @@
       });
   }
   // Aksi baca data Terbatas (wajib login). Lihat READ_ACTIONS di Code.gs V3.34/V3.36.
-  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList", "riskDetail", "unitList"];
+  var READ_ACTIONS = ["riskData", "operatorStatus", "reviewList", "riskDetail", "unitList", "usulanLokasi"];
   function authUser() {
     return window.SIRISK_AUTH ? window.SIRISK_AUTH.user() : null;
   }
@@ -346,6 +346,8 @@
   }
   // Dipanggil auth.js setiap status login berubah.
   function applyAuthScope() {
+    state.usulOid = null; // usulan lokasi dimuat ulang untuk akun yang baru
+    state.usulForm = null;
     if (!state.initDone || state.edit) return;
     var sc = authScope(),
       typeBefore = state.type;
@@ -624,11 +626,12 @@
       hint.textContent = u
         ? "Provinsi, kabupaten/kota, dan lokasi mengikuti unit/stasiun terpilih (" +
           u.namaUnit +
-          "). Nama tetap nama operator induk. Data tidak dapat diubah di formulir; bila salah, hubungi Admin."
-        : "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila ada yang salah, hubungi Admin.";
+          "). Nama tetap nama operator induk. Data tidak dapat diubah di formulir; bila wilayahnya salah, klik Usulkan koreksi di bawah."
+        : "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila wilayahnya kosong atau salah, gunakan Usulan lokasi di bawah; untuk koreksi nama, hubungi Admin.";
   }
   function renderLokasiBanner() {
     syncEntityLocation();
+    renderUsulLokasi();
     var b = $("lokasiBanner");
     if (!b) return;
     if (!state.entity) {
@@ -739,8 +742,319 @@
       if (first) first.click();
     });
   }
+  // ===== V3.42 — USULAN LOKASI =====
+  // Operator yang login mengusulkan provinsi + kab/kota (wajib, daftar resmi Kemendagri) untuk lokasi yang sedang
+  // dinilai (kantor pusat atau unit/stasiun terpilih). Alamat & catatan opsional. Data induk baru berubah setelah
+  // Admin menyetujui (terapkanUsulanLokasi). Penolakan + alasan hanya tampil di sini (tidak dikirim lewat email).
+  var WILAYAH = null;
+  function loadWilayah() {
+    if (WILAYAH) return Promise.resolve(WILAYAH);
+    if (loadWilayah.p) return loadWilayah.p;
+    loadWilayah.p = fetch("data/wilayah-kemendagri.json", { cache: "no-cache" })
+      .then(function (r) {
+        if (!r.ok) throw Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        var PT = { 31: "DKI Jakarta", 34: "DI Yogyakarta" };
+        WILAYAH = {
+          provinsi: (d.provinsi || []).map(function (p) {
+            return { kode: p.kode, nama: PT[p.kode] || p.nama };
+          }),
+          kabkota: d.kabkota || [],
+        };
+        return WILAYAH;
+      })
+      .catch(function (e) {
+        loadWilayah.p = null;
+        throw e;
+      });
+    return loadWilayah.p;
+  }
+  function opRecord(oid) {
+    return (
+      (state.operators || []).filter(function (o) {
+        return String(o.operatorId) === String(oid);
+      })[0] || null
+    );
+  }
+  // Lokasi yang dinilai saat ini → { oid, unitId, untuk, provinsi, kabkota, kodeLokasi } atau null bila belum pasti.
+  function usulScope() {
+    var oid = entityOperatorId(state.entity);
+    if (!oid || !authUser()) return null;
+    var m = unitAreaShown() ? unitMode() : "none";
+    if (m === "loading" || m === "error" || (m === "pick" && needsUnitPick())) return null;
+    var uid = m === "pick" ? selectedUnitId() : "",
+      u = uid ? chosenUnit() : null,
+      o = opRecord(oid) || {};
+    if (uid && !u) return null;
+    if (u)
+      return {
+        oid: oid,
+        unitId: uid,
+        untuk: u.namaUnit,
+        provinsi: u.provinsi || "",
+        kabkota: u.kabkota || "",
+        kodeLokasi: u.jenisUnit === "Stasiun" ? String(u.kodeUnit || "").toUpperCase() : "",
+      };
+    return {
+      oid: oid,
+      unitId: "",
+      untuk: state.type === "Airlines" ? "Kantor pusat / stasiun utama" : state.type === "Bandar Udara" ? "Bandar udara" : "Kantor pusat",
+      provinsi: o.provinsi || "",
+      kabkota: o.kabkota || "",
+      kodeLokasi: o.jenisOperator === "Bandar Udara" ? String(o.iata || "").toUpperCase() : "",
+    };
+  }
+  function loadUsulan(oid) {
+    state.usulOid = oid;
+    state.usulan = null;
+    return post({ action: "usulanLokasi", operatorId: oid })
+      .then(function (res) {
+        if (state.usulOid !== oid) return;
+        state.usulan = res && res.ok ? res.data || [] : [];
+        renderUsulLokasi();
+      })
+      .catch(function () {
+        if (state.usulOid !== oid) return;
+        state.usulan = [];
+        renderUsulLokasi();
+      });
+  }
+  function tglPendek(s) {
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function wilTxt(kab, prov) {
+    return [kab, prov].filter(Boolean).join(", ");
+  }
+  function renderUsulLokasi() {
+    var box = $("usulLokasi");
+    if (!box) return;
+    var sc = usulScope();
+    if (!sc) {
+      box.hidden = true;
+      box.innerHTML = "";
+      state.usulForm = null;
+      return;
+    }
+    if (state.usulOid !== sc.oid) {
+      loadUsulan(sc.oid);
+      box.hidden = true;
+      return;
+    }
+    if (!state.usulan) {
+      box.hidden = true;
+      return;
+    }
+    var key = sc.oid + "|" + sc.unitId;
+    if (state.usulForm && state.usulForm.key !== key) state.usulForm = null;
+    box.hidden = false;
+    if (state.usulForm) return renderUsulForm(box, sc);
+    var mine = state.usulan.filter(function (x) {
+        return String(x.unitId || "") === sc.unitId;
+      }),
+      pend = mine.filter(function (x) {
+        return x.status === "Menunggu";
+      }),
+      last = mine[0],
+      kosong = !sc.provinsi || !sc.kabkota,
+      html = "";
+    if (pend.length) {
+      var p = pend.filter(function (x) {
+        return x.milikSaya;
+      })[0] || pend[0];
+      html =
+        '<div class="usul-card usul-pending"><span class="usul-ic" aria-hidden="true">✓</span><div class="usul-txt"><b>Usulan lokasi menunggu verifikasi Admin</b><span>' +
+        esc(wilTxt(p.kabkota, p.provinsi)) +
+        (p.alamat ? " · " + esc(p.alamat) : "") +
+        " · dikirim " +
+        esc(tglPendek(p.createdAt)) +
+        (p.milikSaya ? "" : " oleh akun lain di operator ini") +
+        (pend.length > 1 ? " · " + pend.length + " usulan menunggu" : "") +
+        "</span><small>Pengisian DPRK tetap dapat dilanjutkan seperti biasa. Data induk baru berubah setelah disetujui Admin.</small></div>" +
+        '<div class="usul-act">' +
+        (p.milikSaya ? '<button type="button" class="btn secondary btn-sm" data-usul="ubah" data-id="' + esc(p.usulanId) + '">Ubah usulan</button>' : "") +
+        '<button type="button" class="btn secondary btn-sm" data-usul="batal" data-id="' + esc(p.usulanId) + '">Batalkan usulan</button></div></div>';
+    } else if (last && last.status === "Ditolak") {
+      html =
+        '<div class="usul-card usul-tolak"><span class="usul-ic" aria-hidden="true">!</span><div class="usul-txt"><b>Usulan lokasi ditolak Admin</b><span>Diusulkan: ' +
+        esc(wilTxt(last.kabkota, last.provinsi)) +
+        (last.diputuskanAt ? " · diputuskan " + esc(tglPendek(last.diputuskanAt)) : "") +
+        "</span><span class=\"usul-alasan\">Alasan: " +
+        esc(last.alasan || "—") +
+        '</span></div><div class="usul-act"><button type="button" class="btn secondary btn-sm" data-usul="buka">Usulkan lagi</button></div></div>';
+    } else if (kosong) {
+      html =
+        '<div class="usul-card usul-kosong"><span class="usul-ic" aria-hidden="true">!</span><div class="usul-txt"><b>Lokasi ' +
+        (sc.unitId ? "unit/stasiun" : "kantor/pangkalan") +
+        " ini belum tercatat.</b><span>Bantu lengkapi provinsi dan kabupaten/kota agar DPRK Anda masuk rekap per wilayah.</span></div>" +
+        '<div class="usul-act"><button type="button" class="btn primary btn-sm" data-usul="buka">Usulkan lokasi</button></div></div>';
+    } else {
+      html = '<div class="usul-link-row">Lokasi ini salah? <button type="button" class="link-btn" data-usul="buka">Usulkan koreksi</button></div>';
+    }
+    box.innerHTML = html;
+  }
+  function renderUsulForm(box, sc) {
+    var f = state.usulForm,
+      koreksi = !!(sc.provinsi || sc.kabkota);
+    box.innerHTML =
+      '<form class="usul-form" id="usulForm" novalidate><div class="usul-form-head"><b>' +
+      (koreksi ? "Usulkan koreksi lokasi" : "Usulkan lokasi") +
+      '</b><span>Untuk: <b>' +
+      esc(sc.untuk) +
+      "</b></span></div>" +
+      (koreksi ? '<div class="usul-now">Tercatat sekarang: <b>' + esc(wilTxt(sc.kabkota, sc.provinsi)) + "</b></div>" : "") +
+      '<div class="usul-grid"><div class="field"><label for="usulProv">Provinsi <span class="unit-req">wajib</span></label><select id="usulProv" required><option value="">Memuat daftar…</option></select></div>' +
+      '<div class="field"><label for="usulKab">Kabupaten/Kota <span class="unit-req">wajib</span></label><select id="usulKab" required disabled><option value="">Pilih provinsi dahulu</option></select><div class="scenario-hint">Hanya kab/kota di provinsi terpilih yang muncul (daftar resmi Kemendagri).</div></div>' +
+      '<div class="field full"><label for="usulAlamat">Alamat lengkap <span class="opt">opsional</span></label><input id="usulAlamat" maxlength="300" autocomplete="off" placeholder="mis. nama jalan / gedung / terminal"></div>' +
+      '<div class="field full"><label for="usulCatatan">Catatan <span class="opt">opsional</span></label><textarea id="usulCatatan" rows="2" maxlength="500" placeholder="mis. alasan koreksi atau sumber data"></textarea></div></div>' +
+      (sc.kodeLokasi
+        ? '<div class="usul-info">' +
+          (sc.unitId
+            ? "Stasiun memakai lokasi bandaranya. Bila disetujui, koreksi berlaku untuk bandara <b>" + esc(sc.kodeLokasi) + "</b> dan semua stasiun maskapai berkode " + esc(sc.kodeLokasi) + "."
+            : "Bila disetujui, koreksi lokasi bandara <b>" + esc(sc.kodeLokasi) + "</b> juga berlaku untuk semua stasiun maskapai di " + esc(sc.kodeLokasi) + ".") +
+          "</div>"
+        : "") +
+      '<div class="usul-err" id="usulErr" role="alert" hidden></div>' +
+      '<div class="usul-form-act"><button type="button" class="btn secondary" data-usul="tutup">Batal</button><button type="submit" class="btn primary" id="usulKirim">Kirim usulan</button></div></form>';
+    $("usulAlamat").value = f.alamat || "";
+    $("usulCatatan").value = f.catatan || "";
+    loadWilayah()
+      .then(function (W) {
+        if (!$("usulProv")) return;
+        var pre = f.kodeWilayah ? f.kodeWilayah.split(".")[0] : (W.provinsi.filter(function (p) {
+          return p.nama === sc.provinsi;
+        })[0] || {}).kode || "";
+        $("usulProv").innerHTML =
+          '<option value="">Pilih provinsi…</option>' +
+          W.provinsi
+            .map(function (p) {
+              return '<option value="' + esc(p.kode) + '"' + (p.kode === pre ? " selected" : "") + ">" + esc(p.nama) + "</option>";
+            })
+            .join("");
+        fillUsulKab(f.kodeWilayah || "");
+      })
+      .catch(function () {
+        showUsulErr("Daftar wilayah gagal dimuat. Muat ulang halaman, lalu coba lagi.");
+      });
+  }
+  function fillUsulKab(sel) {
+    var pk = $("usulProv").value,
+      k = $("usulKab");
+    if (!pk || !WILAYAH) {
+      k.innerHTML = '<option value="">Pilih provinsi dahulu</option>';
+      k.disabled = true;
+      return;
+    }
+    k.disabled = false;
+    k.innerHTML =
+      '<option value="">Pilih kabupaten/kota…</option>' +
+      WILAYAH.kabkota
+        .filter(function (x) {
+          return x.provinsiKode === pk;
+        })
+        .map(function (x) {
+          return '<option value="' + esc(x.kode) + '"' + (x.kode === sel ? " selected" : "") + ">" + esc(x.tampil) + "</option>";
+        })
+        .join("");
+  }
+  function showUsulErr(t) {
+    var e = $("usulErr");
+    if (!e) return;
+    e.textContent = t || "";
+    e.hidden = !t;
+  }
+  function bindUsulLokasi() {
+    var box = $("usulLokasi");
+    if (!box || bindUsulLokasi.done) return;
+    bindUsulLokasi.done = true;
+    box.addEventListener("change", function (e) {
+      if (e.target.id === "usulProv") {
+        fillUsulKab("");
+        showUsulErr("");
+      }
+    });
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-usul]");
+      if (!b) return;
+      var act = b.getAttribute("data-usul"),
+        sc = usulScope();
+      if (!sc) return;
+      if (act === "buka") {
+        state.usulForm = { key: sc.oid + "|" + sc.unitId };
+        renderUsulLokasi();
+        if ($("usulProv")) $("usulProv").focus();
+      } else if (act === "ubah") {
+        var x = (state.usulan || []).filter(function (z) {
+          return z.usulanId === b.getAttribute("data-id");
+        })[0];
+        state.usulForm = { key: sc.oid + "|" + sc.unitId, kodeWilayah: x ? x.kodeWilayah : "", alamat: x ? x.alamat : "", catatan: x ? x.catatan : "" };
+        renderUsulLokasi();
+      } else if (act === "tutup") {
+        state.usulForm = null;
+        renderUsulLokasi();
+      } else if (act === "batal") {
+        if (!window.confirm("Batalkan usulan lokasi ini?")) return;
+        b.disabled = true;
+        post({ action: "batalUsulLokasi", operatorId: sc.oid, usulanId: b.getAttribute("data-id") }).then(function (res) {
+          if (!res || !res.ok) {
+            b.disabled = false;
+            window.alert((res && res.error) || "Usulan belum dapat dibatalkan.");
+            return;
+          }
+          loadUsulan(sc.oid);
+        });
+      }
+    });
+    box.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var sc = usulScope();
+      if (!sc) return;
+      var kode = $("usulKab").value;
+      if (!$("usulProv").value || !kode) {
+        showUsulErr("Pilih provinsi dan kabupaten/kota.");
+        ($("usulProv").value ? $("usulKab") : $("usulProv")).focus();
+        return;
+      }
+      var w = (WILAYAH.kabkota || []).filter(function (x) {
+          return x.kode === kode;
+        })[0],
+        provNama = (WILAYAH.provinsi.filter(function (p) {
+          return p.kode === $("usulProv").value;
+        })[0] || {}).nama;
+      if (w && w.tampil === sc.kabkota && provNama === sc.provinsi) {
+        showUsulErr("Wilayah yang dipilih sama dengan yang sudah tercatat.");
+        return;
+      }
+      showUsulErr("");
+      var btn = $("usulKirim");
+      btn.disabled = true;
+      btn.textContent = "Mengirim…";
+      post({
+        action: "usulLokasi",
+        operatorId: sc.oid,
+        unitId: sc.unitId,
+        kodeWilayah: kode,
+        alamat: $("usulAlamat").value.trim(),
+        catatan: $("usulCatatan").value.trim(),
+      })
+        .then(function (res) {
+          if (!res || !res.ok) throw Error((res && res.error) || "Usulan belum terkirim.");
+          state.usulForm = null;
+          return loadUsulan(sc.oid);
+        })
+        .catch(function (err) {
+          if (!$("usulKirim")) return;
+          $("usulKirim").disabled = false;
+          $("usulKirim").textContent = "Kirim usulan";
+          showUsulErr(err.message || "Usulan belum terkirim. Coba lagi.");
+        });
+    });
+  }
   function renderEntityArea() {
     bindUnitPicker();
+    bindUsulLokasi();
     renderEntityAreaCore();
     renderUnitField();
   }
@@ -977,7 +1291,7 @@
           var hint = document.createElement("div");
           hint.className = "scenario-hint master-lock field full";
           hint.textContent =
-            "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila ada yang salah, hubungi Admin.";
+            "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila wilayahnya kosong atau salah, gunakan Usulan lokasi di bawah; untuk koreksi nama, hubungi Admin.";
           fg.appendChild(hint);
         }
       }
@@ -2557,6 +2871,8 @@
             esc(x.kodeOperator || "") +
             "</small></td><td>" +
             esc((x.provinsi || "") + " " + (x.kabkota || "")) +
+            (x.lokasiLengkap === false ? '<br><span class="chip-lokasi chip-lokasi-warn">Lokasi belum lengkap</span>' : "") +
+            (x.usulanLokasi > 0 ? '<br><span class="chip-lokasi">Usulan lokasi menunggu' + (x.usulanLokasi > 1 ? " (" + x.usulanLokasi + ")" : "") + "</span>" : "") +
             '</td><td class="status-cell"><span class="pill-status ' +
             (isFilled ? "filled" : "unfilled") +
             '">' +
