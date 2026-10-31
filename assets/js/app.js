@@ -497,7 +497,12 @@
   }
   function unitInfo(id) {
     var oid = entityOperatorId(state.entity);
-    if (id === "") return { badge: "INDUK", judul: "Kantor pusat (matriks induk)", sub: "Matriks kantor pusat / cabang utama " + entityLabel() };
+    if (id === "")
+      return {
+        badge: "INDUK",
+        judul: indukLabel(false),
+        sub: (state.type === "Airlines" ? "Matriks kantor pusat / stasiun utama " : "Matriks kantor pusat / cabang utama ") + entityLabel(),
+      };
     var u = unitsOf(oid).filter(function (x) {
       return x.unitId === id;
     })[0] || (state.units || []).filter(function (x) {
@@ -509,6 +514,11 @@
       judul: u.namaUnit,
       sub: [[u.kabkota, u.provinsi].filter(Boolean).join(", "), u.jenisUnit].filter(Boolean).join(" · "),
     };
+  }
+  // Maskapai (termasuk PAUA): "kantor pusat" = stasiun utama (keputusan Alex 31 Okt).
+  function indukLabel(opt) {
+    if (state.type === "Airlines") return opt ? "Kantor pusat / stasiun utama (matriks induk)" : "Kantor pusat / stasiun utama";
+    return opt ? "Kantor pusat / matriks induk" : "Kantor pusat (matriks induk)";
   }
   function unitMatches(u, q) {
     return (
@@ -530,7 +540,7 @@
         ey = String(y.kodeUnit || "").toLowerCase() === q ? 0 : 1;
       return ex - ey || String(x.kodeUnit || x.namaUnit).localeCompare(String(y.kodeUnit || y.namaUnit));
     });
-    var showInduk = !q || "induk kantor pusat".indexOf(q) > -1;
+    var showInduk = !q || "induk kantor pusat stasiun utama".indexOf(q) > -1;
     var row = function (id, info, induk) {
       return (
         '<button type="button" class="unit-opt' +
@@ -552,7 +562,14 @@
       (showInduk
         ? row(
             "",
-            { badge: "INDUK", judul: "Kantor pusat / matriks induk", sub: "Pilih hanya bila Anda mengisi matriks kantor pusat, bukan stasiun/unit." },
+            {
+              badge: "INDUK",
+              judul: indukLabel(true),
+              sub:
+                state.type === "Airlines"
+                  ? "Pilih hanya bila Anda mengisi matriks kantor pusat / stasiun utama, bukan stasiun lain."
+                  : "Pilih hanya bila Anda mengisi matriks kantor pusat, bukan stasiun/unit.",
+            },
             true,
           )
         : "") +
