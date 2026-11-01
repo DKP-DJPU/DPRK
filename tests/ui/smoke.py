@@ -258,6 +258,7 @@ try:
         T('admin: setelah memilih dari master, nama & lokasi terkunci + keterangan', all(pg.is_disabled('#' + i) for i in ['entityName', 'entityCode', 'entityProv', 'entityKab', 'entityLoc']) and pg.is_visible('.master-lock') and pg.input_value('#entityName') == 'PT Super Air Jet')
         # V3.40a: operator tanpa unit → keterangan jelas (bukan kolom hilang), simpan sebagai Induk diizinkan
         T('admin: operator tanpa unit → keterangan "Belum ada unit/stasiun terdaftar" + banner Kantor pusat (tanpa unit)', pg.is_visible('#unitInfo') and 'Belum ada unit/stasiun terdaftar' in pg.inner_text('#unitInfo') and 'Kantor pusat (tanpa unit)' in pg.inner_text('#lokasiBanner') and not pg.is_visible('#unitSearch') and not pg.is_visible('.unit-req'), pg.inner_text('#lokasiBanner'))
+        T('lokasi: operator tanpa data wilayah induk → kolom bertanda "Belum tercatat di data induk"', pg.get_attribute('#entityKab', 'placeholder') == 'Belum tercatat di data induk' and pg.get_attribute('#entityLoc', 'placeholder') == 'Belum tercatat di data induk')
         pg.click('.type:has(input[name=entityType][value="Bandar Udara"])'); pg.wait_for_timeout(300)
         pg.fill('#entitySearch', 'soekarno'); pg.dispatch_event('#entitySearch', 'input'); pg.wait_for_timeout(300)
         pg.click('#entityResults [data-id]') if pg.locator('#entityResults [data-id]').count() else pg.click('#entityResults div >> nth=0'); pg.wait_for_timeout(400)
@@ -283,6 +284,12 @@ try:
         T('admin: cari "solo" → kelompok Stasiun / unit berisi Cabang Pembantu Solo', 'Stasiun / unit (1)' in pg.inner_text('#masterResults') and pg.locator('#masterResults [data-uid="LPP-004-U02"]').count() == 1, pg.inner_text('#masterResults'))
         pg.click('#masterResults [data-uid="LPP-004-U02"]'); pg.wait_for_timeout(400)
         T('admin: klik unit → AirNav Yogyakarta + Cabang Pembantu Solo terpilih sekaligus', 'Cabang Pembantu Solo' in pg.inner_text('#unitPicked') and 'Yogyakarta' in pg.inner_text('#lokasiBanner') and 'Cabang Pembantu Solo' in pg.inner_text('#lokasiBanner'), pg.inner_text('#lokasiBanner'))
+        T('lokasi: unit terpilih → Provinsi/Kab-Kota/Lokasi mengikuti unit (Jawa Tengah · Solo · Cabang Pembantu Solo)', pg.input_value('#entityProv') == 'Jawa Tengah' and pg.input_value('#entityKab') == 'Solo' and 'Cabang Pembantu Solo' in pg.input_value('#entityLoc') and 'mengikuti unit' in pg.inner_text('.master-lock'), [pg.input_value('#entityProv'), pg.input_value('#entityKab'), pg.input_value('#entityLoc')])
+        pg.click('#unitChange'); pg.click('#unitList [data-unit-pick=""]'); pg.wait_for_timeout(200)
+        T('lokasi: ganti ke Induk → kolom kembali ke data induk operator (Kab. Kulon Progo)', pg.input_value('#entityKab') == 'Kab. Kulon Progo' and pg.input_value('#entityProv') == 'DI Yogyakarta', [pg.input_value('#entityProv'), pg.input_value('#entityKab')])
+        tab(pg, 'dashboard'); pg.wait_for_timeout(800)
+        loc = pg.evaluate("SIRISK.risks().filter(r=>r.operatorId==='LPP-004').map(r=>(r.unitId||'-')+'|'+r.provinsi+'|'+r.kabkota)")
+        T('dashboard: skenario unit berlokasi di wilayah unit (Cilacap/Solo, Jawa Tengah), Induk di Kulon Progo', any(x.startswith('LPP-004-U03|Jawa Tengah|Cilacap') for x in loc) and any(x.startswith('LPP-004-U02|Jawa Tengah|Solo') for x in loc) and any(x.startswith('-|DI Yogyakarta|') for x in loc), loc)
         pg.close(); ctl('/__ctl?a=reset'); pg = page(b)
         pg.close()
 

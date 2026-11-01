@@ -451,6 +451,16 @@
         state.units = d || [];
         state.unitsStatus = "ok";
         renderUnitField();
+        if ((state.risks || []).length) {
+          enrichRiskLocations();
+          initDashboardLocationFilters();
+          if (state.data && $("dashboardOperatorFilter"))
+            renderDashboardRiskAnalytics(
+              $("dashboardOperatorFilter").value,
+              $("dashboardProvinceFilter").value,
+              $("dashboardKabkotaFilter").value,
+            );
+        }
         renderRiskTable();
         document.dispatchEvent(new CustomEvent("sirisk:units"));
         return d;
@@ -560,7 +570,48 @@
       ? hits.length + " dari " + list.length + " unit/stasiun cocok"
       : list.length + " unit/stasiun terdaftar. Wajib dipilih — tidak ada pilihan bawaan.";
   }
+  // V3.40b — kolom Provinsi / Kabupaten/Kota / Lokasi mengikuti LOKASI YANG DINILAI: unit/stasiun terpilih →
+  // wilayah unit itu (MASTER_UNIT); Induk/tanpa unit → data induk operator. Hanya tampilan: server memakai master.
+  function chosenUnit() {
+    if (unitMode() !== "pick") return null;
+    var id = state.edit ? state.edit.unitId || "" : state.unitPick;
+    if (!id) return null;
+    return (
+      (state.units || []).filter(function (u) {
+        return u.unitId === id;
+      })[0] || null
+    );
+  }
+  function syncEntityLocation() {
+    var p = $("entityProv"),
+      k = $("entityKab"),
+      l = $("entityLoc");
+    if (!p || !k || !l || !state.entity || state.type === "Bandar Udara") return;
+    var u = chosenUnit(),
+      hint = document.querySelector(".master-lock");
+    var prov = u ? u.provinsi || "" : state.entity.provinsi || "";
+    if (prov && !Array.prototype.some.call(p.options, function (o) {
+      return o.value === prov;
+    })) {
+      var opt = document.createElement("option");
+      opt.textContent = prov;
+      p.appendChild(opt);
+    }
+    p.value = prov;
+    k.value = u ? u.kabkota || "" : state.entity.kabkota || "";
+    l.value = u ? u.namaUnit + (u.kodeUnit && u.namaUnit.indexOf(u.kodeUnit) < 0 ? " (" + u.kodeUnit + ")" : "") : state.entity.lokasi || "";
+    var empty = "Belum tercatat di data induk";
+    k.placeholder = u ? "" : state.entity.operatorId ? empty : "Kabupaten/Kota";
+    l.placeholder = u ? "" : state.entity.operatorId ? empty : "Lokasi operasional";
+    if (hint)
+      hint.textContent = u
+        ? "Provinsi, kabupaten/kota, dan lokasi mengikuti unit/stasiun terpilih (" +
+          u.namaUnit +
+          "). Nama tetap nama operator induk. Data tidak dapat diubah di formulir; bila salah, hubungi Admin."
+        : "Nama dan lokasi diambil dari data induk (MASTER_OPERATOR) dan tidak dapat diubah dari formulir. Bila ada yang salah, hubungi Admin.";
+  }
   function renderLokasiBanner() {
+    syncEntityLocation();
     var b = $("lokasiBanner");
     if (!b) return;
     if (!state.entity) {
@@ -978,6 +1029,7 @@
     var n = $("entityName") && $("entityName").value.trim();
     if (!n) return null;
     var code = $("entityCode") ? $("entityCode").value.trim() : "";
+    var linkedMaster = !!(state.entity && state.entity.operatorId && String(state.entity.nama || "").trim() === n);
     var stableId =
       state.entity && state.entity.operatorId && String(state.entity.nama || "").trim() === n
         ? String(state.entity.operatorId)
@@ -988,9 +1040,9 @@
       namaOperator: n,
       kodeOperator: code,
       iata: "",
-      provinsi: $("entityProv").value,
-      kabkota: $("entityKab").value.trim(),
-      lokasi: $("entityLoc").value.trim(),
+      provinsi: linkedMaster ? state.entity.provinsi || "" : $("entityProv").value,
+      kabkota: linkedMaster ? state.entity.kabkota || "" : $("entityKab").value.trim(),
+      lokasi: linkedMaster ? state.entity.lokasi || "" : $("entityLoc").value.trim(),
       kelas: "",
     };
   }
@@ -2077,7 +2129,20 @@
   function enrichRiskLocations() {
     var risks = state.risks || [],
       ops = state.operators || [];
+    // V3.40b: skenario unit/stasiun berlokasi di WILAYAH UNIT-nya (mis. Super Air Jet › Stasiun BWX → Banyuwangi,
+    // Jawa Timur), bukan alamat kantor pusat operator — filter wilayah Dashboard memakai ini.
+    var unitById = {};
+    (state.units || []).forEach(function (u) {
+      unitById[u.unitId] = u;
+    });
     risks.forEach(function (r) {
+      var un = r.unitId ? unitById[r.unitId] : null;
+      if (un && (un.provinsi || un.kabkota)) {
+        r.provinsi = un.provinsi || "";
+        r.kabkota = un.kabkota || "";
+        r._lokasiUnit = true;
+        return;
+      }
       if (String(r.provinsi || "").trim() && String(r.kabkota || "").trim()) return;
       var name = String(r.namaOperator || "")
         .trim()
