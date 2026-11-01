@@ -1,5 +1,5 @@
 // Server tiruan untuk uji UI: menjalankan apps-script/*.gs ASLI (lewat tests/harness/gas.js)
-// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax
+// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax|simunit|putususul
 const http = require('http');
 const { fx, newEnv, seedAll } = require('../server/_lib.js');
 let env; const log = [];
@@ -50,6 +50,11 @@ http.createServer((req, res) => {
         const a = u.searchParams.get('a');
         if (a === 'reset') reset();
         if (a === 'simunit') simUnit();
+        if (a === 'putususul') { // V3.42: Admin memutuskan semua usulan Menunggu lalu menjalankan terapkanUsulanLokasi()
+          const sh = env.sheets.USULAN_LOKASI, h = sh._data[0];
+          sh._data.slice(1).forEach(r => { if (r[h.indexOf('status')] === 'Menunggu' && !r[h.indexOf('diputuskanAt')]) { r[h.indexOf('status')] = u.searchParams.get('status'); r[h.indexOf('alasan')] = u.searchParams.get('alasan') || ''; } });
+          out = { pesan: env.ctx.terapkanUsulanLokasi() };
+        }
         if (a === 'clearcache') env.cache.clear();
         if (a === 'enforce') env.ctx.aktifkanLoginWajib();
         if (a === 'relax') env.ctx.nonaktifkanLoginWajib();

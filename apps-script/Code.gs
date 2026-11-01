@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.39 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.42 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -35,9 +35,9 @@
 // CATATAN PRODUKSI: data baseline DPRK Nasional V2 telah divalidasi.
 // Fungsi migrasi/audit historis tidak disertakan dalam file produksi ini.
 
-var SHEETS={UNIT:"MASTER_UNIT",OP:"MASTER_OPERATOR",DPRK:"MASTER_DPRK",DPRKVER:"DPRK_VERSION",RISK:"RISK_ASSESSMENT",HIST:"RISK_HISTORY",AUDIT:"AUDIT_LOG",ACCESS:"ACCESS_TOKEN",NOTIF:"NOTIFICATION_LOG"};
+var SHEETS={UNIT:"MASTER_UNIT",OP:"MASTER_OPERATOR",DPRK:"MASTER_DPRK",DPRKVER:"DPRK_VERSION",RISK:"RISK_ASSESSMENT",HIST:"RISK_HISTORY",AUDIT:"AUDIT_LOG",ACCESS:"ACCESS_TOKEN",NOTIF:"NOTIFICATION_LOG",USUL:"USULAN_LOKASI"};
 var H={
- OP:["operatorId","jenisOperator","namaOperator","kodeOperator","iata","icao","provinsi","kabkota","lokasi","kelas","status","aktif","createdAt","updatedAt"],
+ OP:["operatorId","jenisOperator","namaOperator","kodeOperator","iata","icao","provinsi","kabkota","lokasi","kelas","status","aktif","createdAt","updatedAt","kodeWilayah"],
  DPRK:["dprkId","operatorId","jenisOperator","namaOperator","periode","tahun","versi","tanggalPenyusunan","tanggalPengesahan","tanggalKajiUlang","linkFileDprk","status","namaPengisi","jabatanPengisi","riskOwner","emailRiskOwner","dprkEditToken","createdAt","updatedAt","tanggalWajibPembaruan"],
  DPRKVER:["dprkVersionId","dprkId","operatorId","versionNumber","tanggalPenyusunan","tanggalPengesahan","tanggalWajibPembaruan","linkFileDprk","namaPengisi","jabatanPengisi","riskOwner","emailRiskOwner","status","createdAt","updatedAt"],
  RISK:["riskId","dprkId","operatorId","jenisOperator","namaOperator","kategori","idRisikoKatalog","skenario","area","langkahSaatIni","kerentananSaatIni","ancamanNilai","ancamanRating","kerentananNilai","kerentananRating","konsekuensiNilai","konsekuensiRating","risikoNilai","risikoRating","kategoriPenerimaan","perlakuan","prioritas","langkahTambahan","pemilikRisiko","tanggalKaji","keterangan","bulan","tahun","namaPengisi","jabatanPengisi","createdAt","updatedAt","editToken","assessmentKey","rowVersion","unitId"],
@@ -45,7 +45,9 @@ var H={
  AUDIT:["auditId","timestamp","actorType","actorId","entityType","entityId","action","reason","beforeData","afterData","requestId"],
  ACCESS:["accessId","operatorId","dprkId","tokenHash","tokenType","status","createdAt","updatedAt","revokedAt"],
  // V3.37 — unit/stasiun di bawah operator induk (cabang pembantu LPPNPI, stasiun maskapai, Satpel, dll.). Diisi Admin lewat terapkanImporUnit().
- UNIT:["unitId","operatorId","jenisUnit","namaUnit","kodeUnit","provinsi","kabkota","aktif","createdAt","updatedAt"],
+ UNIT:["unitId","operatorId","jenisUnit","namaUnit","kodeUnit","provinsi","kabkota","aktif","createdAt","updatedAt","kodeWilayah"],
+ // V3.42 — usulan lokasi dari operator. Master TIDAK berubah sampai Admin mengisi Status lalu menjalankan terapkanUsulanLokasi().
+ USUL:["usulanId","createdAt","operatorId","namaOperator","unitId","untuk","kodeLokasi","pengusulEmail","kodeWilayah","provinsi","kabkota","alamat","catatan","provinsiSekarang","kabkotaSekarang","jenis","status","alasan","peringatan","diputuskanAt","diputuskanOleh","updatedAt"],
  NOTIF:["notificationId","dprkId","operatorId","jenisOperator","namaOperator","riskOwner","email","tanggalKaji","reminderType","statusEmail","sentAt"]
 };
 
@@ -228,13 +230,17 @@ function sanitizeCell_(v){
  // V3.33: teks angka berawalan nol (kode kategori "01", No. HP "0812…") dipaksa tetap teks;
  // tanpa apostrof Sheets mengubahnya menjadi angka dan nol di depan hilang.
  if(/^0\d+$/.test(s))return"'"+s;
+ // V3.42: kode wilayah Kemendagri ("32.78", "32.10") juga dipaksa teks; tanpa apostrof menjadi angka 32.1.
+ if(/^\d{2}\.\d{2}$/.test(s))return"'"+s;
  return s;
 }
 function appendObj_(s,h,o){s.appendRow(h.map(function(k){return sanitizeCell_(o[k]===undefined||o[k]===null?"":o[k])}))}
 function id_(p){return p+"-"+Utilities.getUuid().replace(/-/g,"").slice(0,20).toUpperCase()}
 function token_(){return Utilities.getUuid().replace(/-/g,"").toUpperCase()}
-function findBy_(s,key,val){var x=rows_(s),c=x.h.indexOf(key);if(c<0)return null;for(var i=0;i<x.a.length;i++)if(String(x.a[i][c])===String(val)){var o={};x.h.forEach(function(h,j){o[h]=x.a[i][j]});return{row:i+2,obj:o,h:x.h}}return null}
-function publicOp_(o){return{operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,kodeOperator:o.kodeOperator,iata:o.iata,provinsi:o.provinsi,kabkota:o.kabkota,lokasi:o.lokasi,kelas:o.kelas,status:o.status,aktif:o.aktif}}
+// V3.42: nomor baris dihitung dari data APA ADANYA (rows_ membuang baris kosong; bila ada baris kosong di tengah sheet,
+// nomor baris lama bergeser dan penulisan bisa mengenai baris lain).
+function findBy_(s,key,val){var h=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[],c=h.indexOf(key);if(c<0||s.getLastRow()<2)return null;var a=s.getRange(2,1,s.getLastRow()-1,h.length).getValues();for(var i=0;i<a.length;i++)if(String(a[i][c])===String(val)){var o={};h.forEach(function(k,j){o[k]=a[i][j]});return{row:i+2,obj:o,h:h}}return null}
+function publicOp_(o){return{kodeWilayah:kodeWil_(o.kodeWilayah),operatorId:o.operatorId,jenisOperator:o.jenisOperator,namaOperator:o.namaOperator,kodeOperator:o.kodeOperator,iata:o.iata,provinsi:o.provinsi,kabkota:o.kabkota,lokasi:o.lokasi,kelas:o.kelas,status:o.status,aktif:o.aktif}}
 
 // ============================================================
 // SPRINT 1, POIN 3 — PERHITUNGAN RISIKO OTORITATIF DI SERVER
@@ -432,19 +438,22 @@ function operatorMonitoring_(){
  unitMaster_().forEach(function(u){if(u.aktif)(un[u.operatorId]=un[u.operatorId]||[]).push(u.unitId)});
  // V3.37: hitung sekali (sebelumnya menyaring seluruh RISK_ASSESSMENT untuk SETIAP operator: ±445 × 15.000 baris).
  var cnt={},dAct={};r=latestCurrentRiskRows_(r);r.forEach(function(x){if(x.unitId)uf[String(x.unitId)]=1;var k=String(x.operatorId);cnt[k]=(cnt[k]||0)+1});d.forEach(function(x){if(x.status==="Aktif"&&!dAct[x.operatorId])dAct[x.operatorId]=x});
- return ops.filter(opActive_).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
+ // V3.42: kelengkapan lokasi (provinsi + kab/kota) dan jumlah usulan lokasi yang belum diputuskan Admin.
+ var usul={};usulRowsIfAny_().forEach(function(x){if(usulTerbuka_(x))usul[String(x.operatorId)]=(usul[String(x.operatorId)]||0)+1});
+ return ops.filter(opActive_).map(function(o){var z=publicOp_(o),dr=dAct[o.operatorId],us=un[o.operatorId]||[];z.lokasiLengkap=!!(String(o.provinsi||"").trim()&&String(o.kabkota||"").trim());z.usulanLokasi=usul[String(o.operatorId)]||0;z.statusDprk=dr?"Sudah Mengisi":"Belum Mengisi";z.jumlahSkenario=cnt[String(o.operatorId)]||0;z.tanggalKaji=dr?dr.tanggalKajiUlang:"";z.jumlahUnit=us.length;z.unitTerisi=us.filter(function(id){return uf[id]}).length;return z})
 }
 // V3.34 — daftar identitas operator aktif untuk publik (formulir, pendaftaran, pelaporan).
 function operatorMaster_(){
  return objs_(sheet_(SHEETS.OP,H.OP)).filter(opActive_).map(publicOp_);
 }
 // V3.34 — BACA DATA TERBATAS (wajib login). Admin: semua operator; Operator: hanya operatorIds miliknya.
-var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail","unitList"];
+var READ_ACTIONS=["riskData","operatorStatus","reviewList","riskDetail","unitList","usulanLokasi"];
 function authRead_(p,a){
  var u=authSession_(p.sessionToken);
  if(!u)return json_({ok:false,code:"AUTH_REQUIRED",error:"Silakan masuk untuk melihat data ini."});
  if(a==="riskDetail")return riskDetail_(u,p);
  if(a==="unitList")return unitList_(u);
+ if(a==="usulanLokasi")return usulanLokasiList_(u,p);
  var data=a==="riskData"?cached_(CACHE_KEYS.risks,riskMonitoring_):a==="operatorStatus"?cached_(CACHE_KEYS.operators,operatorMonitoring_):review_();
  var all=u.peran==="Admin";
  return json_({ok:true,scope:all?"all":"own",data:all?data:data.filter(function(r){return authCanAccess_(u,r.operatorId)})});
@@ -614,6 +623,8 @@ function doPost(e){
   if(a==="saveRiskBatch")return saveRiskBatch_(p);
   if(a==="renewDprk")return renewDprk_(p);
   if(a==="createIncident")return createIncident_(p);
+  if(a==="usulLokasi")return usulLokasi_(p);
+  if(a==="batalUsulLokasi")return batalUsulLokasi_(p);
   return json_({ok:false,error:"Action POST tidak dikenali."});
  }catch(err){Logger.log("doPost error: "+err+" | stack: "+(err&&err.stack));return json_({ok:false,error:"Terjadi kesalahan saat menyimpan data. Coba lagi beberapa saat.",code:"SERVER_ERROR"})}finally{try{lock.releaseLock()}catch(x){}}
 }
@@ -927,7 +938,7 @@ function pasangBackupHarian(){
 var UNIT_CMP=["operatorId","jenisUnit","namaUnit","kodeUnit","provinsi","kabkota","aktif"];
 var UNIT_JENIS=["Kantor Cabang Pembantu","Unit Kerja","Stasiun","Satuan Pelayanan","Lainnya"];
 var UNIT_ID_RE=/^[A-Za-z0-9_.-]{1,100}$/;
-function unitMaster_(){return objs_(sheet_(SHEETS.UNIT,H.UNIT)).map(function(u){return{unitId:String(u.unitId||""),operatorId:String(u.operatorId||""),jenisUnit:u.jenisUnit||"",namaUnit:u.namaUnit||"",kodeUnit:String(u.kodeUnit||""),provinsi:u.provinsi||"",kabkota:u.kabkota||"",aktif:String(u.aktif).toLowerCase()!=="false"}}).filter(function(u){return u.unitId})}
+function unitMaster_(){return objs_(sheet_(SHEETS.UNIT,H.UNIT)).map(function(u){return{unitId:String(u.unitId||""),operatorId:String(u.operatorId||""),jenisUnit:u.jenisUnit||"",namaUnit:u.namaUnit||"",kodeUnit:String(u.kodeUnit||""),provinsi:u.provinsi||"",kabkota:u.kabkota||"",kodeWilayah:kodeWil_(u.kodeWilayah),aktif:String(u.aktif).toLowerCase()!=="false"}}).filter(function(u){return u.unitId})}
 function unitNames_(){var m={};cached_(CACHE_KEYS.units,unitMaster_).forEach(function(u){m[u.unitId]=u.namaUnit});return m}
 // null bila valid; pesan galat bila unit tidak ada / nonaktif / bukan milik operator.
 function checkUnit_(operatorId,unitId){
@@ -943,6 +954,172 @@ function unitList_(u){
  var units=cached_(CACHE_KEYS.units,unitMaster_).filter(function(x){return x.aktif&&authCanAccess_(u,x.operatorId)}),n={};
  latestCurrentRiskRows_(objs_(sheet_(SHEETS.RISK,H.RISK))).forEach(function(r){var id=String(r.unitId||"");if(id)n[id]=(n[id]||0)+1});
  return json_({ok:true,scope:u.peran==="Admin"?"all":"own",data:units.map(function(x){var o=JSON.parse(JSON.stringify(x));o.jumlahSkenario=n[x.unitId]||0;return o})});
+}
+
+// ============================================================
+// V3.42 — USULAN LOKASI OLEH OPERATOR
+// ============================================================
+// Operator yang login mengusulkan provinsi + kab/kota (wajib, dari daftar resmi Wilayah.gs) untuk kantor pusat
+// atau unit/stasiunnya; alamat dan catatan opsional. Usulan masuk ke sheet USULAN_LOKASI — MASTER_OPERATOR dan
+// MASTER_UNIT TIDAK berubah. Admin mengisi kolom Status (Diterima/Ditolak; Ditolak wajib Alasan), menjalankan
+// cekUsulanLokasi(), lalu terapkanUsulanLokasi() (cadangan + AUDIT_LOG). Keputusan baru berlaku (dan alasan
+// penolakan baru tampil di formulir) setelah terapkanUsulanLokasi() dijalankan.
+// Kode lokasi bersama: stasiun maskapai (jenisUnit Stasiun) memakai lokasi bandaranya. Usulan yang diterima untuk
+// stasiun CGK juga diterapkan ke bandara CGK dan semua stasiun lain berkode CGK; begitu pula sebaliknya.
+var USUL_STATUS=["Menunggu","Diterima","Ditolak","Dibatalkan"];
+var USUL_MAX_TERBUKA=30; // per akun
+// Kode wilayah yang terlanjur tersimpan sebagai angka (mis. diketik manual di sheet: 32.1) dikembalikan ke "32.10".
+function kodeWil_(v){if(typeof v==="number"&&isFinite(v))return v.toFixed(2);return String(v==null?"":v).trim()}
+function usulRowsIfAny_(){var s=ss_().getSheetByName(SHEETS.USUL);return s&&s.getLastRow()>1?objs_(s):[]}
+function usulTerbuka_(x){return !String(x.diputuskanAt||"").trim()&&String(x.status||"").trim()!=="Dibatalkan"&&!!String(x.usulanId||"").trim()}
+function usulCacheOff_(){try{CacheService.getScriptCache().remove(CACHE_KEYS.operators)}catch(e){}} // jumlah usulan di Monitoring Operator
+function usulScope_(x){return String(x.operatorId||"")+"|"+String(x.unitId||"")}
+// Lokasi tercatat sekarang untuk operator induk (unitId kosong) atau unit/stasiunnya.
+function usulTarget_(operatorId,unitId){
+ var op=findBy_(sheet_(SHEETS.OP,H.OP),"operatorId",operatorId);if(!op)return{error:"Operator "+operatorId+" tidak terdaftar."};
+ var o=op.obj,uid=String(unitId||"").trim();
+ if(uid){
+  var u=unitMaster_().filter(function(x){return x.unitId===uid})[0];
+  if(!u)return{error:"Unit "+uid+" tidak terdaftar."};
+  if(!u.aktif)return{error:"Unit "+uid+" sudah nonaktif."};
+  if(u.operatorId!==String(operatorId))return{error:"Unit "+uid+" bukan milik operator ini."};
+  return{op:o,unit:u,untuk:u.namaUnit||uid,provinsi:String(u.provinsi||"").trim(),kabkota:String(u.kabkota||"").trim(),kodeLokasi:u.jenisUnit==="Stasiun"?String(u.kodeUnit||"").trim().toUpperCase():""};
+ }
+ return{op:o,unit:null,untuk:o.jenisOperator==="Airlines"?"Kantor pusat / stasiun utama":"Kantor pusat",provinsi:String(o.provinsi||"").trim(),kabkota:String(o.kabkota||"").trim(),kodeLokasi:o.jenisOperator==="Bandar Udara"?String(o.iata||"").trim().toUpperCase():""};
+}
+function usulPublic_(x,u){
+ var putus=!!String(x.diputuskanAt||"").trim(),st=String(x.status||"").trim();
+ return{usulanId:x.usulanId,createdAt:String(x.createdAt||""),operatorId:x.operatorId,unitId:String(x.unitId||""),untuk:x.untuk,kodeWilayah:kodeWil_(x.kodeWilayah),provinsi:x.provinsi,kabkota:x.kabkota,alamat:x.alamat||"",catatan:x.catatan||"",
+  provinsiSekarang:x.provinsiSekarang||"",kabkotaSekarang:x.kabkotaSekarang||"",jenis:x.jenis,
+  status:st==="Dibatalkan"?"Dibatalkan":putus?st:"Menunggu",alasan:putus&&st==="Ditolak"?String(x.alasan||""):"",diputuskanAt:putus?String(x.diputuskanAt):"",
+  milikSaya:String(x.pengusulEmail||"").toLowerCase()===String(u.email||"").toLowerCase()};
+}
+// Baca: usulan untuk SATU operator (wajib operatorId). Admin: semua; Operator: hanya operatorIds miliknya.
+function usulanLokasiList_(u,p){
+ var oid=String(p.operatorId||"");
+ if(!AUTH_OPID_RE.test(oid))return json_({ok:false,code:"VALIDATION_ERROR",error:"ID operator tidak valid."});
+ if(!authCanAccess_(u,oid))return json_({ok:true,data:[]});
+ var a=usulRowsIfAny_().filter(function(x){return String(x.operatorId)===oid&&String(x.status||"").trim()!=="Dibatalkan"});
+ a.sort(function(x,y){return String(y.createdAt).localeCompare(String(x.createdAt))});
+ return json_({ok:true,data:a.slice(0,50).map(function(x){return usulPublic_(x,u)})});
+}
+function usulLokasi_(p){
+ if(!p._auth)return json_({ok:false,code:"AUTH_REQUIRED",error:"Usulan lokasi hanya dapat dikirim oleh pengguna yang login."});
+ var oid=String(p.operatorId),t=usulTarget_(oid,p.unitId);
+ if(t.error)return json_({ok:false,code:"VALIDATION_ERROR",error:t.error});
+ if(!opActive_(t.op))return json_({ok:false,code:"VALIDATION_ERROR",error:"Operator sudah nonaktif."});
+ var w=wilayah_(p.kodeWilayah);
+ if(!w)return json_({ok:false,code:"VALIDATION_ERROR",error:"Pilih provinsi dan kabupaten/kota dari daftar resmi."});
+ var alamat=String(p.alamat||"").trim(),catatan=String(p.catatan||"").trim();
+ if(alamat.length>300)return json_({ok:false,code:"VALIDATION_ERROR",error:"Alamat maksimal 300 karakter."});
+ if(catatan.length>500)return json_({ok:false,code:"VALIDATION_ERROR",error:"Catatan maksimal 500 karakter."});
+ if(sameVal_("",t.provinsi,w.provinsi)&&sameVal_("",t.kabkota,w.kabkota))return json_({ok:false,code:"VALIDATION_ERROR",error:"Wilayah yang diusulkan sama dengan yang sudah tercatat ("+w.kabkota+", "+w.provinsi+")."});
+ var s=sheet_(SHEETS.USUL,H.USUL),email=String(p._auth.email||"").toLowerCase(),uid=t.unit?t.unit.unitId:"",scope=oid+"|"+uid,rows=objs_(s);
+ var mine=rows.filter(function(x){return usulTerbuka_(x)&&String(x.pengusulEmail||"").toLowerCase()===email});
+ var same=mine.filter(function(x){return usulScope_(x)===scope})[0];
+ if(!same&&mine.length>=USUL_MAX_TERBUKA)return json_({ok:false,code:"VALIDATION_ERROR",error:"Akun Anda masih memiliki "+mine.length+" usulan lokasi yang belum diputuskan Admin."});
+ var n=now_(),x={usulanId:same?same.usulanId:id_("USL"),createdAt:same?same.createdAt:n,operatorId:oid,namaOperator:t.op.namaOperator,unitId:uid,untuk:t.untuk,kodeLokasi:t.kodeLokasi,pengusulEmail:email,
+  kodeWilayah:w.kode,provinsi:w.provinsi,kabkota:w.kabkota,alamat:alamat,catatan:catatan,provinsiSekarang:t.provinsi,kabkotaSekarang:t.kabkota,jenis:t.provinsi||t.kabkota?"Koreksi":"Isi baru",status:"Menunggu",alasan:"",peringatan:"",diputuskanAt:"",diputuskanOleh:"",updatedAt:n};
+ if(same){var f=findBy_(s,"usulanId",same.usulanId);s.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(c){return sanitizeCell_(x[c]===undefined?f.obj[c]:x[c])})]);audit_(p,"USULAN_LOKASI",x.usulanId,"UPDATE",f.obj,x,p.requestId,"Usulan lokasi diperbarui oleh pengusul")}
+ else{appendObj_(s,s.getRange(1,1,1,s.getLastColumn()).getValues()[0],x);audit_(p,"USULAN_LOKASI",x.usulanId,"CREATE",{},x,p.requestId,"Usulan lokasi")}
+ usulCacheOff_();
+ return json_({ok:true,diperbarui:!!same,data:usulPublic_(x,p._auth)});
+}
+function batalUsulLokasi_(p){
+ if(!p._auth)return json_({ok:false,code:"AUTH_REQUIRED",error:"Silakan masuk untuk membatalkan usulan."});
+ var s=ss_().getSheetByName(SHEETS.USUL),f=s?findBy_(s,"usulanId",String(p.usulanId||"").trim()):null;
+ if(!f||String(f.obj.operatorId)!==String(p.operatorId))return json_({ok:false,code:"NOT_FOUND",error:"Usulan tidak ditemukan."});
+ if(!usulTerbuka_(f.obj)||String(f.obj.status).trim()!=="Menunggu")return json_({ok:false,code:"VALIDATION_ERROR",error:"Usulan ini sudah diproses Admin dan tidak dapat dibatalkan."});
+ var before=JSON.parse(JSON.stringify(f.obj));f.obj.status="Dibatalkan";f.obj.updatedAt=now_();
+ s.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(c){return sanitizeCell_(f.obj[c]===undefined?"":f.obj[c])})]);
+ audit_(p,"USULAN_LOKASI",f.obj.usulanId,"CANCEL",before,f.obj,p.requestId,"Usulan lokasi dibatalkan");
+ usulCacheOff_();
+ return json_({ok:true});
+}
+
+// ---------- PENINJAUAN ADMIN (dijalankan dari editor Apps Script) ----------
+function cekUsulanLokasi(){return usulanAdmin_(false)}
+function terapkanUsulanLokasi(){return usulanAdmin_(true)}
+// Sasaran penerapan satu usulan: lokasi yang diusulkan + semua entitas dengan kode lokasi (bandara) yang sama.
+function usulSasaran_(x,ops,units){
+ var out=[],seen={},kl=String(x.kodeLokasi||"").trim().toUpperCase(),add=function(jenis,id,obj,label){var k=jenis+":"+id;if(seen[k])return;seen[k]=1;out.push({jenis:jenis,id:id,obj:obj,label:label})};
+ var uid=String(x.unitId||"");
+ if(uid){var u=units.filter(function(z){return String(z.unitId)===uid})[0];if(u)add("UNIT",uid,u,u.namaUnit||uid)}
+ else{var o=ops.filter(function(z){return String(z.operatorId)===String(x.operatorId)})[0];if(o)add("OP",String(o.operatorId),o,o.namaOperator)}
+ if(kl){
+  ops.forEach(function(o){if(opActive_(o)&&o.jenisOperator==="Bandar Udara"&&String(o.iata||"").trim().toUpperCase()===kl)add("OP",String(o.operatorId),o,"Bandara "+kl+" ("+o.namaOperator+")")});
+  units.forEach(function(u){if(String(u.aktif).toLowerCase()!=="false"&&u.jenisUnit==="Stasiun"&&String(u.kodeUnit||"").trim().toUpperCase()===kl)add("UNIT",String(u.unitId),u,u.namaUnit||u.unitId)});
+ }
+ return out;
+}
+function usulanAdmin_(apply){
+ var cad="";
+ if(apply){
+  var cek=usulanAdmin_(false);if(cek.indexOf("Pemeriksaan bersih")<0)return cek;
+  if(cek.indexOf("siap diterapkan: 0 diterima, 0 ditolak")>=0){Logger.log(cek);return cek+"\nTidak ada keputusan untuk diterapkan."}
+  try{cad=backupHarian()}catch(e){var mb="Cadangan sebelum menerapkan usulan GAGAL ("+(e&&e.message||e)+") — DIBATALKAN, tidak ada yang diubah.";Logger.log(mb);return mb}
+ }
+ var lock=LockService.getScriptLock();if(!lock.tryLock(30000))throw Error("Server sibuk, coba lagi.");
+ try{
+  ensureSheetsOnly_();
+  var s=ss_().getSheetByName(SHEETS.USUL);
+  if(!s||s.getLastRow()<2){var m0="USULAN_LOKASI: belum ada usulan.";Logger.log(m0);return m0}
+  ensureHeaders_(s,H.USUL);
+  var h=s.getRange(1,1,1,s.getLastColumn()).getValues()[0],raw=s.getRange(2,1,s.getLastRow()-1,h.length).getValues();
+  var all=raw.map(function(r,i){var o={_row:i+2};h.forEach(function(k,j){o[k]=typeof r[j]==="string"?r[j].trim():r[j]});return o}).filter(function(o){return String(o.usulanId||"")});
+  var open=all.filter(usulTerbuka_),opS=sheet_(SHEETS.OP,H.OP),uS=sheet_(SHEETS.UNIT,H.UNIT),ops=objs_(opS),units=objs_(uS);
+  var errs=[],warn={},out=[],terima=[],tolak=[],tunggu=0,isi=0,kor=0;
+  var w_=function(o,msg){(warn[o._row]=warn[o._row]||[]).push(msg)},lbl=function(o){return o.namaOperator+" › "+o.untuk+" (baris "+o._row+")"};
+  open.forEach(function(o){
+   var st=String(o.status||"");
+   if(USUL_STATUS.indexOf(st)<0){errs.push(lbl(o)+": Status \""+st+"\" tidak dikenal — isi Menunggu, Diterima, atau Ditolak");return}
+   if(o.jenis==="Koreksi")kor++;else isi++;
+   if(st==="Menunggu"){tunggu++;return}
+   if(st==="Ditolak"){if(!String(o.alasan||""))errs.push(lbl(o)+": Ditolak wajib diisi Alasan (tampil ke operator)");else tolak.push(o);return}
+   var w=wilayah_(o.kodeWilayah);if(!w){errs.push(lbl(o)+": kodeWilayah \""+o.kodeWilayah+"\" tidak ada di daftar resmi");return}
+   var t=usulTarget_(o.operatorId,o.unitId);if(t.error){errs.push(lbl(o)+": "+t.error);return}
+   var sudah=sameVal_("",t.provinsi,w.provinsi)&&sameVal_("",t.kabkota,w.kabkota);
+   if(!sudah&&!(sameVal_("",t.provinsi,o.provinsiSekarang)&&sameVal_("",t.kabkota,o.kabkotaSekarang)))errs.push(lbl(o)+": lokasi tercatat sudah berubah sejak diusulkan (sekarang \""+[t.kabkota,t.provinsi].filter(String).join(", ")+"\") — tinjau ulang, lalu ubah Status");
+   o._w=w;terima.push(o);
+  });
+  // Bentrok: lokasi yang sama (operator+unit, atau kode bandara yang sama) diusulkan dengan wilayah berbeda.
+  var grp=function(keyFn,nama){var g={};open.forEach(function(o){var st=String(o.status);if(st!=="Menunggu"&&st!=="Diterima")return;var k=keyFn(o);if(k)(g[k]=g[k]||[]).push(o)});
+   Object.keys(g).forEach(function(k){var a=g[k],kode={};a.forEach(function(o){kode[o.kodeWilayah]=o.kabkota});var ks=Object.keys(kode);if(ks.length<2)return;
+    var msg=nama(a[0])+": "+a.length+" usulan dengan wilayah berbeda ("+ks.map(function(c){return kode[c]}).join(" / ")+")";a.forEach(function(o){w_(o,"Bertentangan: "+msg)});
+    var acc={};a.forEach(function(o){if(String(o.status)==="Diterima")acc[kodeWil_(o.kodeWilayah)]=1});if(Object.keys(acc).length>1)errs.push(msg+" — lebih dari satu wilayah berstatus Diterima; terima satu saja")})};
+  grp(usulScope_,function(o){return o.namaOperator+" › "+o.untuk});
+  grp(function(o){return String(o.kodeLokasi||"").toUpperCase()},function(o){return"Lokasi "+String(o.kodeLokasi).toUpperCase()});
+  // Pratinjau penerapan untuk usulan Diterima.
+  var plan=[];terima.forEach(function(o){
+   var sas=usulSasaran_(o,ops,units),ubah=sas.filter(function(z){return!(sameVal_("",z.obj.provinsi,o._w.provinsi)&&sameVal_("",z.obj.kabkota,o._w.kabkota)&&kodeWil_(z.obj.kodeWilayah)===o._w.kode)});
+   if(sas.length>1)w_(o,"Berlaku juga untuk "+(sas.length-1)+" entitas lain berkode "+String(o.kodeLokasi).toUpperCase());
+   plan.push({o:o,ubah:ubah});
+  });
+  open.forEach(function(o){if(String(o.status)!=="Menunggu"&&String(o.status)!=="Diterima")return;var kl=String(o.kodeLokasi||"").toUpperCase();if(!kl)return;
+   ops.forEach(function(b){if(opActive_(b)&&b.jenisOperator==="Bandar Udara"&&String(b.iata||"").trim().toUpperCase()===kl&&String(b.operatorId)!==String(o.operatorId)&&String(b.kabkota||"").trim()&&!(sameVal_("",b.provinsi,o.provinsi)&&sameVal_("",b.kabkota,o.kabkota)))w_(o,"Bandara "+kl+" tercatat "+b.kabkota+", "+b.provinsi)})});
+  // Tulis kolom peringatan (satu kali tulis) — satu-satunya kolom yang diubah oleh pemeriksaan.
+  var pc=h.indexOf("peringatan");
+  if(pc>=0&&raw.length){var col=raw.map(function(r,i){var o=all.filter(function(z){return z._row===i+2})[0];if(!o||!usulTerbuka_(o))return[r[pc]];return[sanitizeCell_((warn[i+2]||[]).join("; "))]});
+   if(col.some(function(v,i){return String(v[0])!==String(raw[i][pc])}))s.getRange(2,pc+1,col.length,1).setValues(col)}
+  out.push("USULAN_LOKASI: "+open.length+" usulan belum diputuskan ("+isi+" isi baru, "+kor+" koreksi); "+tunggu+" masih Menunggu; siap diterapkan: "+terima.length+" diterima, "+tolak.length+" ditolak.");
+  plan.forEach(function(x){out.push("  DITERIMA: "+lbl(x.o)+" → "+x.o._w.kabkota+", "+x.o._w.provinsi+(x.ubah.length?" — mengubah "+x.ubah.length+" entitas: "+x.ubah.slice(0,6).map(function(z){return z.label}).join("; ")+(x.ubah.length>6?"; …":""):" — data induk sudah sesuai"))});
+  Object.keys(warn).forEach(function(r){var o=all.filter(function(z){return String(z._row)===String(r)})[0];warn[r].forEach(function(m){if(m.indexOf("Berlaku juga")<0)out.push("  PERINGATAN: "+lbl(o)+": "+m)})});
+  if(errs.length){out.push("");out.push("DITEMUKAN "+errs.length+" MASALAH — tidak ada yang diterapkan:");errs.slice(0,100).forEach(function(x){out.push(" - "+x)});var m1=out.join("\n");Logger.log(m1);return m1}
+  if(!apply){out.push("");out.push("Pemeriksaan bersih. Isi kolom Status (Diterima/Ditolak + Alasan) bila belum, lalu jalankan terapkanUsulanLokasi().");var m2=out.join("\n");Logger.log(m2);return m2}
+  // --- terapkan
+  var n=now_(),actor=adminActor_(),oleh=actor._auth.email,nUbah=0;
+  plan.forEach(function(x){var w=x.o._w;x.ubah.forEach(function(z){
+   var sh=z.jenis==="UNIT"?uS:opS,f=findBy_(sh,z.jenis==="UNIT"?"unitId":"operatorId",z.id);if(!f)return;
+   var before=JSON.parse(JSON.stringify(f.obj));f.obj.provinsi=w.provinsi;f.obj.kabkota=w.kabkota;f.obj.kodeWilayah=w.kode;f.obj.updatedAt=n;
+   sh.getRange(f.row,1,1,f.h.length).setValues([f.h.map(function(c){return sanitizeCell_(f.obj[c]===undefined?"":f.obj[c])})]);
+   audit_(actor,z.jenis==="UNIT"?"UNIT":"OPERATOR",z.id,"UPDATE",before,f.obj,"","Usulan lokasi "+x.o.usulanId+" diterima");nUbah++})});
+  var dc=h.indexOf("diputuskanAt"),oc=h.indexOf("diputuskanOleh"),uc=h.indexOf("updatedAt");
+  terima.concat(tolak).forEach(function(o){var r=s.getRange(o._row,1,1,h.length),v=r.getValues()[0];v[dc]=n;v[oc]=oleh;if(uc>=0)v[uc]=n;r.setValues([v.map(sanitizeCell_)]);
+   audit_(actor,"USULAN_LOKASI",o.usulanId,String(o.status)==="Diterima"?"APPROVE":"REJECT",{},{status:o.status,alasan:o.alasan||""},"","Peninjauan usulan lokasi")});
+  invalidateDashboardCache_();
+  var m3=["Cadangan sebelum menerapkan: "+cad,terima.length+" usulan Diterima diterapkan ("+nUbah+" baris MASTER_OPERATOR/MASTER_UNIT diperbarui, tercatat di AUDIT_LOG), "+tolak.length+" Ditolak (alasan tampil di formulir operator), "+tunggu+" tetap Menunggu.","SELESAI."].join("\n");
+  Logger.log(m3);return m3;
+ }finally{try{lock.releaseLock()}catch(x){}}
 }
 
 // ---------- SIMPAN PER PAKET (impor matriks) ----------

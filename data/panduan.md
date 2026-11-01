@@ -85,10 +85,11 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 ### Langkah 01 — Identitas entitas
 
 1. Buka tab **Pengisian DPRK** (pastikan Anda sudah masuk).
-2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi. Nama, kode, provinsi, kabupaten/kota, dan lokasi diambil dari data induk dan **tidak dapat diubah** di formulir. Jangan menulis nama stasiun atau cabang di sini; gunakan pilihan **Unit / Stasiun** (langkah 5). Bila data induk salah, hubungi Admin.
+2. Jenis operator dan nama operator otomatis sesuai akun Anda. Bila akun Anda mewakili lebih dari satu operator, pilih operator yang akan diisi. Nama, kode, provinsi, kabupaten/kota, dan lokasi diambil dari data induk dan **tidak dapat diubah** di formulir. Jangan menulis nama stasiun atau cabang di sini; gunakan pilihan **Unit / Stasiun** (langkah 5). Bila provinsi atau kabupaten/kota kosong atau salah, gunakan **Usulan lokasi** (langkah 6).
 3. Isi **Bulan Penilaian**, **Tahun**, **Nama Pengisi**, **Jabatan Pengisi**, dan **Tanggal Pengesahan** dokumen DPRK.
 4. **Email Pemilik Risiko** dan **Link File DPRK** (misalnya tautan Google Drive) dianjurkan diisi.
 5. Bila operator Anda memiliki **unit atau stasiun** (cabang pembantu, unit kerja, stasiun maskapai), muncul isian **Lokasi yang dinilai** yang **wajib dipilih**. Ketik kode bandara, nama bandara, atau kota (misalnya `CGK`, `Soekarno`, atau `Tangerang`), lalu klik lokasinya; tekan **Enter** untuk memilih hasil teratas. Pilih **Kantor pusat / matriks induk** hanya bila Anda mengisi matriks kantor pusat atau cabang utama. Lokasi terpilih tampil di bagian atas Langkah 02 ("Anda menilai: …") dan tetap terpilih untuk skenario berikutnya; klik **Ganti lokasi** untuk berpindah. Unit tidak dapat dipindah setelah skenario disimpan.
+6. **Usulan lokasi.** Setelah lokasi yang dinilai dipilih, di bawahnya tampil kotak lokasi. Bila lokasi belum tercatat, klik **Usulkan lokasi**; bila sudah tercatat tetapi salah, klik **Usulkan koreksi**. Pilih **Provinsi**, lalu **Kabupaten/Kota** (wajib; daftar resmi Kemendagri, hanya kab/kota di provinsi terpilih yang muncul). **Alamat lengkap** dan **Catatan** boleh dikosongkan. Usulan diverifikasi Admin lebih dulu; selama menunggu, pengisian DPRK tetap berjalan seperti biasa dan Anda dapat **Ubah usulan** atau **Batalkan usulan**. Usulan untuk stasiun memakai lokasi bandaranya: bila disetujui, lokasi bandara dan semua stasiun maskapai di bandara itu ikut diperbarui. Bila usulan ditolak, alasannya tampil di kotak yang sama (tidak dikirim lewat email).
 
 ![Langkah 01: identitas entitas](assets/panduan/form-identitas@2x.png)
 
@@ -224,6 +225,9 @@ Seseorang mengubah skenario yang sama setelah Anda membukanya. Klik **Edit** lag
 
 ### Unit atau stasiun kami tidak ada di pilihan
 Daftar unit dan stasiun didaftarkan oleh Admin Direktorat Keamanan Penerbangan. Hubungi admin dengan menyebutkan nama operator dan unit yang belum terdaftar.
+
+### Lokasi operator kami kosong atau salah
+Gunakan **Usulkan lokasi** / **Usulkan koreksi** di Langkah 01 (lihat langkah 6). Cukup pilih provinsi dan kabupaten/kota dari daftar; alamat boleh dikosongkan. Lokasi baru berubah setelah usulan disetujui Admin. Bila ditolak, alasannya tampil di formulir.
 
 ### Kami mengkaji ulang matriks. Apakah matriks lama ikut dihitung?
 Tidak. Untuk setiap unit/stasiun (dan Induk), yang dihitung hanya matriks **periode terbaru**. Saat Anda mengisi kaji ulang dengan bulan dan tahun baru, matriks periode itu **menggantikan seluruh** matriks lama unit tersebut. Karena itu, masukkan kembali **semua** skenario unit itu pada periode baru, termasuk yang nilainya tidak berubah. Unit yang belum dikaji ulang tetap memakai matriks terakhirnya. Matriks lama tetap tersimpan dan dapat dilihat di **Monitoring Risiko** dengan pilihan Periode **Semua periode** (bertanda *Arsip*).

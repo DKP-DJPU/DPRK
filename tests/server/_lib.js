@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const { makeEnv } = require('../harness/gas.js');
 const ROOT = path.join(__dirname, '..', '..');
-const FILES = ['Code.gs', 'Auth.gs', 'Pelaporan.gs'].map(f => path.join(ROOT, 'apps-script', f));
+const FILES = ['Code.gs', 'Auth.gs', 'Pelaporan.gs', 'Wilayah.gs'].map(f => path.join(ROOT, 'apps-script', f));
 const fx = name => JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', name + '.json'), 'utf8'));
 function tester(name) {
   let ok = 0, fail = 0;
