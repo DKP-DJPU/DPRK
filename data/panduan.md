@@ -105,6 +105,23 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 
 ![Langkah 02: nilai risiko dan kategori penerimaan dihitung otomatis](assets/panduan/form-penilaian@2x.png)
 
+### Impor matriks dari Excel
+
+Bila matriks DPRK sudah ada dalam Excel, seluruh skenarionya dapat disimpan sekaligus tanpa mengetik ulang.
+
+1. Lengkapi **Langkah 01**: operator, **Lokasi yang dinilai**, **Bulan Penilaian**, **Tahun**, **Tanggal Pengesahan**, dan **Nama Pengisi**. Semua skenario dari file disimpan untuk lokasi dan periode ini. Untuk matriks stasiun/unit lain, ganti lokasinya lalu impor file stasiun tersebut.
+2. Pada kotak **Impor dari Excel**, klik **Pilih file Excel (.xlsx)**. Yang dibaca hanya sheet **MATRIKS DAFTAR RISIKO** (format Lampiran II, dengan kolom NILAI untuk ancaman, kerentanan, dan konsekuensi). File dibaca di peramban Anda; yang dikirim hanya isi matriksnya.
+3. Periksa pratinjau. Baris **bergalat** (merah), misalnya nilai di luar 1–10 atau skenario kosong, tidak dicentang; perbaiki di Excel lalu pilih file lagi. Baris **dengan catatan** (kuning) tetap dapat disimpan; catatan menjelaskan apa yang perlu diperhatikan, misalnya rating di file yang berbeda dengan hasil hitung.
+4. Bila periode di file berbeda dengan formulir, klik **Pakai periode file**.
+5. Klik **Simpan … skenario**. Nilai risiko dan rating selalu dihitung ulang oleh sistem. Mengirim ulang file yang sama tidak menggandakan data.
+
+Aturan pembacaan:
+- **ID Risk** mengikuti katalog nasional (daftar ID Risk DJPU). Penulisan nomor yang berbeda (misalnya `1,01`, `3.6`, atau `1.10` yang berubah menjadi tanggal oleh Excel) dirapikan otomatis. Nomor yang tidak ada di katalog nasional adalah skenario tambahan operator dan disimpan sebagai **Isi Sendiri**; nomor aslinya dicatat di Keterangan (*ID operator: …*).
+- **Perlakuan** *Sharing* dan *Mitigasi dan Sharing* disimpan sebagai *Mitigasi*.
+- **Prioritas Penanganan** diambil dari kolom Prioritas bila ada. Bila tidak ada, ditentukan dari rating: Tinggi = Sangat Segera; Menengah-Tinggi dan Menengah = Segera; Menengah-Rendah dan Rendah = Biasa.
+- Bila ada beberapa tanggal kaji ulang dalam satu sel, yang dipakai tanggal paling awal; teks aslinya disimpan di Keterangan.
+- Bagian **Hasil Penilaian Risiko Khusus** belum diimpor dan dilewati.
+
 ### Cara nilai risiko dihitung
 
 **Total Risiko = Ancaman + Kerentanan + Konsekuensi** (rentang 3–30). Tingkat risiko dan kategori penerimaannya mengikuti PR 16/41 DJPU Tahun 2024:

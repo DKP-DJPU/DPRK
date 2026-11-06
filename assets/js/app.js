@@ -632,6 +632,7 @@
   function renderLokasiBanner() {
     syncEntityLocation();
     renderUsulLokasi();
+    document.dispatchEvent(new CustomEvent("sirisk:lokasi"));
     var b = $("lokasiBanner");
     if (!b) return;
     if (!state.entity) {
@@ -3270,6 +3271,40 @@
     rating: rating,
     ratings: RATING,
     penerimaan: PENERIMAAN,
+    // Impor matriks Excel (assets/js/impor-matriks.js): konteks Langkah 01 + katalog + muat ulang data.
+    katalog: function () {
+      return { kategori: KATEGORI, skenario: CATALOG };
+    },
+    importContext: function () {
+      var u = authUser(),
+        oid = entityOperatorId(state.entity),
+        uid = selectedUnitId();
+      return {
+        login: !!u,
+        edit: !!state.edit,
+        operatorId: oid,
+        nama: entityLabel(),
+        jenis: state.type || "",
+        unitId: uid,
+        lokasi: !state.entity ? "" : unitAreaShown() && unitMode() === "pick" ? (needsUnitPick() ? "" : unitInfo(uid).judul) : indukLabel(false),
+        needsUnit: needsUnitPick(),
+        bulan: $("bulan").value,
+        tahun: $("tahun").value,
+        tanggalPengesahan: $("tanggalPengesahan").value,
+        namaPengisi: $("namaPengisi").value.trim(),
+        jabatanPengisi: $("jabatanPengisi").value.trim(),
+        linkFileDprk: $("linkDprk").value.trim(),
+        emailRiskOwner: $("emailRiskOwner").value.trim(),
+      };
+    },
+    setPeriode: function (bulan, tahun) {
+      if (bulan) $("bulan").value = bulan;
+      if (tahun) $("tahun").value = tahun;
+      ["bulan", "tahun"].forEach(function (id) {
+        $(id).dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    },
+    reloadRisks: loadRisks,
   };
   loadStaticData()
     .then(init)
