@@ -380,6 +380,14 @@ try:
         T('impor: tanpa galat JS', not pg._errs, pg._errs)
         pg.close(); ctl('/__ctl?a=reset')
 
+        # ================= label katalog skenario dipendekkan =================
+        pg = page(b); login(pg, 'budi@juanda.co.id'); tab(pg, 'form'); pg.select_option('#kategori', '01'); pg.wait_for_timeout(200)
+        lab = pg.eval_on_selector_all('#riskCatalog option[title]', 'e=>e.map(o=>[o.textContent.length,o.title.length,o.textContent.endsWith("…")])')
+        T('katalog: label pilihan ≤ 130 huruf, teks lengkap di title', lab and max(x[0] for x in lab) <= 130 and any(x[2] and x[1] > 95 for x in lab), lab[:4])
+        pg.select_option('#riskCatalog', index=1); pg.wait_for_timeout(200)
+        T('katalog: setelah dipilih, kolom Skenario berisi teks lengkap', len(pg.input_value('#skenario')) == lab[0][1], [len(pg.input_value('#skenario')), lab[0][1]])
+        pg.close()
+
         # ================= HP =================
         m = page(b, w=390); tab(m, 'operator')
         T('HP: tanpa scroll horizontal', m.evaluate('document.documentElement.scrollWidth<=390'))
