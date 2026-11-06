@@ -156,6 +156,14 @@ Bagian **Kode DPRK (Ganti Perangkat)** juga hanya untuk pengisian tanpa login, d
 | **Risiko Tinggi** | Jumlah **skenario** (bukan jumlah operator) berating Tinggi |
 | **Kaji Ulang Mendekat** | DPRK dengan tanggal kaji ulang dalam 30 hari ke depan |
 
+### Status DPRK per Provinsi
+
+Kartu ini menampilkan, untuk setiap provinsi, jumlah operator aktif, berapa yang **sudah mengisi** DPRK, dan persentasenya (completion).
+- **Wilayah mengikuti kode wilayah resmi Kemendagri** lokasi kantor pusat atau bandara. Bandara dihitung di wilayah administratifnya; contohnya Soekarno-Hatta masuk Banten.
+- **Operator belum terpetakan** adalah operator yang lokasinya kosong atau belum baku. Lengkapi lewat **Usulan lokasi** di Langkah 01.
+- **Angka sudah mengisi disembunyikan** untuk provinsi dengan operator terlalu sedikit, agar status operator tertentu tidak dapat dikenali.
+- **Admin yang login** dapat mengklik provinsi untuk melihat rincian per kabupaten/kota dan daftar operatornya: hijau = sudah mengisi, kuning = belum. Klik nama operator untuk membuka rekapnya.
+
 ### Dashboard untuk pengguna yang login
 
 - **Admin** dapat memakai filter wilayah (provinsi dan kabupaten/kota) dan melihat seluruh data di Monitoring Operator dan Monitoring Risiko.

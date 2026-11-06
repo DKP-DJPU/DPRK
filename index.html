@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261101a">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261101a">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261101a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261106a">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261106a">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261106a">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261101a">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261101a">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261101a">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261101a">
-<link rel="stylesheet" href="assets/css/panduan.css?v=20261101a">
+<link rel="stylesheet" href="assets/css/app.css?v=20261106a">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261106a">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261106a">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261106a">
+<link rel="stylesheet" href="assets/css/panduan.css?v=20261106a">
 </head>
 <body>
 <div class="app">
@@ -60,6 +60,16 @@
       <div class="section-badge">4 JENIS ENTITAS</div>
     </div>
     <div id="opcards" class="operator-cards"></div>
+  </div>
+  <div class="card dashboard-card wilayah-section">
+    <div class="section-head">
+      <div><div class="section-kicker">COVERAGE PER WILAYAH</div><h2>Status DPRK per Provinsi</h2><div class="sub">Operator aktif dan yang sudah mengisi DPRK, menurut wilayah resmi Kemendagri (lokasi kantor pusat / bandara).</div></div>
+      <div class="section-badge" id="wilBadge">38 PROVINSI</div>
+    </div>
+    <div class="wil-tools"><label for="wilSort">Urutkan</label><select id="wilSort"><option value="wilayah">Wilayah (barat → timur)</option><option value="rendah">Completion terendah</option><option value="banyak">Operator terbanyak</option></select></div>
+    <div class="wil-head" aria-hidden="true"><span>Provinsi</span><span></span><span>Sudah / Operator</span><span>Completion</span></div>
+    <div id="wilList" class="wil-list"><div class="empty">Memuat rekap wilayah…</div></div>
+    <div class="wil-note" id="wilNote"></div>
   </div>
   <div class="dashboard-filter-bar">
     <div>
@@ -432,10 +442,10 @@
 </main>
 </div>
 
-<script src="assets/js/app.js?v=20261101a"></script>
-<script src="assets/js/pelaporan.js?v=20261101a"></script>
-<script src="assets/js/operator-detail.js?v=20261101a"></script>
-<script src="assets/js/auth.js?v=20261101a"></script>
-<script src="assets/js/panduan.js?v=20261101a"></script>
+<script src="assets/js/app.js?v=20261106a"></script>
+<script src="assets/js/pelaporan.js?v=20261106a"></script>
+<script src="assets/js/operator-detail.js?v=20261106a"></script>
+<script src="assets/js/auth.js?v=20261106a"></script>
+<script src="assets/js/panduan.js?v=20261106a"></script>
 </body>
 </html>

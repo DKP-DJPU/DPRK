@@ -356,6 +356,26 @@ try:
         T('usulan: tanpa galat JS', not pg._errs, pg._errs)
         pg.close(); ctl('/__ctl?a=reset')
 
+        # ================= V3.44: rekap status DPRK per provinsi =================
+        pg = page(b)
+        T('rekap wilayah (publik): 38 baris provinsi, tanpa tombol rincian & tanpa nama operator', pg.locator('#wilList .wil-row').count() == 38 and pg.locator('#wilList [data-wil]').count() == 0 and 'Juanda' not in pg.inner_text('#wilList'), pg.locator('#wilList .wil-row').count())
+        jt = pg.locator('#wilList .wil-row:has-text("Jawa Timur")').inner_text()
+        T('rekap wilayah (publik): Jawa Timur 2 / 13 · 15,4% + catatan rincian kab/kota untuk Admin', '2 / 13' in jt and '15,4%' in jt and 'untuk Admin yang login' in pg.inner_text('#wilNote') and 'belum terpetakan' in pg.inner_text('#wilNote'), [jt, pg.inner_text('#wilNote')])
+        pg.select_option('#wilSort', 'banyak'); pg.wait_for_timeout(200)
+        T('rekap wilayah: urutkan operator terbanyak → Papua Tengah teratas', 'Papua Tengah' in pg.locator('#wilList .wil-row').first.inner_text(), pg.locator('#wilList .wil-row').first.inner_text())
+        login(pg, 'admin@dkp.go.id'); pg.wait_for_timeout(1500)
+        pg.select_option('#wilSort', 'wilayah'); pg.wait_for_timeout(200)
+        T('rekap wilayah (Admin): provinsi bisa diklik', pg.locator('#wilList [data-wil]').count() >= 30, pg.locator('#wilList [data-wil]').count())
+        pg.click('#wilList [data-wil="35"]'); pg.wait_for_timeout(500)
+        det = pg.inner_text('#wilDetail') if pg.locator('#wilDetail').count() else ''
+        T('rekap wilayah (Admin): rincian Jawa Timur memuat kab/kota & operator (Juanda sudah mengisi)', 'Surabaya' in det and pg.locator('#wilDetail a.wil-op.sudah:has-text("Juanda")').count() == 1, det[:300])
+        pg.click('#wilDetail a.wil-op:has-text("Juanda")'); pg.wait_for_timeout(1500)
+        T('rekap wilayah (Admin): klik operator → rekap operator terbuka', pg.is_visible('#view-operator') and 'Juanda' in pg.inner_text('#opDetail'), pg.inner_text('#opDetail')[:200] if pg.locator('#opDetail').count() else '-')
+        tab(pg, 'dashboard'); pg.set_viewport_size({'width': 390, 'height': 900}); pg.wait_for_timeout(400)
+        T('HP: Dashboard (rekap wilayah) tanpa scroll horizontal', pg.evaluate('document.documentElement.scrollWidth<=390'), pg.evaluate('document.documentElement.scrollWidth'))
+        T('rekap wilayah: tanpa galat JS', not pg._errs, pg._errs)
+        pg.close()
+
         # ================= HP =================
         m = page(b, w=390); tab(m, 'operator')
         T('HP: tanpa scroll horizontal', m.evaluate('document.documentElement.scrollWidth<=390'))

@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.43 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.44 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — rekap per provinsi di Dashboard (V3.44) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -426,7 +426,8 @@ function dashboard_(){
  var an=riskAnalytics_(r),natOk=!an._all.suppressed;
  if(!natOk){Object.keys(dist).forEach(function(k){dist[k]=0})}
  byType=byType.map(function(b){return an[b.jenisOperator]&&an[b.jenisOperator].suppressed?{jenisOperator:b.jenisOperator,total:b.total,filled:b.filled,riskSuppressed:true}:b});
- return{kpi:{totalEntities:total,filledEntities:fn,unfilledEntities:Math.max(0,total-fn),completionRate:total?Math.round(fn/total*100):0,completionRatePct:total?Number((fn/total*100).toFixed(1)):0,highRisk:natOk?dist.Tinggi:null,highRiskScenarios:natOk?dist.Tinggi:null,highRiskOperators:natOk?Object.keys(highOps).length:null,reviewDue:rd,totalRisks:natOk?r.length:null},byType:byType,riskDistribution:dist,categories:natOk?cl:[],analytics:an,trend:trend_()}
+ var wil=wilayahRekap_(ops,filled);
+ return{wilayah:wil,kpi:{totalEntities:total,filledEntities:fn,unfilledEntities:Math.max(0,total-fn),completionRate:total?Math.round(fn/total*100):0,completionRatePct:total?Number((fn/total*100).toFixed(1)):0,highRisk:natOk?dist.Tinggi:null,highRiskScenarios:natOk?dist.Tinggi:null,highRiskOperators:natOk?Object.keys(highOps).length:null,reviewDue:rd,totalRisks:natOk?r.length:null},byType:byType,riskDistribution:dist,categories:natOk?cl:[],analytics:an,trend:trend_()}
 }
 
 // V3.37.1 — satu definisi "operator aktif" untuk semua hitungan: wajib punya operatorId, kolom aktif bukan FALSE,
@@ -479,6 +480,22 @@ function riskDetail_(u,p){
  out.linkFileDprk=d?String(d.linkFileDprk||""):"";
  out.tanggalWajibPembaruan=d?(isoDate_(d.tanggalWajibPembaruan)||addYearsDate_(d.tanggalPengesahan,2)||""):"";
  return json_({ok:true,data:out});
+}
+// V3.44 — rekap status DPRK per PROVINSI untuk Dashboard publik (keputusan Alex 6 Nov 2026: publik sampai provinsi;
+// rincian kab/kota hanya untuk Admin yang login, dihitung di browser dari operatorStatus).
+// Provinsi diambil dari kodeWilayah (2 digit pertama); operator tanpa kode tetapi dengan nama provinsi resmi tetap masuk
+// provinsinya; sisanya "belum terpetakan". Angka "sudah mengisi" kelompok < MIN_GROUP operator disembunyikan, termasuk
+// supresi komplementer bila hanya satu kelompok yang tersembunyi (angkanya bisa dihitung dari total nasional).
+function wilayahRekap_(ops,filled){
+ var byName={};Object.keys(WILAYAH_PROV).forEach(function(k){byName[WILAYAH_PROV[k].toLowerCase()]=k});
+ var g={},un={total:0,filled:0};Object.keys(WILAYAH_PROV).forEach(function(k){g[k]={kode:k,provinsi:WILAYAH_PROV[k],total:0,filled:0,terpetakan:0}});
+ ops.forEach(function(o){var kw=kodeWil_(o.kodeWilayah),pk=/^\d{2}\.\d{2}$/.test(kw)&&g[kw.slice(0,2)]?kw.slice(0,2):byName[String(o.provinsi||"").trim().toLowerCase()],f=filled[o.operatorId]?1:0;
+  if(!pk){un.total++;un.filled+=f;return}g[pk].total++;g[pk].filled+=f;if(kw)g[pk].terpetakan++});
+ var groups=Object.keys(g).sort().map(function(k){return g[k]}).concat([un]);
+ var hide=groups.filter(function(x){return x.total>0&&x.total<MIN_GROUP});
+ if(hide.length===1){var rest=groups.filter(function(x){return x.total>=MIN_GROUP}).sort(function(a,b){return a.total-b.total})[0];if(rest)hide.push(rest)}
+ groups.forEach(function(x){if(hide.indexOf(x)>=0){x.filled=null;x.suppressed=true}x.pct=x.filled==null||!x.total?null:Number((x.filled/x.total*100).toFixed(1))});
+ return{minGroup:MIN_GROUP,provinsi:groups.slice(0,-1),belumTerpetakan:un};
 }
 // V3.34 — analitik agregat publik per jenis operator. Kelompok dengan kurang dari
 // MIN_GROUP operator disembunyikan agar profil risiko satu operator tidak dapat dikenali.

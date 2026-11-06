@@ -2819,3 +2819,263 @@ main {
   color: #7a5200;
   border-color: #efd39c;
 }
+/* V3.44 — Rekap status DPRK per provinsi */
+.wil-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.wil-tools select {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+}
+.wil-head,
+.wil-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) minmax(80px, 2fr) 104px 104px 16px;
+  align-items: center;
+  gap: 12px;
+}
+.wil-head {
+  padding: 0 12px 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.wil-head span:nth-child(3),
+.wil-head span:nth-child(4) {
+  text-align: right;
+}
+.wil-list {
+  display: flex;
+  flex-direction: column;
+}
+.wil-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf1f5;
+  font-size: 13px;
+  color: var(--text);
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.wil-row-btn {
+  cursor: pointer;
+}
+.wil-row-btn:hover,
+.wil-row-btn.open {
+  background: #f3f7fb;
+}
+.wil-row-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.wil-zero {
+  color: #9aa7b4;
+}
+.wil-nm {
+  font-weight: 600;
+}
+.wil-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: #e8eef4;
+  overflow: hidden;
+}
+.wil-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--blue);
+}
+.wil-frac,
+.wil-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.wil-pct {
+  font-weight: 800;
+  color: var(--navy);
+}
+.wil-zero .wil-pct {
+  color: #9aa7b4;
+  font-weight: 600;
+}
+.wil-hide {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.wil-chev {
+  color: var(--muted);
+  font-weight: 800;
+  transition: transform 0.15s ease;
+}
+.wil-row-btn.open .wil-chev {
+  transform: rotate(90deg);
+}
+.wil-detail {
+  padding: 8px 12px 14px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #edf1f5;
+  overflow-x: auto;
+}
+.wil-kab {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.wil-kab th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.wil-kab td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #edf1f5;
+  vertical-align: top;
+}
+.wil-kab td:nth-child(2),
+.wil-kab td:nth-child(3) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wil-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.wil-op {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  text-decoration: none;
+  border: 1px solid #efd39c;
+  background: #fff7e6;
+  color: #6b4b00;
+}
+.wil-op.sudah {
+  border-color: #b9dcbc;
+  background: #eef8ef;
+  color: #23602a;
+}
+.wil-op:hover {
+  text-decoration: underline;
+}
+.wil-note {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+@media (max-width: 720px) {
+  .wil-head {
+    display: none;
+  }
+  .wil-row {
+    grid-template-columns: 1fr auto auto 12px;
+    gap: 4px 10px;
+  }
+  .wil-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .wil-detail {
+    padding-left: 12px;
+  }
+}
+/* Rekap wilayah di Dashboard (tema gelap command-center) */
+#view-dashboard .wil-tools {
+  color: var(--dk-muted);
+}
+#view-dashboard .wil-tools select {
+  background: var(--dk-card2);
+  color: var(--dk-text);
+  border-color: var(--dk-border-strong);
+}
+#view-dashboard .wil-head {
+  color: var(--dk-muted);
+  border-bottom-color: var(--dk-border-strong);
+}
+#view-dashboard .wil-row {
+  color: var(--dk-text);
+  border-bottom-color: var(--dk-border);
+}
+#view-dashboard .wil-row-btn:hover,
+#view-dashboard .wil-row-btn.open {
+  background: rgba(63, 216, 242, 0.07);
+}
+#view-dashboard .wil-row-btn:focus-visible {
+  outline-color: var(--dk-cyan);
+}
+#view-dashboard .wil-bar {
+  background: rgba(255, 255, 255, 0.1);
+}
+#view-dashboard .wil-bar i {
+  background: var(--dk-cyan);
+}
+#view-dashboard .wil-pct {
+  color: #fff;
+}
+#view-dashboard .wil-zero,
+#view-dashboard .wil-zero .wil-pct,
+#view-dashboard .wil-hide,
+#view-dashboard .wil-chev {
+  color: var(--dk-muted);
+}
+#view-dashboard .wil-zero .wil-nm {
+  font-weight: 500;
+}
+#view-dashboard .wil-detail {
+  background: var(--dk-card2);
+  border-bottom-color: var(--dk-border);
+}
+#view-dashboard .wil-kab th {
+  color: var(--dk-muted);
+  border-bottom-color: var(--dk-border-strong);
+}
+#view-dashboard .wil-kab td {
+  color: var(--dk-text);
+  border-bottom-color: var(--dk-border);
+}
+#view-dashboard .wil-op {
+  background: var(--dk-gold-dim);
+  border-color: rgba(240, 185, 74, 0.35);
+  color: #ffd98c;
+}
+#view-dashboard .wil-op.sudah {
+  background: rgba(95, 208, 138, 0.14);
+  border-color: rgba(95, 208, 138, 0.4);
+  color: #9be8b6;
+}
+#view-dashboard .wil-note {
+  color: var(--dk-muted);
+}
+#view-dashboard .wil-note b {
+  color: var(--dk-text);
+}
+#view-dashboard .wil-kab th,
+.wil-kab th {
+  background: transparent;
+}

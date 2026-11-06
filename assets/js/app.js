@@ -2418,9 +2418,177 @@
       })
       .join("");
 
+    bindWilayah();
+    renderWilayah();
+    if (isAdmin() && !(state.opStatus || []).length) loadOperators();
     var selected = $("dashboardOperatorFilter") ? $("dashboardOperatorFilter").value : "";
     renderDashboardRiskAnalytics(selected);
     bindDashboardOperatorFilter();
+  }
+  // ===== V3.44 — REKAP STATUS DPRK PER WILAYAH =====
+  // Publik: per provinsi dari server (kelompok < MIN_GROUP operator disembunyikan). Admin yang login: angka lengkap
+  // dihitung di browser dari operatorStatus + rincian kab/kota dan daftar operator (klik provinsi).
+  var WIL_PROV_NAMA = {};
+  function wilProvKode(o) {
+    var kw = String(o.kodeWilayah || "").trim();
+    if (/^\d{2}\.\d{2}$/.test(kw)) return kw.slice(0, 2);
+    if (!Object.keys(WIL_PROV_NAMA).length)
+      ((state.data && state.data.wilayah && state.data.wilayah.provinsi) || []).forEach(function (p) {
+        WIL_PROV_NAMA[p.provinsi.toLowerCase()] = p.kode;
+      });
+    return WIL_PROV_NAMA[String(o.provinsi || "").trim().toLowerCase()] || "";
+  }
+  function wilFilled(o) {
+    return /sudah/i.test(o.statusDprk || "");
+  }
+  function wilRows() {
+    var w = (state.data && state.data.wilayah) || null;
+    if (!w) return null;
+    var admin = isAdmin() && (state.opStatus || []).length > 0,
+      rows = w.provinsi.map(function (p) {
+        return { kode: p.kode, provinsi: p.provinsi, total: p.total, filled: p.filled, pct: p.pct, suppressed: !!p.suppressed };
+      }),
+      un = { total: w.belumTerpetakan.total, filled: w.belumTerpetakan.filled, suppressed: !!w.belumTerpetakan.suppressed };
+    if (admin) {
+      var by = {};
+      rows.forEach(function (r) {
+        r.total = 0;
+        r.filled = 0;
+        r.suppressed = false;
+        by[r.kode] = r;
+      });
+      un = { total: 0, filled: 0, suppressed: false };
+      state.opStatus.forEach(function (o) {
+        var r = by[wilProvKode(o)] || un;
+        r.total++;
+        if (wilFilled(o)) r.filled++;
+      });
+      rows.concat([un]).forEach(function (r) {
+        r.pct = r.total ? Number(((r.filled / r.total) * 100).toFixed(1)) : null;
+      });
+    }
+    return { rows: rows, un: un, admin: admin, minGroup: w.minGroup };
+  }
+  function fmtPct(v) {
+    return v == null ? "—" : v.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  }
+  function renderWilayah() {
+    var box = $("wilList");
+    if (!box) return;
+    var R = wilRows();
+    if (!R) {
+      box.innerHTML = '<div class="empty">Rekap wilayah belum tersedia.</div>';
+      return;
+    }
+    var sort = ($("wilSort") && $("wilSort").value) || "wilayah",
+      rows = R.rows.slice();
+    if (sort === "rendah")
+      rows.sort(function (a, b) {
+        var x = a.total ? (a.pct == null ? 101 : a.pct) : 102,
+          y = b.total ? (b.pct == null ? 101 : b.pct) : 102;
+        return x - y || b.total - a.total;
+      });
+    else if (sort === "banyak")
+      rows.sort(function (a, b) {
+        return b.total - a.total || a.kode.localeCompare(b.kode);
+      });
+    var open = state.wilOpen || "";
+    box.innerHTML = rows
+      .map(function (r) {
+        var w = r.total && r.filled != null ? Math.round((r.filled / r.total) * 100) : 0,
+          frac = !r.total ? "—" : r.filled == null ? "? / " + r.total : r.filled + " / " + r.total,
+          tip = r.suppressed ? ' title="Angka sudah mengisi disembunyikan agar status operator tidak dapat dikenali (kurang dari ' + R.minGroup + ' operator)."' : "",
+          inner =
+            '<span class="wil-nm">' + esc(r.provinsi) + "</span>" +
+            '<span class="wil-bar" aria-hidden="true"><i style="width:' + w + '%"></i></span>' +
+            '<span class="wil-frac"' + tip + ">" + frac + "</span>" +
+            '<span class="wil-pct' + (r.suppressed ? " wil-hide" : "") + '"' + tip + ">" + (r.suppressed ? "disembunyikan" : fmtPct(r.pct)) + "</span>";
+        return R.admin && r.total
+          ? '<button type="button" class="wil-row wil-row-btn' + (open === r.kode ? " open" : "") + '" data-wil="' + esc(r.kode) + '" aria-expanded="' + (open === r.kode) + '">' + inner + '<span class="wil-chev" aria-hidden="true">›</span></button>' +
+              (open === r.kode ? '<div class="wil-detail" id="wilDetail">' + wilDetail(r.kode) + "</div>" : "")
+          : '<div class="wil-row' + (r.total ? "" : " wil-zero") + '">' + inner + (R.admin ? '<span class="wil-chev"></span>' : "") + "</div>";
+      })
+      .join("");
+    var withOps = R.rows.filter(function (r) {
+      return r.total;
+    }).length;
+    $("wilBadge").textContent = withOps + " DARI 38 PROVINSI";
+    $("wilNote").innerHTML =
+      (R.un.total
+        ? "<b>" + R.un.total + " operator belum terpetakan</b> ke wilayah resmi (lokasinya kosong atau tidak baku)" +
+          (R.un.filled != null && !R.un.suppressed ? ", " + R.un.filled + " di antaranya sudah mengisi" : "") +
+          ". Operator dapat melengkapinya lewat <b>Usulan lokasi</b> di tab Pengisian DPRK. "
+        : "") +
+      (R.admin
+        ? "Klik provinsi untuk melihat rincian kabupaten/kota dan operatornya."
+        : "Rincian per kabupaten/kota tersedia untuk Admin yang login. Angka provinsi dengan kurang dari " + R.minGroup + " operator disembunyikan.");
+  }
+  function wilDetail(pk) {
+    var list = (state.opStatus || []).filter(function (o) {
+        return wilProvKode(o) === pk;
+      }),
+      g = {};
+    list.forEach(function (o) {
+      var kw = String(o.kodeWilayah || "").trim(),
+        kab = String(o.kabkota || "").trim(),
+        key = /^\d{2}\.\d{2}$/.test(kw) ? kw : "~" + kab.toLowerCase(),
+        nm = key.charAt(0) !== "~" ? wilKabNama(kw, o.kabkota) : kab ? kab + " (belum baku)" : "Kab/kota belum tercatat";
+      (g[key] = g[key] || { nama: nm, ops: [] }).ops.push(o);
+    });
+    var keys = Object.keys(g).sort(function (a, b) {
+      var ua = a.charAt(0) === "~", ub = b.charAt(0) === "~";
+      return ua !== ub ? (ua ? 1 : -1) : g[b].ops.length - g[a].ops.length || g[a].nama.localeCompare(g[b].nama, "id");
+    });
+    return (
+      '<table class="wil-kab"><thead><tr><th>Kabupaten/Kota</th><th>Sudah / Operator</th><th>%</th><th>Operator</th></tr></thead><tbody>' +
+      keys
+        .map(function (k) {
+          var ops = g[k].ops.slice().sort(function (a, b) {
+              return (wilFilled(a) ? 1 : 0) - (wilFilled(b) ? 1 : 0) || String(a.namaOperator).localeCompare(String(b.namaOperator), "id");
+            }),
+            f = ops.filter(wilFilled).length;
+          return (
+            "<tr><td>" + esc(g[k].nama) + "</td><td>" + f + " / " + ops.length + "</td><td>" + fmtPct(Number(((f / ops.length) * 100).toFixed(1))) + '</td><td class="wil-ops">' +
+            ops
+              .map(function (o) {
+                return '<a class="wil-op' + (wilFilled(o) ? " sudah" : "") + '" href="#operator=' + encodeURIComponent(o.operatorId) + '" title="' + esc(o.jenisOperator + " · " + (o.statusDprk || "Belum Mengisi")) + '">' + esc(o.namaOperator) + "</a>";
+              })
+              .join("") +
+            "</td></tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table>"
+    );
+  }
+  function wilKabNama(kode, fallback) {
+    if (WILAYAH) {
+      var x = WILAYAH.kabkota.filter(function (k) {
+        return k.kode === kode;
+      })[0];
+      if (x) return x.tampil;
+    }
+    return fallback || kode;
+  }
+  function bindWilayah() {
+    var box = $("wilList");
+    if (!box || bindWilayah.done) return;
+    bindWilayah.done = true;
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-wil]");
+      if (!b) return;
+      var k = b.getAttribute("data-wil");
+      state.wilOpen = state.wilOpen === k ? "" : k;
+      renderWilayah();
+      if (state.wilOpen && !WILAYAH) loadWilayah().then(renderWilayah, function () {});
+    });
+    if ($("wilSort")) $("wilSort").addEventListener("change", renderWilayah);
+    document.addEventListener("sirisk:opstatus", renderWilayah);
+    document.addEventListener("sirisk:auth", function () {
+      state.wilOpen = "";
+      if (isAdmin() && !(state.opStatus || []).length) loadOperators();
+      else renderWilayah();
+    });
   }
   function bindDashboardOperatorFilter() {
     var sel = $("dashboardOperatorFilter");
