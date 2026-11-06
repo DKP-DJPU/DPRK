@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.42 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.43 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -1176,6 +1176,7 @@ function saveRiskBatch_(p){
 //   IMPOR_OPERATOR   (operator baru, mis. PAUA)          → kolom seperti MASTER_OPERATOR
 //   PERBAIKAN_MASTER (koreksi kolom MASTER_OPERATOR)       → operatorId, Bandara, Kolom, Nilai sekarang, Nilai baru
 //   IMPOR_UNIT       (daftar unit/stasiun)                 → unitId, operatorId, jenisUnit, namaUnit, kodeUnit, provinsi, kabkota
+//   PEMETAAN_WILAYAH (V3.43, kode wilayah resmi)           → operatorId, kodeWilayah (+ provinsiSekarang, kabkotaSekarang)
 // Lalu: cekImporAdmin() (hanya memeriksa, tidak mengubah apa pun) → bila bersih, terapkanImporAdmin().
 // Judul kolom cukup diawali nama kolomnya (mis. "operatorId (induk DPRK)" dikenali sebagai operatorId).
 // Aman dijalankan ulang: operator & unit di-upsert berdasarkan ID; perbaikan hanya diterapkan
@@ -1192,6 +1193,17 @@ function imporRows_(name){
  return raw.slice(1).filter(function(r){return r.some(function(v){return String(v).trim()!==""})}).map(function(r,i){var o={_baris:i+2};h.forEach(function(k,j){if(k&&!(k in o))o[k]=typeof r[j]==="string"?r[j].trim():r[j]});return o});
 }
 function adminActor_(){var e="";try{e=Session.getEffectiveUser().getEmail()}catch(x){}return{_auth:{email:"ADMIN_IMPORT:"+(e||"editor")}}}
+function pemetaanTulis_(sh,key,entityType,list,n){
+ var h=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0],data=sh.getRange(2,1,sh.getLastRow()-1,h.length).getValues(),ki=h.indexOf(key),pos={},aud=[],act=adminActor_()._auth.email;
+ data.forEach(function(r,i){pos[String(r[ki])]=i});
+ var c={p:h.indexOf("provinsi"),k:h.indexOf("kabkota"),w:h.indexOf("kodeWilayah"),u:h.indexOf("updatedAt")};
+ list.forEach(function(x){var i=pos[x.id];if(i===undefined)return;var r=data[i],before={provinsi:r[c.p],kabkota:r[c.k],kodeWilayah:kodeWil_(r[c.w])};
+  r[c.p]=x.w.provinsi;r[c.k]=x.w.kabkota;r[c.w]=x.w.kode;if(c.u>=0)r[c.u]=n;
+  aud.push({auditId:id_("AUD"),timestamp:n,actorType:"USER_LOGIN",actorId:act,entityType:entityType,entityId:x.id,action:"UPDATE",reason:"Pemetaan wilayah resmi (PEMETAAN_WILAYAH)",beforeData:JSON.stringify(before),afterData:JSON.stringify({provinsi:x.w.provinsi,kabkota:x.w.kabkota,kodeWilayah:x.w.kode}),requestId:""})});
+ // Hanya kolom yang berubah yang ditulis ulang (kolom lain — tanggal, teks berawalan "=" dsb. — tidak disentuh).
+ [c.p,c.k,c.w,c.u].forEach(function(j){if(j>=0)sh.getRange(2,j+1,data.length,1).setValues(data.map(function(r){return[j===c.u?r[j]:j===c.w?(r[j]===""?"":sanitizeCell_(kodeWil_(r[j]))):sanitizeCell_(r[j])]}))});
+ if(aud.length){var as=sheet_(SHEETS.AUDIT,H.AUDIT),ah=as.getRange(1,1,1,as.getLastColumn()).getValues()[0];(ensureRows_(as,aud.length),as).getRange(as.getLastRow()+1,1,aud.length,ah.length).setValues(aud.map(function(a){return ah.map(function(k){return sanitizeCell_(a[k]===undefined?"":a[k])})}))}
+}
 function cekImporAdmin(){return imporAdmin_(false)}
 function terapkanImporAdmin(){return imporAdmin_(true)}
 function imporAdmin_(apply){
@@ -1262,7 +1274,33 @@ function imporAdmin_(apply){
    if(uOld[id]){if(UNIT_CMP.some(function(k){return k==="aktif"?boolText_(uOld[id].aktif)!==boolText_(x.aktif):String(uOld[id][k]==null?"":uOld[id][k]).trim()!==String(x[k]).trim()}))uUpd.push(x);else uSama++}
    else uAdd.push(x);
   });out.push("IMPOR_UNIT: "+uAdd.length+" unit baru, "+uUpd.length+" unit diperbarui"+(uSama?", "+uSama+" tidak berubah":"")+(function(){var n=uAdd.concat(uUpd).filter(function(u){return!u.aktif}).length;return n?" ("+n+" dinonaktifkan)":""})()+".")}
-  if(!io&&!pm&&!iu)out.push("Tidak ada sheet IMPOR_OPERATOR / PERBAIKAN_MASTER / IMPOR_UNIT yang berisi data.");
+  // 4. V3.43 — Pemetaan wilayah resmi: PEMETAAN_WILAYAH → operatorId, kodeWilayah (+ opsional provinsiSekarang, kabkotaSekarang
+  // sebagai pengaman). Provinsi & kab/kota DITURUNKAN dari kode (Wilayah.gs), bukan diketik, sehingga ejaannya seragam.
+  // Stasiun maskapai (jenisUnit Stasiun) di bandara yang dipetakan ikut lokasi bandaranya (kodeUnit = IATA bandara).
+  var pw=imporRows_("PEMETAAN_WILAYAH"),pwOps=[],pwUnits=[],pwSama=0,pwProv=0,pwIata={};
+  if(pw){var seenP={},iuIds={};(iu||[]).forEach(function(r){iuIds[String(r.unitId||"")]=1});
+   var stasiun={};objs_(uS).forEach(function(u){if(String(u.aktif).toLowerCase()!=="false"&&u.jenisUnit==="Stasiun"&&String(u.kodeUnit||"").trim())(stasiun[String(u.kodeUnit).trim().toUpperCase()]=stasiun[String(u.kodeUnit).trim().toUpperCase()]||[]).push(u)});
+   var usulBuka={};usulRowsIfAny_().forEach(function(x){if(usulTerbuka_(x)&&!String(x.unitId||""))usulBuka[String(x.operatorId)]=1});
+   var beda=function(o,w){return!(sameVal_("",o.provinsi,w.provinsi)&&sameVal_("",o.kabkota,w.kabkota)&&kodeWil_(o.kodeWilayah)===w.kode)};
+   pw.forEach(function(r){
+    var id=String(r.operatorId||""),cur=opById[id],w=wilayah_(r.kodeWilayah),e=[];
+    if(!cur)e.push("operator "+id+" tidak ada");
+    if(!w)e.push("kodeWilayah \""+r.kodeWilayah+"\" tidak ada di daftar resmi");
+    if(seenP[id])e.push("operatorId ganda (baris "+seenP[id]+")");seenP[id]=r._baris;
+    if(fixes.some(function(f){return f.id===id&&(f.k==="provinsi"||f.k==="kabkota")}))e.push("operator ini juga diubah provinsi/kabkota-nya di PERBAIKAN_MASTER — pilih salah satu");
+    if(!e.length&&("provinsiSekarang"in r||"kabkotaSekarang"in r)&&beda(cur,w)&&!(sameVal_("",cur.provinsi,r.provinsiSekarang)&&sameVal_("",cur.kabkota,r.kabkotaSekarang)))
+     e.push("lokasi "+id+" sekarang \""+[cur.kabkota,cur.provinsi].filter(String).join(", ")+"\", bukan \""+[r.kabkotaSekarang,r.provinsiSekarang].filter(String).join(", ")+"\" — periksa ulang");
+    if(e.length){errs.push("PEMETAAN_WILAYAH baris "+r._baris+": "+e.join("; "));return}
+    if(beda(cur,w)){pwOps.push({id:id,w:w});if(String(cur.provinsi||"").trim()&&!sameVal_("",cur.provinsi,w.provinsi))pwProv++;if(usulBuka[id])out.push("  PERINGATAN: "+id+" masih punya usulan lokasi Menunggu — tinjau usulannya setelah pemetaan ini.")}else pwSama++;
+    // Hanya bandara AKTIF yang menjadi rujukan stasiun (ada baris bandara lama Nonaktif dengan IATA yang sama, mis. LNU, PPR).
+    if(cur&&opActive_(cur)&&cur.jenisOperator==="Bandar Udara"&&String(cur.iata||"").trim()){var kl=String(cur.iata).trim().toUpperCase();
+     if(pwIata[kl]&&pwIata[kl].w.kode!==w.kode)errs.push("PEMETAAN_WILAYAH baris "+r._baris+": bandara aktif "+id+" dan "+pwIata[kl].id+" sama-sama berkode "+kl+" tetapi wilayahnya berbeda");
+     else if(!pwIata[kl]){pwIata[kl]={id:id,w:w};(stasiun[kl]||[]).forEach(function(u){
+      if(iuIds[String(u.unitId)]){errs.push("PEMETAAN_WILAYAH baris "+r._baris+": stasiun "+u.unitId+" juga ada di IMPOR_UNIT — kosongkan salah satu");return}
+      if(beda(u,w))pwUnits.push({id:String(u.unitId),w:w})})}}
+   });
+   out.push("PEMETAAN_WILAYAH: "+pwOps.length+" operator diperbarui ("+pwProv+" provinsi berubah), "+pwSama+" sudah sesuai; "+pwUnits.length+" stasiun maskapai ikut lokasi bandaranya.")}
+  if(!io&&!pm&&!iu&&!pw)out.push("Tidak ada sheet IMPOR_OPERATOR / PERBAIKAN_MASTER / IMPOR_UNIT / PEMETAAN_WILAYAH yang berisi data.");
   if(errs.length){out.push("");out.push("DITEMUKAN "+errs.length+" MASALAH — tidak ada yang diterapkan:");errs.slice(0,100).forEach(function(x){out.push(" - "+x)});var m1=out.join("\n");Logger.log(m1);return m1}
   if(!apply){out.push("");out.push("Pemeriksaan bersih. Jalankan terapkanImporAdmin() untuk menerapkan.");var m2=out.join("\n");Logger.log(m2);return m2}
   // --- terapkan
@@ -1277,7 +1315,11 @@ function imporAdmin_(apply){
   // V3.37.2: perbarui unit dalam SATU baca + SATU tulis (bukan cari & tulis per baris).
   if(uUpd.length&&uS.getLastRow()>1){var ub=uS.getRange(2,1,uS.getLastRow()-1,uh.length).getValues(),ui=uh.indexOf("unitId"),pos={};ub.forEach(function(r,i){pos[String(r[ui])]=i});
    uUpd.forEach(function(u){var i=pos[u.unitId];if(i===undefined)return;u.updatedAt=n;uh.forEach(function(c,j){if(c in u)ub[i][j]=sanitizeCell_(u[c])})});
+   var uw=uh.indexOf("kodeWilayah");if(uw>=0)ub.forEach(function(r){if(r[uw]!=="")r[uw]=sanitizeCell_(kodeWil_(r[uw]))}); // V3.43: tetap teks
    uS.getRange(2,1,ub.length,uh.length).setValues(ub)}
+  // V3.43: pemetaan wilayah — satu baca + satu tulis per sheet, audit per entitas dalam satu tulis.
+  if(pwOps.length)pemetaanTulis_(opS,"operatorId","OPERATOR",pwOps,n);
+  if(pwUnits.length)pemetaanTulis_(uS,"unitId","UNIT",pwUnits,n);
   if(addOps.length)audit_(adminActor_(),"OPERATOR","IMPOR_OPERATOR","BATCH_CREATE",{},{jumlah:addOps.length},"","Impor admin operator");
   if(uAdd.length||uUpd.length)audit_(adminActor_(),"UNIT","IMPOR_UNIT","BATCH_UPSERT",{},{baru:uAdd.length,diperbarui:uUpd.length},"","Impor admin unit");
   invalidateDashboardCache_();
