@@ -235,6 +235,9 @@ Tidak. Untuk setiap unit/stasiun (dan Induk), yang dihitung hanya matriks **peri
 ### Apakah setiap kategori ancaman wajib diisi?
 Isi semua skenario yang tercantum di dokumen DPRK operator Anda yang sudah disahkan. Data di sistem harus sama dengan dokumen tersebut.
 
+### Tampilan tidak berubah setelah ada pembaruan
+Lihat tulisan **versi tampilan** di bagian paling bawah halaman. Bila versinya masih lama, muat ulang halaman tanpa salinan lama: tekan **Ctrl+Shift+R** (Windows) atau **Cmd+Shift+R** (Mac). Bila versinya tetap lama, pembaruan situs belum selesai diterbitkan; hubungi Admin.
+
 ### Apakah pelapor kejadian harus login?
 Tidak. Formulir laporan dan cek status dapat digunakan tanpa login.
 

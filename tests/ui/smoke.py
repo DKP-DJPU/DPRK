@@ -223,7 +223,7 @@ try:
         pg.fill('#pdnSearch', ''); pg.wait_for_timeout(300)
         pg.click('#pdnToc a[data-pdn="pertanyaan-umum-faq"]'); pg.wait_for_timeout(900)
         T('panduan: klik daftar isi → hash #panduan/<bab> & bab terlihat', pg.evaluate('location.hash') == '#panduan/pertanyaan-umum-faq' and pg.evaluate("(()=>{const r=document.getElementById('pdn-pertanyaan-umum-faq').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0})()"))
-        T('kaki halaman (teks versi lama) sudah dihapus', pg.query_selector('.footer') is None and 'V3.27' not in pg.inner_text('body'))
+        T('kaki halaman statis (teks versi lama) sudah dihapus; versi kini otomatis dari ?v=', pg.query_selector('.footer') is None and 'V3.27' not in pg.inner_text('body'))
         T('panduan: tidak ada error JS', not pg._errs, pg._errs)
         pg.close()
         pg = page(b, url=f'http://localhost:{WEB}/#panduan/mengisi-dprk'); pg.wait_for_timeout(800)
@@ -355,6 +355,11 @@ try:
         T('HP: formulir usulan tanpa scroll horizontal', pg.evaluate('document.documentElement.scrollWidth<=390'), pg.evaluate('document.documentElement.scrollWidth'))
         T('usulan: tanpa galat JS', not pg._errs, pg._errs)
         pg.close(); ctl('/__ctl?a=reset')
+
+        # ================= penanda versi tampilan =================
+        pg = page(b); ver = re.search(r'app\.js\?v=(\w+)', open(os.path.join(ROOT, 'index.html')).read()).group(1)
+        T('penanda versi tampilan di bawah halaman = ?v= index.html', ('versi tampilan ' + ver) in pg.inner_text('#appVer'), [ver, pg.inner_text('#appVer')])
+        pg.close()
 
         # ================= HP =================
         m = page(b, w=390); tab(m, 'operator')

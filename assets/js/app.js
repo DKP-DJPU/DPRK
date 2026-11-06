@@ -233,7 +233,23 @@
       .toUpperCase();
   }
 
+  // Penanda versi tampilan (dari ?v= berkas app.js). Bila tidak sama dengan versi PR terakhir, GitHub Pages belum
+  // memperbarui situs atau peramban masih memakai salinan lama (muat ulang dengan Ctrl+Shift+R).
+  function renderAppVersion() {
+    var el = $("appVer"),
+      sc = document.querySelector('script[src*="assets/js/app.js"]'),
+      m = sc && /[?&]v=(\d{4})(\d{2})(\d{2})([a-z]?)/.exec(sc.getAttribute("src"));
+    if (!el || !m) return;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    el.textContent =
+      "SI-RISK AVSEC · versi tampilan " +
+      m[1] + m[2] + m[3] + m[4] +
+      " (" +
+      d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+      ")";
+  }
   function init() {
+    renderAppVersion();
     $("bulan").innerHTML =
       '<option value="">Pilih bulan</option>' +
       BULAN.map(function (x) {

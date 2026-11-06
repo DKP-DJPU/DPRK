@@ -2819,3 +2819,21 @@ main {
   color: #7a5200;
   border-color: #efd39c;
 }
+/* Penanda versi tampilan */
+.app-ver {
+  max-width: var(--content-max);
+  margin: 8px auto 20px;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.app-ver:empty {
+  display: none;
+}
+@media print {
+  .app-ver {
+    display: none;
+  }
+}
