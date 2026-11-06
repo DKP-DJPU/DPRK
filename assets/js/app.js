@@ -1410,7 +1410,13 @@
       " tersedia)</option>" +
       arr
         .map(function (x) {
-          return '<option value="' + esc(x[0]) + '">' + esc(x[0] + " — " + x[2]) + "</option>";
+          // Kotak pilihan bawaan peramban tidak bisa membungkus teks: label dipendekkan (teks lengkap di title
+          // dan otomatis masuk ke kolom Skenario setelah dipilih). Area ditampilkan agar skenario yang mirip terbedakan.
+          var full = String(x[2] || ""),
+            area = String(x[3] || ""),
+            lbl = full.length > 95 ? full.slice(0, 95).replace(/\s+\S*$/, "") + "…" : full;
+          if (area.length > 24) area = area.slice(0, 24).replace(/\s+\S*$/, "") + "…";
+          return '<option value="' + esc(x[0]) + '" title="' + esc(full) + '">' + esc(x[0] + (area ? " · " + area : "") + " — " + lbl) + "</option>";
         })
         .join("") +
       '<option value="__MANUAL__">Isi Sendiri — Skenario belum tersedia di katalog</option>';
