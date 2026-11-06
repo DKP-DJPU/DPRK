@@ -3079,3 +3079,11 @@ main {
 .wil-kab th {
   background: transparent;
 }
+#view-dashboard .wil-kab tr,
+#view-dashboard .wil-kab tbody tr:nth-child(even),
+#view-dashboard .wil-kab tbody tr:hover {
+  background: transparent;
+}
+#view-dashboard .wil-kab tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}

@@ -2548,13 +2548,13 @@
             }),
             f = ops.filter(wilFilled).length;
           return (
-            "<tr><td>" + esc(g[k].nama) + "</td><td>" + f + " / " + ops.length + "</td><td>" + fmtPct(Number(((f / ops.length) * 100).toFixed(1))) + '</td><td class="wil-ops">' +
+            "<tr><td>" + esc(g[k].nama) + "</td><td>" + f + " / " + ops.length + "</td><td>" + fmtPct(Number(((f / ops.length) * 100).toFixed(1))) + '</td><td><div class="wil-ops">' +
             ops
               .map(function (o) {
                 return '<a class="wil-op' + (wilFilled(o) ? " sudah" : "") + '" href="#operator=' + encodeURIComponent(o.operatorId) + '" title="' + esc(o.jenisOperator + " · " + (o.statusDprk || "Belum Mengisi")) + '">' + esc(o.namaOperator) + "</a>";
               })
               .join("") +
-            "</td></tr>"
+            "</div></td></tr>"
           );
         })
         .join("") +
