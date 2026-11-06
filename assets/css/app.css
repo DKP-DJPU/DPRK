@@ -2819,3 +2819,227 @@ main {
   color: #7a5200;
   border-color: #efd39c;
 }
+/* Impor matriks DPRK dari Excel */
+.impor-card {
+  margin-bottom: 14px;
+}
+.impor-card[hidden] {
+  display: none;
+}
+.impor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.impor-head > div {
+  flex: 1 1 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.impor-head > div > b {
+  font-size: 15px;
+  color: var(--navy);
+}
+.impor-head > div > span {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.impor-pick {
+  position: relative;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.impor-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.impor-pick:focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+#imporBody:not(:empty) {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.impor-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+.impor-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #334155;
+}
+.impor-target {
+  color: var(--navy);
+}
+.impor-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.impor-counts span {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+}
+.ic-ok {
+  background: #eef8ef;
+  color: #23602a;
+  border-color: #b9dcbc;
+}
+.ic-warn {
+  background: #fff7e6;
+  color: #6b4b00;
+  border-color: #efd39c;
+}
+.ic-err {
+  background: #fdecea;
+  color: #8c2a22;
+  border-color: #f1b8b2;
+}
+.ic-kh {
+  background: #eef6fb;
+  color: #17466f;
+  border-color: #bcd6ea;
+}
+.impor-msg {
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid;
+}
+.impor-err {
+  background: #fdecea;
+  border-color: #f1b8b2;
+  color: #7a2a24;
+}
+.impor-warn {
+  background: #fff7e6;
+  border-color: #efd39c;
+  color: #5c470c;
+}
+.impor-ok {
+  background: #eef8ef;
+  border-color: #b9dcbc;
+  color: #23602a;
+}
+.impor-table-wrap {
+  max-height: 460px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.impor-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.impor-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f3f6fa;
+  text-align: left;
+  padding: 7px 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.impor-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #edf1f5;
+  vertical-align: top;
+}
+.impor-table td small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.impor-table tbody tr:nth-child(even) {
+  background: #fff;
+}
+.impor-table tr.row-err td {
+  background: #fff6f5;
+}
+.impor-table tr.row-warn td {
+  background: #fffcf4;
+}
+.impor-table tr.row-off td {
+  opacity: 0.45;
+}
+.impor-sk {
+  max-width: 340px;
+  line-height: 1.45;
+}
+.impor-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: #eef6fb;
+  color: #17466f;
+}
+.impor-note {
+  max-width: 300px;
+  line-height: 1.4;
+}
+.impor-note div + div {
+  margin-top: 3px;
+}
+.n-err {
+  color: #8c2a22;
+  font-weight: 600;
+}
+.n-warn {
+  color: #7a5200;
+}
+.n-info {
+  color: var(--muted);
+}
+.rt {
+  font-weight: 700;
+}
+.rt-tinggi {
+  color: #b2382f !important;
+}
+.rt-menengah-tinggi {
+  color: #b9682a !important;
+}
+.impor-act {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.impor-act > span {
+  margin-right: auto;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.impor-table td:nth-child(4),
+.impor-table th:nth-child(4),
+.impor-table td:nth-child(7) {
+  white-space: nowrap;
+}

@@ -105,6 +105,18 @@ Siapkan dulu dokumen DPRK yang sudah disahkan, karena nilai yang diisi harus sam
 
 ![Langkah 02: nilai risiko dan kategori penerimaan dihitung otomatis](assets/panduan/form-penilaian@2x.png)
 
+### Impor matriks dari Excel
+
+Bila matriks DPRK sudah ada dalam Excel, seluruh skenarionya dapat disimpan sekaligus tanpa mengetik ulang.
+
+1. Lengkapi **Langkah 01**: operator, **Lokasi yang dinilai**, **Bulan Penilaian**, **Tahun**, **Tanggal Pengesahan**, dan **Nama Pengisi**. Semua skenario dari file disimpan untuk lokasi dan periode ini. Untuk matriks stasiun/unit lain, ganti lokasinya lalu impor file stasiun tersebut.
+2. Pada kotak **Impor dari Excel**, klik **Pilih file Excel (.xlsx)**. Yang dibaca hanya sheet **MATRIKS DAFTAR RISIKO** (format Lampiran II, dengan kolom NILAI untuk ancaman, kerentanan, dan konsekuensi). File dibaca di peramban Anda; yang dikirim hanya isi matriksnya.
+3. Periksa pratinjau. Baris **bergalat** (merah), misalnya nilai di luar 1–10 atau skenario kosong, tidak dicentang; perbaiki di Excel lalu pilih file lagi. Baris **dengan catatan** (kuning) tetap dapat disimpan; catatan menjelaskan apa yang disesuaikan, misalnya ID yang dikoreksi sesuai katalog, ID yang belum ada di katalog nasional, atau rating di file yang berbeda dengan hasil hitung.
+4. Bila periode di file berbeda dengan formulir, klik **Pakai periode file**.
+5. Klik **Simpan … skenario**. Nilai risiko dan rating selalu dihitung ulang oleh sistem. Mengirim ulang file yang sama tidak menggandakan data.
+
+Penyesuaian otomatis: perlakuan *Sharing* disimpan sebagai *Pembagian*; *Mitigasi dan Sharing* disimpan sebagai *Mitigasi* dengan teks aslinya di Keterangan. Bila ada beberapa tanggal kaji ulang dalam satu sel, yang dipakai tanggal paling awal dan teks aslinya disimpan di Keterangan. Baris di bagian *Hasil Penilaian Risiko Khusus* ditandai **Risiko khusus**.
+
 ### Cara nilai risiko dihitung
 
 **Total Risiko = Ancaman + Kerentanan + Konsekuensi** (rentang 3–30). Tingkat risiko dan kategori penerimaannya mengikuti PR 16/41 DJPU Tahun 2024:

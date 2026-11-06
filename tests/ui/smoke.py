@@ -356,6 +356,30 @@ try:
         T('usulan: tanpa galat JS', not pg._errs, pg._errs)
         pg.close(); ctl('/__ctl?a=reset')
 
+        # ================= Impor matriks Excel (file REKAAN tests/fixtures/matriks-rekaan.xlsx) =================
+        pg = page(b); login(pg, 'budi@juanda.co.id'); tab(pg, 'form'); pg.wait_for_timeout(500)
+        T('impor: kartu impor tampil untuk pengguna login', pg.is_visible('#imporCard'))
+        pg.set_input_files('#imporFile', os.path.join(ROOT, 'tests', 'fixtures', 'matriks-rekaan.xlsx')); pg.wait_for_selector('.impor-table', timeout=15000)
+        body = pg.inner_text('#imporBody')
+        T('impor: 6 skenario terbaca (judul kategori & baris contoh dilewati), 1 bergalat, 1 risiko khusus', pg.locator('.impor-table tbody tr').count() == 6 and '1 bergalat' in body and '1 risiko khusus' in body, body[:400])
+        T('impor: syarat Langkah 01 belum lengkap → tombol Simpan nonaktif + pesan lokasi', pg.is_disabled('#imporBody [data-imp=simpan]') and 'Lokasi yang dinilai' in body)
+        T('impor: ID tanggal (1.10) → 01.10, angka 3.6 → 03.06, ID dikoreksi ke 04.09', all(x in body for x in ['01.10', '03.06', '04.09', 'dipakai 04.09']), body[:600])
+        T('impor: baris bergalat tidak dicentang', not pg.is_checked('.impor-table tr.row-err input[data-imp=row]'))
+        pg.click('#unitList [data-unit-pick=""]'); pg.wait_for_timeout(200)
+        pg.select_option('#bulan', 'September'); pg.dispatch_event('#bulan', 'change'); pg.fill('#namaPengisi', 'Budi Santoso'); pg.fill('#tanggalPengesahan', '2026-07-01'); pg.dispatch_event('#tanggalPengesahan', 'change'); pg.dispatch_event('#namaPengisi', 'change'); pg.wait_for_timeout(200)
+        T('impor: periode file (Juli 2026) ≠ formulir (September) → peringatan + tombol pakai periode file', 'Periode di file' in pg.inner_text('#imporBody') and pg.locator('#imporBody [data-imp=periode]').count() == 1)
+        pg.click('#imporBody [data-imp=periode]'); pg.wait_for_timeout(200)
+        T('impor: "Pakai periode file" → Bulan = Juli', pg.input_value('#bulan') == 'Juli' and not pg.is_disabled('#imporBody [data-imp=simpan]'), pg.input_value('#bulan'))
+        n0 = len(ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT')); pg.click('#imporBody [data-imp=simpan]'); pg.wait_for_timeout(2500)
+        rows = [x for x in ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT')[n0:] if x['operatorId'] == 'BD-100']
+        T('impor: 5 skenario tersimpan ke server (Juli 2026, Induk, ID katalog, perlakuan, keterangan)', len(rows) == 5 and all(x['bulan'] == 'Juli' and str(x['tahun']) == '2026' and not x['unitId'] for x in rows) and sorted(x['idRisikoKatalog'] for x in rows) == ['01.01', '01.10', '02.02', '03.06', '04.09'] and any(x['perlakuan'] == 'Pembagian' for x in rows) and any('Risiko khusus' in str(x['keterangan']) for x in rows), [(x['idRisikoKatalog'], x['perlakuan'], x['keterangan']) for x in rows])
+        T('impor: pesan berhasil', '5 skenario tersimpan' in pg.inner_text('#imporBody'), pg.inner_text('#imporBody')[-300:])
+        pg.set_input_files('#imporFile', os.path.join(ROOT, 'tests', 'fixtures', 'matriks-rekaan.xlsx')); pg.wait_for_selector('.impor-table', timeout=15000)
+        pg.click('#imporBody [data-imp=simpan]'); pg.wait_for_timeout(2000)
+        T('impor: file yang sama dikirim ulang → tidak digandakan', len([x for x in ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT')[n0:] if x['operatorId'] == 'BD-100']) == 5 and 'tidak digandakan' in pg.inner_text('#imporBody'), pg.inner_text('#imporBody')[-300:])
+        T('impor: tanpa galat JS', not pg._errs, pg._errs)
+        pg.close(); ctl('/__ctl?a=reset')
+
         # ================= HP =================
         m = page(b, w=390); tab(m, 'operator')
         T('HP: tanpa scroll horizontal', m.evaluate('document.documentElement.scrollWidth<=390'))
