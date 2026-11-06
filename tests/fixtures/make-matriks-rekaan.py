@@ -1,7 +1,7 @@
 """Membuat tests/fixtures/matriks-rekaan.xlsx — matriks DPRK REKAAN (format Lampiran II) untuk uji UI impor.
 Tidak memuat data operator nyata; teks skenario diambil dari katalog publik data/katalog-risiko.json.
 Meniru kebiasaan file nyata: judul kolom tergabung (merge), ID "1.10" berformat tanggal, ID angka 3.6,
-"1,0" sebagai judul kategori, tanggal kaji ulang campuran, perlakuan "Sharing", blok risiko khusus, satu baris bergalat.
+"1,0" sebagai judul kategori, tanggal kaji ulang campuran, perlakuan "Sharing", blok risiko khusus (dilewati), skenario tambahan operator (Isi Sendiri), satu baris bergalat.
     python3 tests/fixtures/make-matriks-rekaan.py
 """
 import datetime, json, os
@@ -33,6 +33,7 @@ add(3.6, 'a.', K['03.06'][2], 6, 6, 10, '31/12/2026\n\n31 Maret 2027 (anggaran)'
 add('4.0', 'LANDSIDE ATTACK', None, None, None, None, None, None)
 add('4.2', 'a.', K['04.09'][2], 4, 2, 8, datetime.datetime(2027, 3, 31), 'Diterima')
 add('4.3', 'b.', 'Skenario rekaan dengan nilai di luar rentang', 11, 2, 2, '', 'Mitigasi')
+add('1.13', 'c.', 'Skenario tambahan operator rekaan (belum ada di katalog nasional)', 9, 9, 9, '1 Agt 2026', 'Mitigasi')
 ws.cell(r, 1, 'HASIL PENILAIAN RISIKO KHUSUS'); r += 1
 add('2.0', 'IED IN CARGO', None, None, None, None, None, None)
 add('2.2', 'a.', K['02.02'][2], 2, 1, 10, datetime.datetime(2026, 9, 1), 'Sharing')

@@ -11,10 +11,10 @@
  * Kebiasaan file nyata yang ditangani:
  *  - ID "1.10" yang diubah Excel menjadi tanggal (10 Jan) → 01.10; ID angka 3.6 → 03.06 (dicek dengan teks katalog);
  *    "1,0" / "3. 0" = baris judul kategori.
- *  - ID yang tidak cocok dengan teks skenarionya dikoreksi bila teksnya identik dengan skenario lain di katalog.
+ *  - Nomor ID dipakai bila ada di katalog nasional; nomor di luar katalog = skenario tambahan operator → Isi Sendiri.
  *  - Tanggal kaji ulang berupa tanggal Excel, "22 Juli 2026", "31/12/2026", atau beberapa tanggal + catatan.
- *  - Perlakuan "Sharing" = Pembagian; "Mitigasi dan Sharing" → Mitigasi (teks asli disimpan di keterangan).
- *  - Bagian "HASIL PENILAIAN RISIKO KHUSUS" di bawah tabel utama ditandai "Risiko khusus".
+ *  - Perlakuan "Sharing" / "Mitigasi dan Sharing" = Mitigasi. Prioritas otomatis dari rating bila tidak ada di file.
+ *  - Bagian "HASIL PENILAIAN RISIKO KHUSUS" di bawah tabel utama dilewati (belum diimpor).
  */
 (function (root) {
   "use strict";
@@ -119,15 +119,27 @@
   function perlakuan(s) {
     var t = normH(s);
     if (!t) return { v: "", note: "" };
-    var mit = /MITIGA/.test(t),
-      sha = /SHARING|SHARE|PEMBAGIAN|BAGI|TRANSFER|PENGALIHAN/.test(t),
+    // Keputusan Alex 6 Nov 2026: Sharing (pembagian/pengalihan risiko) termasuk perlakuan Mitigasi.
+    var mit = /MITIGA|SHARING|SHARE|PEMBAGIAN|BAGI|TRANSFER|PENGALIHAN/.test(t),
+      sha = false,
       ter = /DITERIMA|TERIMA|ACCEPT|RETENSI|RETAIN/.test(t),
       tol = /PENOLAKAN|TOLAK|AVOID|HINDAR/.test(t);
     var n = [mit, sha, ter, tol].filter(Boolean).length;
-    var v = mit ? "Mitigasi" : sha ? "Pembagian" : ter ? "Diterima" : tol ? "Penolakan" : "";
+    var v = mit ? "Mitigasi" : ter ? "Diterima" : tol ? "Penolakan" : "";
     return { v: v, note: n > 1 || !v ? "Perlakuan di matriks: " + str(s) : "" };
   }
   P.perlakuan = perlakuan;
+  // Prioritas: dari kolom PRIORITAS bila ada; bila tidak, dari rating (keputusan Alex 6 Nov 2026):
+  // Tinggi → Sangat Segera; Menengah-Tinggi & Menengah → Segera; Menengah-Rendah & Rendah → Biasa.
+  function prioritas(fileVal, rating) {
+    var t = normH(fileVal);
+    if (/SANGAT/.test(t)) return { v: "Sangat Segera", auto: false };
+    if (/SEGERA/.test(t)) return { v: "Segera", auto: false };
+    if (/BIASA|NORMAL|RUTIN/.test(t)) return { v: "Biasa", auto: false };
+    var v = rating === "Tinggi" ? "Sangat Segera" : rating === "Menengah-Tinggi" || rating === "Menengah" ? "Segera" : rating ? "Biasa" : "";
+    return { v: v, auto: true, tidakDikenal: !!t };
+  }
+  P.prioritas = prioritas;
   function num(v) {
     if (v === null || v === undefined || v === "") return null;
     if (typeof v === "number") return v;
@@ -155,6 +167,7 @@
         else if (/^PEMILIK/.test(h)) c.owner = j;
         else if (/^TANGGAL/.test(h)) c.tgl = j;
         else if (/^KETERANGAN|^PERLAKUAN/.test(h)) c.ket = j;
+        else if (/^PRIORITAS/.test(h)) c.pri = j;
       });
       if (c.id !== undefined && c.sk !== undefined) {
         c.headerRow = r;
@@ -213,7 +226,8 @@
     });
     var meta = parseMeta(rows, c.headerRow),
       out = [],
-      khusus = false;
+      khusus = false,
+      dilewati = 0;
     for (var r = c.subRow + 1; r < rows.length; r++) {
       var row = rows[r] || [],
         g = function (j) { return j === undefined ? null : row[j] ? row[j].v : null; },
@@ -231,27 +245,30 @@
         kosong = a === null && k === null && q === null;
       if (pid.kind === "kategori" && kosong) continue;
       if (kosong && (!text || /^[.…\s-]*$/.test(text))) continue; // baris contoh "b. …..." pada templat
-      var kat = pad2(pid.major),
-        x = { line: r + 1, idFile: pid.raw || first, kategori: KN[kat] ? kat + " - " + KN[kat] : "", skenario: text, area: str(g(c.area)), langkahSaatIni: str(g(c.langkah)), kerentananSaatIni: str(g(c.kerSaat)), langkahTambahan: str(g(c.tambah)), riskOwner: str(g(c.owner)), ancamanNilai: a, kerentananNilai: k, konsekuensiNilai: q, khusus: khusus, errors: [], warnings: [], notes: [] };
-      // ID: kandidat (ambigu untuk angka 3.6) → pilih yang ada di katalog & paling mirip teksnya.
-      var cands = pid.minor.map(function (m) { return kat + "." + pad2(m); }).filter(function (id) { return id.length === 5; });
-      var scored = cands.map(function (id) { return { id: id, s: SK[id] ? dice(text, SK[id][2]) : -1 }; }).sort(function (u, v) { return v.s - u.s; });
-      var id = scored.length ? scored[0].id : kat + "." + pad2(pid.minor[0]),
-        own = scored.length ? scored[0].s : -1;
-      if (pid.kind === "angka" && cands.length > 1 && !SK[cands[0]] && !SK[cands[1]]) id = cands[0];
-      if (text) {
-        var best = { id: "", s: 0 };
-        (byKat[kat] || []).forEach(function (s) {
-          var d = dice(text, s[2]);
-          if (d > best.s) best = { id: s[0], s: d };
-        });
-        if (best.id && best.id !== id && best.s >= 0.95 && own < 0.85) {
-          x.warnings.push("ID di file " + x.idFile + ", tetapi teks skenarionya sama dengan katalog " + best.id + " → dipakai " + best.id + ".");
-          id = best.id;
-          x.idDikoreksi = true;
-        } else if (!SK[id]) x.warnings.push("ID " + id + " tidak ada di katalog nasional; tetap disimpan dengan ID ini.");
+      // Keputusan Alex 6 Nov 2026: bagian "HASIL PENILAIAN RISIKO KHUSUS" belum diimpor (dilewati, hanya dihitung).
+      if (khusus) {
+        dilewati++;
+        continue;
       }
-      x.idRisikoKatalog = id;
+      var kat = pad2(pid.major),
+        x = { line: r + 1, idFile: pid.raw || first, kategori: KN[kat] ? kat + " - " + KN[kat] : "", skenario: text, area: str(g(c.area)), langkahSaatIni: str(g(c.langkah)), kerentananSaatIni: str(g(c.kerSaat)), langkahTambahan: str(g(c.tambah)), riskOwner: str(g(c.owner)), ancamanNilai: a, kerentananNilai: k, konsekuensiNilai: q, errors: [], warnings: [], notes: [] };
+      // ID: kandidat (ambigu untuk angka 3.6) → pilih yang ada di katalog & paling mirip teksnya.
+      // Keputusan Alex 6 Nov 2026 — NOMOR DULU: nomor ID di file (setelah dirapikan) dipakai bila ada di katalog
+      // nasional. Teks hanya dipakai untuk memilih di antara kandidat angka yang ambigu (3.6 = 03.06 atau 03.60).
+      // Nomor yang tidak ada di katalog = skenario tambahan operator → "Isi Sendiri" (seperti pilihan di formulir),
+      // nomor operator dicatat di Keterangan.
+      var cands = pid.minor.map(function (m) { return kat + "." + pad2(m); }).filter(function (id) { return id.length === 5; }),
+        ada = cands.filter(function (id) { return SK[id]; });
+      if (ada.length > 1) ada.sort(function (u, v) { return dice(text, SK[v][2]) - dice(text, SK[u][2]); });
+      var id = ada[0] || "";
+      x.idOperator = id || cands[0] || kat + "." + pad2(pid.minor[0]);
+      if (id) {
+        if (text && dice(text, SK[id][2]) < 0.5) x.warnings.push("Teks skenario berbeda jauh dari katalog " + id + " — pastikan nomor ID-nya benar.");
+      } else {
+        x.isiSendiri = true;
+        x.notes.push("ID operator: " + x.idOperator);
+      }
+      x.idRisikoKatalog = id || "__MANUAL__";
       if (!x.kategori) x.errors.push("Kategori " + kat + " tidak dikenal (harus 01–19).");
       if (!text) x.errors.push("Teks skenario kosong.");
       [["Ancaman", a, "ancamanNilai"], ["Kerentanan", k, "kerentananNilai"], ["Konsekuensi", q, "konsekuensiNilai"]].forEach(function (z) {
@@ -266,6 +283,10 @@
         if (rf !== null && !isNaN(rf) && rf !== x.total) x.warnings.push("Nilai risiko di file " + rf + ", hasil hitung " + x.total + " (dipakai hasil hitung).");
         if (rr && rr !== normH(x.rating)) x.warnings.push("Rating di file " + str(g(c.ris + 1)) + ", hasil hitung " + x.rating + ".");
       }
+      var pr = prioritas(g(c.pri), x.rating || "");
+      x.prioritas = pr.v;
+      x.prioritasOtomatis = pr.auto;
+      if (pr.tidakDikenal) x.warnings.push("Prioritas \"" + str(g(c.pri)) + "\" tidak dikenali; dipakai " + (pr.v || "—") + " dari rating.");
       var pl = perlakuan(g(c.ket));
       x.perlakuan = pl.v;
       if (pl.note) x.notes.push(pl.note);
@@ -278,12 +299,11 @@
         x.warnings.push("Tanggal kaji ulang tidak terbaca: \"" + str(tv) + "\".");
         x.notes.push("Tanggal kaji ulang di matriks: " + str(tv));
       }
-      if (khusus) x.notes.unshift("Risiko khusus");
       x.keterangan = x.notes.join("; ");
       out.push(x);
     }
     if (!out.length) return { fatal: "Tidak ada baris skenario yang terbaca di bawah judul kolom.", meta: meta, rows: [] };
-    return { fatal: null, meta: meta, rows: out, kolom: c };
+    return { fatal: null, meta: meta, rows: out, kolom: c, dilewatiKhusus: dilewati };
   };
   P.BULAN = BULAN;
 
@@ -480,7 +500,7 @@
     rows.forEach(function (r) {
       if (rowErrors(r, ctx).length) nErr++;
       else if (r.warnings.length) nWarn++;
-      if (r.khusus) nKh++;
+      if (r.isiSendiri) nKh++;
     });
     var sel = selected(),
       selErr = sel.filter(function (r) { return rowErrors(r, ctx).length; }).length,
@@ -490,19 +510,20 @@
       '<div class="impor-sum"><div><b>' + esc(st.file.name) + "</b> · sheet " + esc(res.sheet || "") + "</div>" +
       "<div>Di file: " + esc(res.meta.operator || "—") + " · " + esc(((res.meta.bulan || "") + " " + (res.meta.tahun || "")).trim() || "periode tidak tercantum") + "</div>" +
       '<div class="impor-target">Disimpan untuk: <b>' + esc(ctx.nama || "—") + "</b>" + (ctx.lokasi ? " › <b>" + esc(ctx.lokasi) + "</b>" : "") + (ctx.bulan ? " · " + esc(ctx.bulan + " " + ctx.tahun) : "") + "</div></div>" +
-      '<div class="impor-counts"><span class="ic-ok">' + (rows.length - nErr - nWarn) + " siap</span>" + (nWarn ? '<span class="ic-warn">' + nWarn + " dengan catatan</span>" : "") + (nErr ? '<span class="ic-err">' + nErr + " bergalat</span>" : "") + (nKh ? '<span class="ic-kh">' + nKh + " risiko khusus</span>" : "") + "</div>" +
+      '<div class="impor-counts"><span class="ic-ok">' + (rows.length - nErr - nWarn) + " siap</span>" + (nWarn ? '<span class="ic-warn">' + nWarn + " dengan catatan</span>" : "") + (nErr ? '<span class="ic-err">' + nErr + " bergalat</span>" : "") + (nKh ? '<span class="ic-kh">' + nKh + " Isi Sendiri</span>" : "") + "</div>" +
+      (res.dilewatiKhusus ? '<div class="impor-msg impor-info">' + res.dilewatiKhusus + " baris di bagian <b>Hasil Penilaian Risiko Khusus</b> dilewati (belum diimpor).</div>" : "") +
       issues.map(function (x) { return '<div class="impor-msg impor-' + x[0] + '">' + x[1] + "</div>"; }).join("") +
-      '<div class="impor-table-wrap"><table class="impor-table"><thead><tr><th><input type="checkbox" data-imp="all" aria-label="Pilih semua"' + (sel.length === rows.length ? " checked" : "") + '></th><th>ID</th><th>Skenario</th><th title="Ancaman / Kerentanan / Konsekuensi">A · K · K</th><th>Nilai</th><th>Perlakuan</th><th>Kaji ulang</th><th>Catatan</th></tr></thead><tbody>' +
+      '<div class="impor-table-wrap"><table class="impor-table"><thead><tr><th><input type="checkbox" data-imp="all" aria-label="Pilih semua"' + (sel.length === rows.length ? " checked" : "") + '></th><th>ID</th><th>Skenario</th><th title="Ancaman / Kerentanan / Konsekuensi">A · K · K</th><th>Nilai</th><th>Perlakuan / Prioritas</th><th>Kaji ulang</th><th>Catatan</th></tr></thead><tbody>' +
       rows.map(function (r, i) {
         var e = rowErrors(r, ctx),
           cls = e.length ? "row-err" : r.warnings.length ? "row-warn" : "";
         return (
           '<tr class="' + cls + (res.pakai[i] ? "" : " row-off") + '"><td><input type="checkbox" data-imp="row" data-i="' + i + '"' + (res.pakai[i] ? " checked" : "") + ' aria-label="Sertakan baris ' + r.line + '"></td>' +
-          "<td><b>" + esc(r.idRisikoKatalog) + "</b>" + (r.idDikoreksi ? "<small>di file: " + esc(r.idFile) + "</small>" : "") + "<small>baris " + r.line + "</small></td>" +
-          '<td class="impor-sk">' + (r.khusus ? '<span class="impor-tag">Khusus</span> ' : "") + esc(r.skenario) + "</td>" +
+          "<td>" + (r.isiSendiri ? '<span class="impor-tag">Isi Sendiri</span><small>ID operator: ' + esc(r.idOperator) + "</small>" : "<b>" + esc(r.idRisikoKatalog) + "</b>") + "<small>baris " + r.line + "</small></td>" +
+          '<td class="impor-sk">' + esc(r.skenario) + "</td>" +
           "<td>" + [r.ancamanNilai, r.kerentananNilai, r.konsekuensiNilai].map(function (v) { return v === null ? "—" : esc(v); }).join(" · ") + "</td>" +
           "<td>" + (r.total ? "<b>" + r.total + '</b><small class="rt rt-' + esc(String(r.rating).toLowerCase().replace(/[^a-z]+/g, "-")) + '">' + esc(r.rating) + "</small>" : "—") + "</td>" +
-          "<td>" + esc(r.perlakuan || "—") + "</td><td>" + fmtTgl(r.tanggalKaji) + "</td>" +
+          "<td>" + esc(r.perlakuan || "—") + "<small>" + esc(r.prioritas || "") + (r.prioritas && r.prioritasOtomatis ? " (otomatis)" : "") + "</small></td><td>" + fmtTgl(r.tanggalKaji) + "</td>" +
           '<td class="impor-note">' + e.map(function (x) { return '<div class="n-err">' + esc(x) + "</div>"; }).join("") + r.warnings.map(function (x) { return '<div class="n-warn">' + esc(x) + "</div>"; }).join("") + (r.keterangan ? '<div class="n-info">' + esc(r.keterangan) + "</div>" : "") + "</td></tr>"
         );
       }).join("") +
@@ -535,7 +556,7 @@
     });
     render();
     var payload = rows.map(function (r) {
-      return { unitId: ctx.unitId, kategori: r.kategori, idRisikoKatalog: r.idRisikoKatalog, skenario: r.skenario, area: r.area, langkahSaatIni: r.langkahSaatIni, kerentananSaatIni: r.kerentananSaatIni, ancamanNilai: r.ancamanNilai, kerentananNilai: r.kerentananNilai, konsekuensiNilai: r.konsekuensiNilai, perlakuan: r.perlakuan, prioritas: "", langkahTambahan: r.langkahTambahan, riskOwner: r.riskOwner, tanggalKaji: r.tanggalKaji, keterangan: r.keterangan };
+      return { unitId: ctx.unitId, kategori: r.kategori, idRisikoKatalog: r.idRisikoKatalog, skenario: r.skenario, area: r.area, langkahSaatIni: r.langkahSaatIni, kerentananSaatIni: r.kerentananSaatIni, ancamanNilai: r.ancamanNilai, kerentananNilai: r.kerentananNilai, konsekuensiNilai: r.konsekuensiNilai, perlakuan: r.perlakuan, prioritas: r.prioritas, langkahTambahan: r.langkahTambahan, riskOwner: r.riskOwner, tanggalKaji: r.tanggalKaji, keterangan: r.keterangan };
     });
     var kaji = rows.map(function (r) { return r.tanggalKaji; }).filter(Boolean).sort()[0] || "";
     var chunks = [];

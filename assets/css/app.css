@@ -3043,3 +3043,8 @@ main {
 .impor-table td:nth-child(7) {
   white-space: nowrap;
 }
+.impor-info {
+  background: #eef6fb;
+  border-color: #bcd6ea;
+  color: #17466f;
+}
