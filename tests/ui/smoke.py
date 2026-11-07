@@ -382,8 +382,12 @@ try:
 
         # ================= label katalog skenario dipendekkan =================
         pg = page(b); login(pg, 'budi@juanda.co.id'); tab(pg, 'form'); pg.select_option('#kategori', '01'); pg.wait_for_timeout(200)
-        lab = pg.eval_on_selector_all('#riskCatalog option[title]', 'e=>e.map(o=>[o.textContent.length,o.title.length,o.textContent.endsWith("…")])')
-        T('katalog: label pilihan ≤ 130 huruf, teks lengkap di title', lab and max(x[0] for x in lab) <= 130 and any(x[2] and x[1] > 95 for x in lab), lab[:4])
+        fit = """()=>{const s=document.getElementById('riskCatalog'),r=s.getBoundingClientRect(),c=document.createElement('canvas').getContext('2d'),cs=getComputedStyle(s);c.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
+          const o=[...s.options].filter(x=>x.title);return {n:o.length,maxRight:Math.max(...o.map(x=>r.left+c.measureText(x.textContent).width+44)),vw:innerWidth,cut:o.some(x=>x.textContent.endsWith('…')),ttl:o[0].title.length}}"""
+        pg.dispatch_event('#riskCatalog', 'mousedown'); a1 = pg.evaluate(fit)
+        pg.set_viewport_size({'width': 980, 'height': 900}); pg.wait_for_timeout(300); pg.dispatch_event('#riskCatalog', 'mousedown'); a2 = pg.evaluate(fit)
+        T('katalog: label pilihan muat di layar (1300 px & jendela sempit 980 px), teks lengkap di title', a1['n'] > 5 and a1['maxRight'] <= a1['vw'] and a2['maxRight'] <= a2['vw'] and a2['cut'], [a1, a2])
+        lab = [[0, a1['ttl']]]
         pg.select_option('#riskCatalog', index=1); pg.wait_for_timeout(200)
         T('katalog: setelah dipilih, kolom Skenario berisi teks lengkap', len(pg.input_value('#skenario')) == lab[0][1], [len(pg.input_value('#skenario')), lab[0][1]])
         pg.close()
