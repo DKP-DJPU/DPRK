@@ -1410,16 +1410,46 @@
       " tersedia)</option>" +
       arr
         .map(function (x) {
-          // Kotak pilihan bawaan peramban tidak bisa membungkus teks: label dipendekkan (teks lengkap di title
-          // dan otomatis masuk ke kolom Skenario setelah dipilih). Area ditampilkan agar skenario yang mirip terbedakan.
-          var full = String(x[2] || ""),
-            area = String(x[3] || ""),
-            lbl = full.length > 95 ? full.slice(0, 95).replace(/\s+\S*$/, "") + "…" : full;
+          // Kotak pilihan bawaan peramban tidak bisa membungkus teks: label dipendekkan agar muat di layar
+          // (fitCatalogLabels menyesuaikan dengan lebar ruang yang tersedia). Teks lengkap di title dan tetap
+          // masuk utuh ke kolom Skenario setelah dipilih. Area ditampilkan agar skenario yang mirip terbedakan.
+          var area = String(x[3] || "");
           if (area.length > 24) area = area.slice(0, 24).replace(/\s+\S*$/, "") + "…";
-          return '<option value="' + esc(x[0]) + '" title="' + esc(full) + '">' + esc(x[0] + (area ? " · " + area : "") + " — " + lbl) + "</option>";
+          return '<option value="' + esc(x[0]) + '" title="' + esc(x[2]) + '" data-full="' + esc(x[0] + (area ? " · " + area : "") + " — " + x[2]) + '">' + esc(x[0] + (area ? " · " + area : "") + " — " + x[2]) + "</option>";
         })
         .join("") +
       '<option value="__MANUAL__">Isi Sendiri — Skenario belum tersedia di katalog</option>';
+    fitCatalogLabels();
+  }
+  // Pendekkan label pilihan katalog agar daftar yang terbuka tidak melewati tepi kanan layar (laporan Alex 6–7 Nov:
+  // pada jendela sempit, awal kalimat terpotong). Diukur dengan huruf yang sama dengan kotak pilihannya.
+  function fitCatalogLabels() {
+    var sel = $("riskCatalog");
+    if (!sel || !sel.options.length) return;
+    var r = sel.getBoundingClientRect(),
+      vw = window.innerWidth || document.documentElement.clientWidth,
+      avail = Math.max(260, Math.min(Math.max(sel.clientWidth, vw - Math.max(0, r.left) - 16), 900) - 44),
+      cv = fitCatalogLabels.cv || (fitCatalogLabels.cv = document.createElement("canvas")),
+      ctx = cv.getContext && cv.getContext("2d"),
+      cs = window.getComputedStyle(sel);
+    if (!ctx) return;
+    ctx.font = cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+    Array.prototype.forEach.call(sel.options, function (o) {
+      var full = o.getAttribute("data-full");
+      if (!full) return;
+      if (ctx.measureText(full).width <= avail) {
+        o.textContent = full;
+        return;
+      }
+      var lo = 10,
+        hi = full.length;
+      while (lo < hi) {
+        var mid = (lo + hi + 1) >> 1;
+        if (ctx.measureText(full.slice(0, mid) + "…").width <= avail) lo = mid;
+        else hi = mid - 1;
+      }
+      o.textContent = full.slice(0, lo).replace(/\s+\S*$/, "") + "…";
+    });
   }
   function catalogScenarioById(id) {
     if (!id || id === "__MANUAL__") return null;
@@ -1462,6 +1492,10 @@
       clearScenarioSelection();
       filterCatalog();
     };
+    ["mousedown", "focus", "touchstart"].forEach(function (ev) {
+      $("riskCatalog").addEventListener(ev, fitCatalogLabels, { passive: true });
+    });
+    window.addEventListener("resize", fitCatalogLabels);
     $("riskCatalog").onchange = function () {
       if (this.value === "__MANUAL__") {
         $("skenario").value = "";
