@@ -1522,7 +1522,7 @@
     $("clearBtn").onclick = clearForm;
     $("clearLocalHistoryBtn").onclick = clearLocalHistory;
     $("opRefresh").onclick = loadOperators;
-    ["opFilterType", "opFilterProv", "opSearch"].forEach(function (id) {
+    ["opFilterType", "opFilterProv", "opFilterStatus", "opSearch"].forEach(function (id) {
       $(id).oninput = renderOperatorTable;
     });
     ["riskType", "riskRating", "riskCategory", "riskSearch", "riskPeriod", "riskUnit"].forEach(function (id) {
@@ -2877,15 +2877,33 @@
         return "<option>" + x + "</option>";
       }).join("");
   }
+  // Filter Status DPRK (Monitoring Operator): sudah / belum mengisi, atau kaji ulang dalam 30 hari ke depan
+  // (definisi sama dengan kartu "Kaji Ulang Mendekat" dan tabel Monitoring Kaji Ulang).
+  function opStatusMatch(x, f) {
+    var sudah = /sudah/i.test(x.statusDprk || "");
+    if (f === "sudah") return sudah;
+    if (f === "belum") return !sudah;
+    if (f === "kaji30") {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(x.tanggalKaji || "")),
+        d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(x.tanggalKaji);
+      if (!sudah || !x.tanggalKaji || isNaN(d.getTime())) return false;
+      var now = new Date(),
+        t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return d >= t0 && d <= new Date(t0.getTime() + 30 * 86400000);
+    }
+    return true;
+  }
   function renderOperatorTable() {
     var a = state.opStatus || [],
       t = $("opFilterType").value,
       p = $("opFilterProv").value,
+      f = $("opFilterStatus") ? $("opFilterStatus").value : "",
       q = $("opSearch").value.toLowerCase();
     a = a.filter(function (x) {
       return (
         (!t || x.jenisOperator === t) &&
         (!p || x.provinsi === p) &&
+        (!f || opStatusMatch(x, f)) &&
         (!q || (x.namaOperator || "").toLowerCase().indexOf(q) > -1)
       );
     });
@@ -2895,7 +2913,7 @@
     $("opCount").textContent = a.length;
     $("opFilled").textContent = filled;
     $("opUnfilled").textContent = a.length - filled;
-    $("opFilterState").textContent = t || p || q ? "Aktif" : "Semua";
+    $("opFilterState").textContent = t || p || f || q ? "Aktif" : "Semua";
     $("opTbody").innerHTML =
       a
         .map(function (x) {

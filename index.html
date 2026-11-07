@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261107a">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261107a">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261107a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261107b">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261107b">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261107b">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261107a">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261107a">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261107a">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261107a">
-<link rel="stylesheet" href="assets/css/panduan.css?v=20261107a">
+<link rel="stylesheet" href="assets/css/app.css?v=20261107b">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261107b">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261107b">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261107b">
+<link rel="stylesheet" href="assets/css/panduan.css?v=20261107b">
 </head>
 <body>
 <div class="app">
@@ -182,6 +182,7 @@
     <div class="toolbar-panel">
       <div class="toolbar-field"><label>Jenis Operator</label><select id="opFilterType"><option value="">Semua Jenis Operator</option></select></div>
       <div class="toolbar-field"><label>Provinsi</label><select id="opFilterProv"><option value="">Semua Provinsi</option></select></div>
+      <div class="toolbar-field"><label for="opFilterStatus">Status DPRK</label><select id="opFilterStatus"><option value="">Semua Status</option><option value="sudah">Sudah Mengisi</option><option value="belum">Belum Mengisi</option><option value="kaji30">Kaji ulang ≤30 hari</option></select></div>
       <div class="toolbar-field"><label>Pencarian</label><input id="opSearch" placeholder="Cari nama operator..."></div>
       <div class="toolbar-action"><button class="btn secondary" id="opRefresh">Muat Ulang Data</button></div>
     </div>
@@ -439,11 +440,11 @@
 </main>
 </div>
 
-<script src="assets/js/app.js?v=20261107a"></script>
-<script src="assets/js/pelaporan.js?v=20261107a"></script>
-<script src="assets/js/operator-detail.js?v=20261107a"></script>
-<script src="assets/js/auth.js?v=20261107a"></script>
-<script src="assets/js/panduan.js?v=20261107a"></script>
-<script src="assets/js/impor-matriks.js?v=20261107a"></script>
+<script src="assets/js/app.js?v=20261107b"></script>
+<script src="assets/js/pelaporan.js?v=20261107b"></script>
+<script src="assets/js/operator-detail.js?v=20261107b"></script>
+<script src="assets/js/auth.js?v=20261107b"></script>
+<script src="assets/js/panduan.js?v=20261107b"></script>
+<script src="assets/js/impor-matriks.js?v=20261107b"></script>
 </body>
 </html>
