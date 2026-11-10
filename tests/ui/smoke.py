@@ -309,6 +309,8 @@ try:
         txt = pg.inner_text('#opDetail')
         T('rekap unit: 9 skenario berlaku (Induk Okt + Cilacap Okt + Solo Jan), bukan 3 atau 12', re.search(r'SKENARIO DINILAI\s*9\b', txt, re.I) is not None, txt[:300])
         T('rekap unit: rentang periode Oktober 2026 – Januari 2027 & rata-rata 15.9', 'Oktober 2026 – Januari 2027' in txt and '15.9' in txt)
+        k15v = pg.inner_text('#opDetail .threat-item:has(.threat-code:text-is("15")) .threat-value').strip(); k15m = pg.inner_text('#opDetail .threat-item:has(.threat-code:text-is("15")) .opd-cat-meta')
+        T('profil kategori (V3.45): kategori 15 = nilai tertinggi 20 (bukan rata-rata 16.7) + keterangan skenario tertinggi', k15v == '20' and 'Tertinggi' in k15m, [k15v, k15m])
         row = pg.locator('.opd-table tr:has-text("Cabang Pembantu Solo")').first
         cells = [row.locator('td').nth(i).inner_text().strip() for i in (3, 4)]
         T('Cakupan Unit: Solo 3 skenario (bukan 6), rata-rata 13.7', cells == ['3', '13.7'], cells)

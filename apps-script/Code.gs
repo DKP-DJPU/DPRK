@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.43 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.45 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — nilai kategori = skenario tertinggi per operator (V3.45) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -417,9 +417,10 @@ function dashboard_(){
  r.forEach(function(x){if(dist.hasOwnProperty(x.risikoRating))dist[x.risikoRating]++});
  // V3.30: Risiko Tinggi per operator — operator aktif yang punya minimal 1 skenario berating Tinggi.
  var highOps={};r.forEach(function(x){if(x.risikoRating==="Tinggi"&&activeId[String(x.operatorId)])highOps[String(x.operatorId)]=x.jenisOperator||""});
- var cats={};r.forEach(function(x){var k=String(x.kategori||"").split(" - ")[0];if(!/^\d{2}$/.test(k))return;if(!cats[k])cats[k]={sum:0,n:0,ops:{}};cats[k].sum+=Number(x.risikoNilai)||0;cats[k].n++;cats[k].ops[String(x.operatorId)]=1});
+ var cats=kategoriTertinggi_(r);
  // V3.34: kategori yang dinilai < MIN_GROUP operator tidak ditampilkan (mencegah identifikasi satu operator).
- var cl=[];for(var i=1;i<=19;i++){var k=("0"+i).slice(-2),c=cats[k]||{sum:0,n:0,ops:{}},few=Object.keys(c.ops).length<MIN_GROUP;cl.push(few?{kode:k,avg:0,n:0,suppressed:c.n>0}:{kode:k,avg:Number((c.sum/c.n).toFixed(2)),n:c.n})}
+ // V3.45: nilai kategori = rata-rata NILAI TERTINGGI tiap operator (bukan rata-rata semua skenario); n = jumlah operator.
+ var cl=[];for(var i=1;i<=19;i++){var k=("0"+i).slice(-2),c=cats[k],few=!c||c.n<MIN_GROUP;cl.push(few?{kode:k,avg:0,n:0,suppressed:!!c}:{kode:k,avg:c.avg,n:c.n})}
  var byType=["Bandar Udara","Airlines","LPPNPI","Regulated Agent"].map(function(t){var oo=ops.filter(function(o){return o.jenisOperator===t}),ff=oo.filter(function(o){return filled[o.operatorId]}).length,hh=r.filter(function(x){return x.jenisOperator===t&&x.risikoRating==="Tinggi"}).length,ho=oo.filter(function(o){return highOps.hasOwnProperty(String(o.operatorId))}).length;return{jenisOperator:t,total:oo.length,filled:ff,risk:hh,riskOperators:ho}});
  // V3.30: Kaji Ulang Mendekat memakai Tanggal Kaji Ulang — sama dengan tabel Monitoring Kaji Ulang (review_) dan email pengingat.
  var rd=review_().length;
@@ -485,6 +486,18 @@ function riskDetail_(u,p){
 // Ambang kerahasiaan agregat publik. 2 = keputusan Alex (19 Okt 2026) untuk masa awal;
 // catatan: dengan 2 operator, masing-masing dapat menghitung angka operator lainnya. Standar umum = 3.
 var MIN_GROUP=2;
+// V3.45 — keputusan Alex 10 Nov 2026: nilai satu operator pada satu kategori ancaman = skenario dengan NILAI RISIKO
+// TERTINGGI di kategori itu (seluruh lokasi: induk + unit/stasiun, penilaian terkini). Angka nasional / per jenis =
+// rata-rata nilai tertinggi tiap operator; n = jumlah operator. (Jumlah operator bernilai Tinggi hanya dihitung di
+// tampilan Admin, tidak dikirim ke publik.)
+// Distribusi rating (donat) tetap menghitung semua skenario.
+function kategoriTertinggi_(rows){
+ var mx={},out={};
+ (rows||[]).forEach(function(x){var k=String(x.kategori||"").split(" - ")[0].trim(),v=Number(x.risikoNilai);if(!/^\d{2}$/.test(k)||!isFinite(v))return;var key=String(x.operatorId)+"|"+k;if(!(key in mx)||v>mx[key])mx[key]=v});
+ Object.keys(mx).forEach(function(key){var k=key.split("|").pop(),v=mx[key];if(!out[k])out[k]={sum:0,n:0,tinggi:0};out[k].sum+=v;out[k].n++;if(ratingTotal_(v)==="Tinggi")out[k].tinggi++});
+ Object.keys(out).forEach(function(k){out[k].avg=Number((out[k].sum/out[k].n).toFixed(2))});
+ return out;
+}
 function riskAnalytics_(rows){
  var out={};
  ["_all","Bandar Udara","Airlines","LPPNPI","Regulated Agent"].forEach(function(t){
@@ -492,13 +505,9 @@ function riskAnalytics_(rows){
   rr.forEach(function(x){if(x.operatorId)os[String(x.operatorId)]=1});
   var n=Object.keys(os).length;
   if(n<MIN_GROUP){out[t]={suppressed:true,operators:n,minGroup:MIN_GROUP};return}
-  var dist={"Tinggi":0,"Menengah-Tinggi":0,"Menengah":0,"Menengah-Rendah":0,"Rendah":0},cats={};
-  rr.forEach(function(x){
-   if(dist.hasOwnProperty(x.risikoRating))dist[x.risikoRating]++;
-   var k=String(x.kategori||"").split(" - ")[0].trim();if(!/^\d{2}$/.test(k))return;
-   if(!cats[k])cats[k]={sum:0,n:0,ops:{}};cats[k].sum+=Number(x.risikoNilai)||0;cats[k].n++;cats[k].ops[String(x.operatorId)]=1;
-  });
-  out[t]={operators:n,totalRisks:rr.length,distribution:dist,categories:Object.keys(cats).sort().filter(function(k){return Object.keys(cats[k].ops).length>=MIN_GROUP}).map(function(k){return{kode:k,avg:Number((cats[k].sum/cats[k].n).toFixed(2)),n:cats[k].n}})};
+  var dist={"Tinggi":0,"Menengah-Tinggi":0,"Menengah":0,"Menengah-Rendah":0,"Rendah":0},cats=kategoriTertinggi_(rr);
+  rr.forEach(function(x){if(dist.hasOwnProperty(x.risikoRating))dist[x.risikoRating]++});
+  out[t]={operators:n,totalRisks:rr.length,distribution:dist,categories:Object.keys(cats).sort().filter(function(k){return cats[k].n>=MIN_GROUP}).map(function(k){return{kode:k,avg:cats[k].avg,n:cats[k].n}})};
  });
  // Supresi komplementer: bila total operator di kelompok yang disembunyikan 1–2, angkanya bisa
  // dihitung dari (nasional − kelompok yang tampil). Maka semua rincian per jenis ikut disembunyikan.
