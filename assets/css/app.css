@@ -3062,3 +3062,12 @@ main {
     grid-template-columns: 1fr;
   }
 }
+/* V3.45: keterangan di bawah bar 19 Kategori Ancaman (jumlah operator) */
+.threat-meta {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#view-dashboard .threat-meta {
+  color: var(--dk-muted);
+}

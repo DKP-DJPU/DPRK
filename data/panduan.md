@@ -136,6 +136,8 @@ Aturan pembacaan:
 
 Tingkat risiko dihitung ulang oleh server saat disimpan, jadi hasilnya selalu konsisten dengan aturan di atas.
 
+**Nilai per kategori ancaman.** Bila satu kategori berisi beberapa skenario (misalnya 01.01, 01.02, 01.03), nilai operator untuk kategori itu adalah **nilai risiko tertinggi** di antara skenario tersebut, dari seluruh lokasi (kantor pusat dan unit/stasiun). Contoh: 15, 22, dan 13 → nilai kategori 22 (Menengah-Tinggi). Angka per kategori di Dashboard adalah rata-rata nilai tertinggi tiap operator. Grafik distribusi rating tetap menghitung semua skenario.
+
 ### Mengubah skenario yang sudah disimpan
 
 Bila Anda **masuk dengan akun**, tidak perlu kode apa pun:

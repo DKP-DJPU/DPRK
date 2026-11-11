@@ -197,10 +197,14 @@
       sum += v;
       var k = String(x.kategoriKode || String(x.kategori || "").split(" - ")[0]).trim();
       if (!/^\d{2}$/.test(k)) return;
-      if (!cats[k]) cats[k] = { sum: 0, n: 0, max: 0 };
+      if (!cats[k]) cats[k] = { sum: 0, n: 0, max: 0, top: null };
       cats[k].sum += v;
       cats[k].n++;
-      cats[k].max = Math.max(cats[k].max, v);
+      // V3.45: nilai kategori operator = skenario dengan nilai risiko tertinggi (seluruh lokasi).
+      if (!cats[k].top || v > cats[k].max) {
+        cats[k].max = v;
+        cats[k].top = x;
+      }
     });
     var allKeys = {};
     rows.forEach(function (x) {
@@ -303,14 +307,16 @@
     if (!keys.length)
       return '<div class="empty">Belum ada kategori yang dinilai.</div>';
     keys.sort(function (a, b) {
-      return cats[b].sum / cats[b].n - cats[a].sum / cats[a].n;
+      return cats[b].max - cats[a].max || a.localeCompare(b);
     });
     return (
       '<div class="threat-list">' +
       keys
         .map(function (k) {
           var c = cats[k],
-            avg = c.sum / c.n,
+            avg = c.max,
+            t = c.top || {},
+            tid = t.idRisikoKatalog && t.idRisikoKatalog !== "__MANUAL__" ? t.idRisikoKatalog : "Isi Sendiri",
             band = S.rating(Math.round(avg)),
             col = band ? band.c : "#8fa5b8",
             w = Math.max(4, Math.round((avg / 30) * 100));
@@ -324,16 +330,19 @@
             '</span><span class="threat-value" style="color:' +
             col +
             '">' +
-            avg.toFixed(1) +
+            avg +
             '</span></div><div class="bar"><i style="width:' +
             w +
             "%;background:" +
             col +
-            '"></i></div><div class="opd-cat-meta">' +
+            '"></i></div><div class="opd-cat-meta" title="' +
+            esc(t.skenario || "") +
+            '">Tertinggi: ' +
+            esc(tid) +
+            (t.namaUnit ? " · " + esc(t.namaUnit) : "") +
+            " • " +
             c.n +
-            " skenario • tertinggi " +
-            c.max +
-            "</div></div>"
+            " skenario</div></div>"
           );
         })
         .join("") +
@@ -579,7 +588,7 @@
         ".</div></div></div>" +
         donutHtml(sm.dist, sm.latest.length) +
         "</div>" +
-        '<div class="card"><div class="section-head"><div><div class="section-kicker">THREAT PROFILE</div><h2>Profil Risiko per Kategori</h2><div class="sub">Rata-rata nilai risiko per kategori ancaman (skala 3–30).</div></div></div>' +
+        '<div class="card"><div class="section-head"><div><div class="section-kicker">THREAT PROFILE</div><h2>Profil Risiko per Kategori</h2><div class="sub">Nilai tiap kategori ancaman = skenario dengan nilai risiko tertinggi di seluruh lokasi operator (skala 3–30).</div></div></div>' +
         catBarsHtml(sm.cats) +
         "</div></div>" +
         '<div class="opd-grid">' +

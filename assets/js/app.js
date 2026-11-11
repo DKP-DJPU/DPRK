@@ -2747,30 +2747,28 @@
           ") — demi kerahasiaan data per operator.";
     }
 
-    var cats = {};
+    // V3.45 (keputusan Alex 10 Nov 2026): nilai operator pada satu kategori = skenario dengan nilai risiko tertinggi
+    // (seluruh lokasinya); angka kategori = rata-rata nilai tertinggi tiap operator. Sama dengan kategoriTertinggi_ di server.
+    var opMax = {},
+      cats = {};
     filtered.forEach(function (x) {
-      var code = String(x.kategoriKode || "").trim();
-      var val = Number(x.risikoNilai);
-      if (code && isFinite(val)) {
-        if (!cats[code]) cats[code] = { sum: 0, n: 0 };
-        cats[code].sum += val;
-        cats[code].n++;
-      }
+      var code = String(x.kategoriKode || "").trim(),
+        val = Number(x.risikoNilai),
+        key = String(x.operatorId || "") + "|" + code;
+      if (code && isFinite(val) && (!(key in opMax) || val > opMax[key])) opMax[key] = val;
+    });
+    Object.keys(opMax).forEach(function (key) {
+      var code = key.split("|").pop(),
+        v = opMax[key];
+      if (!cats[code]) cats[code] = { sum: 0, n: 0, tinggi: 0 };
+      cats[code].sum += v;
+      cats[code].n++;
+      if (v >= 26) cats[code].tinggi++;
     });
     var catList;
-    if (selectedType) {
+    if (selectedType || all.length) {
       catList = Object.keys(cats).map(function (code) {
-        return {
-          kode: code,
-          avg: cats[code].n ? cats[code].sum / cats[code].n : 0,
-        };
-      });
-    } else if (all.length) {
-      catList = Object.keys(cats).map(function (code) {
-        return {
-          kode: code,
-          avg: cats[code].n ? cats[code].sum / cats[code].n : 0,
-        };
+        return { kode: code, avg: cats[code].sum / cats[code].n, n: cats[code].n, tinggi: cats[code].tinggi };
       });
     } else {
       catList = (state.data.categories || []).slice();
@@ -2803,7 +2801,9 @@
             Math.min(100, (avg / 30) * 100) +
             "%;background:" +
             color +
-            '"></i></div></div>'
+            '"></i></div>' +
+            (x.n ? '<div class="threat-meta">' + x.n + " operator" + (x.tinggi ? " · " + x.tinggi + " bernilai Tinggi" : "") + "</div>" : "") +
+            "</div>"
           );
         })
         .join("") ||
@@ -2846,8 +2846,8 @@
       riskSub.textContent = "Menampilkan " + operatorCount + " operator dengan " + total + " total risiko.";
     if (threatSub)
       threatSub.textContent = selectedType
-        ? "Rata-rata nilai risiko 19 kategori untuk operator yang dipilih."
-        : "Rata-rata nilai risiko dari skenario yang telah diisi, diurutkan dari yang tertinggi.";
+        ? "Per kategori: rata-rata nilai tertinggi tiap operator yang dipilih (nilai operator = skenario dengan risiko tertinggi)."
+        : "Per kategori: rata-rata nilai tertinggi tiap operator (nilai operator = skenario dengan risiko tertinggi), diurutkan dari yang tertinggi.";
   }
   function loadOperators() {
     if (!authUser()) {
