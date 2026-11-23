@@ -163,6 +163,7 @@
         return r.json();
       })
       .then(function (res) {
+        noteServer(res);
         if (res && res.code === "BUSY" && attempt < 2)
           return new Promise(function (resolve) {
             setTimeout(resolve, 800 * (attempt + 1));
@@ -180,6 +181,41 @@
   function isAdmin() {
     var u = authUser();
     return !!(u && u.peran === "Admin");
+  }
+  // V3.47: versi Apps Script yang diharapkan website ini. Harus sama dengan SERVER_VERSION di Code.gs.
+  var EXPECTED_SERVER = "V3.47",
+    serverVer = "";
+  function noteServer(res) {
+    if (!res || typeof res !== "object") return res;
+    var v = res.serverVersion || (res.ok !== undefined ? "sebelum V3.47" : "");
+    if (v && v !== serverVer) {
+      serverVer = v;
+      checkServerVersion();
+    }
+    return res;
+  }
+  function checkServerVersion() {
+    var box = document.getElementById("verWarn");
+    var show = isAdmin() && serverVer && serverVer !== EXPECTED_SERVER;
+    if (!show) {
+      if (box) box.remove();
+      return;
+    }
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "verWarn";
+      box.className = "notice warn ver-warn";
+      box.setAttribute("role", "status");
+      var bar = document.getElementById("authBar");
+      if (bar && bar.parentNode) bar.parentNode.insertBefore(box, bar.nextSibling);
+      else document.body.insertBefore(box, document.body.firstChild);
+    }
+    box.innerHTML =
+      "<b>Khusus Admin — versi tidak sama.</b> Server Apps Script: <b>" +
+      esc(serverVer) +
+      "</b>, website: <b>" +
+      esc(EXPECTED_SERVER) +
+      "</b>. Bila Code.gs terbaru belum dipasang: tempel Code.gs terbaru lalu <i>Deploy → New version</i>. Bila sudah: muat ulang halaman (Ctrl+Shift+R).";
   }
   function readTerbatas(action) {
     return post({ action: action }).then(function (res) {
@@ -201,6 +237,7 @@
         return r.json();
       })
       .then(function (res) {
+        noteServer(res);
         if (res && res.code === "BUSY" && attempt < 2)
           return new Promise(function (resolve) {
             setTimeout(resolve, 1000 * (attempt + 1));
@@ -1654,12 +1691,29 @@
   }
 
   var LOCAL_HISTORY_KEY = "DPRK_NASIONAL_RIWAYAT_V1";
+  // V3.47: riwayat di perangkat TIDAK menyimpan teks skenario (data Terbatas; komputer kantor sering dipakai bersama)
+  // dan dihapus saat keluar / sesi habis / akun lain masuk. Entri lama yang masih memuat teks dibersihkan saat dibaca.
+  var LOCAL_HISTORY_OWNER = "DPRK_NASIONAL_RIWAYAT_PEMILIK";
   function getLocalHistory() {
+    var a;
     try {
-      return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || "[]");
+      a = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || "[]");
     } catch (e) {
       return [];
     }
+    if (!Array.isArray(a)) return [];
+    if (a.some(function (x) { return x && "skenario" in x; })) {
+      a.forEach(function (x) { if (x) delete x.skenario; });
+      setLocalHistory(a);
+    }
+    return a;
+  }
+  function wipeLocalHistory() {
+    try {
+      localStorage.removeItem(LOCAL_HISTORY_KEY);
+      localStorage.removeItem(DPRK_TOKEN_KEY);
+      localStorage.removeItem(LOCAL_HISTORY_OWNER);
+    } catch (e) {}
   }
   function setLocalHistory(a) {
     try {
@@ -1675,9 +1729,8 @@
         operatorId: p.operatorId,
         jenisOperator: p.jenisOperator,
         namaOperator: p.namaOperator,
-        kategori: p.kategori,
+        kategori: String(p.kategori || "").split(" - ")[0],
         idRisikoKatalog: p.idRisikoKatalog,
-        skenario: p.skenario,
         risikoNilai: p.risikoNilai,
         risikoRating: p.risikoRating,
         bulan: p.bulan,
@@ -1693,6 +1746,15 @@
     // Edit lewat akun tidak membawa kode; pertahankan kode lama dari riwayat bila ada.
     if (idx >= 0 && !item.editToken) item.editToken = a[idx].editToken || "";
     if (idx >= 0) a.splice(idx, 1);
+    // Disimpan lewat akun: kode edit tidak diperlukan (edit lewat akun), jadi tidak disimpan di perangkat.
+    var u = authUser();
+    if (u) {
+      item.editToken = "";
+      item.dprkEditToken = "";
+      try {
+        localStorage.setItem(LOCAL_HISTORY_OWNER, String(u.email || ""));
+      } catch (e) {}
+    }
     a.unshift(item);
     setLocalHistory(a);
     renderLocalHistory();
@@ -1729,13 +1791,12 @@
           rr.c +
           '">' +
           esc(x.action === "update" ? "Diperbarui" : "Tersimpan") +
-          '</span></div><div style="margin-top:6px;font-size:12px">' +
-          esc(x.skenario || "-") +
-          '</div><div class="local-item-actions"><button class="btn secondary" data-local-edit="' +
+          '</span></div><div class="local-item-actions"><button class="btn secondary" data-local-edit="' +
           i +
-          '">Edit</button><button class="btn secondary" data-local-copy="' +
-          i +
-          '">Salin Kode Edit</button>' +
+          '">Edit</button>' +
+          (x.editToken
+            ? '<button class="btn secondary" data-local-copy="' + i + '">Salin Kode Edit</button>'
+            : "") +
           dprkBtn +
           '<button class="btn secondary" data-local-delete="' +
           i +
@@ -3277,7 +3338,19 @@
       if (b) b.click();
     }
   });
+  var hadAuthUser = false;
   document.addEventListener("sirisk:auth", function () {
+    var u = authUser();
+    try {
+      var owner = localStorage.getItem(LOCAL_HISTORY_OWNER) || "";
+      // Keluar / sesi habis, atau akun lain masuk di perangkat yang sama → riwayat perangkat dihapus.
+      if ((!u && hadAuthUser) || (u && owner && owner !== String(u.email || ""))) {
+        wipeLocalHistory();
+        renderLocalHistory();
+      }
+    } catch (e) {}
+    hadAuthUser = !!u;
+    checkServerVersion();
     renderEditMode();
     if (!authUser() && state.edit && state.edit.viaLogin) clearForm();
     if (state.risks) renderRiskTable();

@@ -376,7 +376,7 @@ try:
         T('impor: kartu impor tampil untuk pengguna login', pg.is_visible('#imporCard'))
         pg.set_input_files('#imporFile', os.path.join(ROOT, 'tests', 'fixtures', 'matriks-rekaan.xlsx')); pg.wait_for_selector('.impor-table', timeout=15000)
         body = pg.inner_text('#imporBody')
-        T('impor: 6 skenario terbaca (judul kategori, baris contoh & blok Risiko Khusus dilewati), 1 bergalat, 1 Isi Sendiri', pg.locator('.impor-table tbody tr').count() == 6 and '1 bergalat' in body and '1 Isi Sendiri' in body and 'Hasil Penilaian Risiko Khusus' in body, body[:500])
+        T('impor: 6 skenario terbaca (judul kategori, baris contoh & blok Risiko Khusus dilewati), 1 error, 1 Isi Sendiri', pg.locator('.impor-table tbody tr').count() == 6 and '1 error' in body and '1 Isi Sendiri' in body and 'Hasil Penilaian Risiko Khusus' in body, body[:500])
         T('impor: syarat Langkah 01 belum lengkap → tombol Simpan nonaktif + pesan lokasi', pg.is_disabled('#imporBody [data-imp=simpan]') and 'Lokasi yang dinilai' in body)
         T('impor: ID tanggal (1.10) → 01.10, angka 3.6 → 03.06, nomor 4.2 tetap 04.02, 1.13 → Isi Sendiri + ID operator', all(x in body for x in ['01.10', '03.06', '04.02', 'ID operator: 01.13']) and '04.09' not in body, body[:600])
         T('impor: baris bergalat tidak dicentang', not pg.is_checked('.impor-table tr.row-err input[data-imp=row]'))
@@ -393,6 +393,78 @@ try:
         pg.click('#imporBody [data-imp=simpan]'); pg.wait_for_timeout(2000)
         T('impor: file yang sama dikirim ulang → tidak digandakan', len([x for x in ctl('/__ctl?a=rows&sheet=RISK_ASSESSMENT')[n0:] if x['operatorId'] == 'BD-100']) == 5 and 'tidak digandakan' in pg.inner_text('#imporBody'), pg.inner_text('#imporBody')[-300:])
         T('impor: tanpa galat JS', not pg._errs, pg._errs)
+        pg.close(); ctl('/__ctl?a=reset')
+
+        # ================= V3.47: keamanan — isian berbahaya tampil sebagai teks, tidak dijalankan =================
+        ctl('/__ctl?a=xss')
+        CHK = """()=>({x: window.__xss||0, inj: document.querySelectorAll('img[src="x"],svg[onload],[onerror],[onload]').length, js: document.querySelectorAll('a[href^="javascript:"]').length})"""
+        def xss_scan(pg, where, out):
+            r = pg.evaluate(CHK); out.append((where, r))
+        def csp_page(b):
+            pg = page(b); pg._csp = []
+            pg.on('console', lambda m: pg._csp.append(m.text) if 'Content Security Policy' in m.text else None); return pg
+        res = []
+        pg = csp_page(b); login(pg, 'admin@dkp.go.id')
+        for v in ('dashboard', 'risk', 'operator', 'trend', 'pelaporan'):
+            tab(pg, v); pg.wait_for_timeout(500); xss_scan(pg, 'admin:' + v, res)
+        tab(pg, 'risk'); pg.fill('#riskSearch', 'juanda'); pg.dispatch_event('#riskSearch', 'input'); pg.wait_for_timeout(400)
+        xss_scan(pg, 'admin:risk-cari', res)
+        tab(pg, 'operator'); pg.fill('#opSearch', 'juanda'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="BD-100"]'); pg.wait_for_timeout(1500)
+        xss_scan(pg, 'admin:rekap-operator', res)
+        tab(pg, 'pelaporan'); pg.click('.plp-subtab[data-plp=list]'); pg.wait_for_timeout(1200); ptxt = pg.inner_text('#view-pelaporan'); lit = '<img src=x' in ptxt
+        xss_scan(pg, 'admin:daftar-laporan', res)
+        det = pg.locator('#view-pelaporan button:has-text("Detail"), #view-pelaporan [data-inc-id]').first
+        if det.count(): det.click(); pg.wait_for_timeout(600); xss_scan(pg, 'admin:laporan-detail', res)
+        csp_admin = list(pg._csp); errs_admin = list(pg._errs); pg.close()
+        pg = csp_page(b); login(pg, 'budi@juanda.co.id')
+        for v in ('dashboard', 'form', 'risk'):
+            tab(pg, v); pg.wait_for_timeout(500); xss_scan(pg, 'operator:' + v, res)
+        bar = pg.inner_text('body')
+        xss_scan(pg, 'operator:akhir', res)
+        T('keamanan: isian berbahaya tidak dijalankan & tidak menjadi elemen HTML di semua tampilan', all(r['x'] == 0 and r['inj'] == 0 and r['js'] == 0 for _, r in res), [w for w, r in res if r['x'] or r['inj'] or r['js']] or res)
+        T('keamanan: isian berbahaya tampil sebagai teks biasa (daftar laporan kejadian)', lit, ptxt)
+        T('keamanan: nama pengguna berisi kode tampil sebagai teks di bilah akun', '<img src=x' in bar, bar[:200])
+        T('keamanan: CSP tidak memblokir sumber milik aplikasi (tanpa pelanggaran CSP)', not csp_admin and not pg._csp, csp_admin + pg._csp)
+        T('keamanan: tanpa error JS', not errs_admin and not pg._errs, errs_admin + pg._errs)
+        pg.close(); ctl('/__ctl?a=reset')
+
+        # ================= V3.47: peringatan versi server ≠ website (khusus Admin) =================
+        def route_old(r):
+            u = r.request.url
+            if 'script.google.com' in u:
+                q = u.split('?', 1)[1] if '?' in u else ''
+                resp = r.fetch(url=f'http://localhost:{M}/?' + q, method=r.request.method, post_data=r.request.post_data)
+                try:
+                    d = json.loads(resp.text()); d['serverVersion'] = 'V3.46'
+                    return r.fulfill(status=200, content_type='application/json', body=json.dumps(d))
+                except Exception:
+                    return r.fulfill(response=resp)
+            return route(r)
+        pg = b.new_page(viewport={'width': 1300, 'height': 900}); pg._errs = []; pg.on('pageerror', lambda e: pg._errs.append(str(e)))
+        pg.route('**/*', route_old); pg.goto(f'http://localhost:{WEB}/'); pg.wait_for_timeout(2500)
+        T('versi beda: publik tidak melihat peringatan', pg.locator('#verWarn').count() == 0)
+        login(pg, 'admin@dkp.go.id'); pg.wait_for_timeout(800)
+        T('versi beda: Admin melihat peringatan (server V3.46 ≠ website)', pg.locator('#verWarn').count() == 1 and 'V3.46' in pg.inner_text('#verWarn') and 'Deploy' in pg.inner_text('#verWarn'), pg.inner_text('#verWarn') if pg.locator('#verWarn').count() else '-')
+        pg.evaluate("SIRISK_AUTH.logout()"); pg.wait_for_timeout(500)
+        T('versi beda: peringatan hilang setelah Admin keluar', pg.locator('#verWarn').count() == 0)
+        login(pg, 'budi@juanda.co.id'); pg.wait_for_timeout(800)
+        T('versi beda: operator tidak melihat peringatan', pg.locator('#verWarn').count() == 0)
+        pg.close()
+        pg = page(b); login(pg, 'admin@dkp.go.id'); pg.wait_for_timeout(800)
+        T('versi sama: Admin tidak melihat peringatan', pg.locator('#verWarn').count() == 0)
+        pg.close()
+
+        # ================= V3.47: riwayat di perangkat =================
+        pg = page(b); login(pg, 'budi@juanda.co.id'); tab(pg, 'form')
+        fill_form(pg, 'Skenario rahasia uji riwayat'); pg.click('#unitList [data-unit-pick=""]'); pg.wait_for_timeout(200); pg.click('#saveBtn'); pg.wait_for_timeout(1500)
+        hist = pg.evaluate("localStorage.getItem('DPRK_NASIONAL_RIWAYAT_V1')||''")
+        T('riwayat perangkat: tersimpan tanpa teks skenario & tanpa kode edit (disimpan lewat akun)', hist and 'Skenario rahasia' not in hist and '"editToken":""' in hist, hist[:300])
+        pg.evaluate("localStorage.setItem('DPRK_NASIONAL_RIWAYAT_V1', JSON.stringify([{id:'X1',skenario:'teks lama rahasia',namaOperator:'Uji',risikoNilai:9}]))")
+        pg.reload(); pg.wait_for_timeout(2500); tab(pg, 'form')
+        T('riwayat perangkat: entri lama yang masih memuat teks skenario dibersihkan saat dibaca', 'teks lama rahasia' not in pg.evaluate("localStorage.getItem('DPRK_NASIONAL_RIWAYAT_V1')||''"))
+        pg.evaluate("SIRISK_AUTH.logout()")
+        pg.wait_for_timeout(800)
+        T('riwayat perangkat: dihapus saat keluar', pg.evaluate("localStorage.getItem('DPRK_NASIONAL_RIWAYAT_V1')") is None, pg.evaluate("localStorage.getItem('DPRK_NASIONAL_RIWAYAT_V1')"))
         pg.close(); ctl('/__ctl?a=reset')
 
         # ================= label katalog skenario dipendekkan =================

@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.46 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — nilai kategori = skenario tertinggi per operator (V3.45) — perbaikan nomor baris saat edit + cekIntegritas (V3.46) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.47 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — nilai kategori = skenario tertinggi per operator (V3.45) — perbaikan nomor baris saat edit + cekIntegritas (V3.46) — ERROR_LOG + versi server di setiap respons (V3.47) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -212,7 +212,23 @@ var AIRPORT_SEED=[{"operatorId":"BD-001","jenisOperator":"Bandar Udara","namaOpe
 // Transition V3.28: full 281-airport master copied from the current frontend master.
 // Province values are intentionally preserved as-is; do not invent geography data.
 
-function json_(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)}
+// V3.47: setiap respons membawa versi server; website menampilkan peringatan KHUSUS ADMIN bila versinya berbeda
+// (Code.gs dipasang manual, jadi mudah tertinggal satu versi). Naikkan angka ini setiap kali Code.gs berubah.
+var SERVER_VERSION="V3.47";
+// V3.47: ERROR_LOG — galat server yang sebelumnya hanya masuk log editor kini dicatat di sheet agar terlihat Admin.
+// Hanya metadata (waktu, tempat, aksi, pesan); TIDAK menyimpan isi permintaan (data Terbatas) maupun token.
+var ERROR_LOG_SHEET="ERROR_LOG",ERROR_LOG_H=["waktu","tempat","aksi","pesan","stack","versi"],ERROR_LOG_MAX=2000;
+function logError_(tempat,err,aksi){
+ try{Logger.log(tempat+": "+err+" | stack: "+(err&&err.stack))}catch(x){}
+ try{
+  var s=ss_().getSheetByName(ERROR_LOG_SHEET);
+  if(!s){s=ss_().insertSheet(ERROR_LOG_SHEET);s.getRange(1,1,1,ERROR_LOG_H.length).setValues([ERROR_LOG_H])}
+  var msg=String((err&&err.message)||err||"").replace(/[A-Za-z0-9_-]{24,}/g,"[…]").slice(0,500);
+  s.appendRow([now_(),String(tempat||""),String(aksi||"").slice(0,60),sanitizeCell_(msg),sanitizeCell_(String((err&&err.stack)||"").slice(0,1000)),SERVER_VERSION]);
+  var n=s.getLastRow();if(n>ERROR_LOG_MAX+200)s.deleteRows(2,n-1-ERROR_LOG_MAX);
+ }catch(x){try{Logger.log("logError_ gagal: "+x)}catch(y){}}
+}
+function json_(o){if(o&&typeof o==="object"&&!Array.isArray(o)&&!("serverVersion" in o))o.serverVersion=SERVER_VERSION;return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)}
 function now_(){return new Date().toISOString()}
 function ss_(){return SpreadsheetApp.getActiveSpreadsheet()}
 function sheet_(name,headers){var s=ss_().getSheetByName(name);if(!s)s=ss_().insertSheet(name);ensureHeaders_(s,headers);return s}
@@ -369,7 +385,7 @@ function cachePut_(key,obj){try{var c=CacheService.getScriptCache(),str=JSON.str
  var n=Math.ceil(str.length/CACHE_CHUNK),parts={};if(n>60)return;
  for(var i=0;i<n;i++)parts[key+"__"+i]=str.substr(i*CACHE_CHUNK,CACHE_CHUNK);
  c.putAll(parts,CACHE_TTL_SECONDS+30);c.put(key,JSON.stringify({__chunks:n}),CACHE_TTL_SECONDS)}catch(e){Logger.log("cachePut_ "+key+": "+e)}}
-function invalidateDashboardCache_(){try{CacheService.getScriptCache().removeAll([CACHE_KEYS.dashboard,CACHE_KEYS.operators,CACHE_KEYS.risks,CACHE_KEYS.master,CACHE_KEYS.units])}catch(e){}}
+function invalidateDashboardCache_(){try{CacheService.getScriptCache().removeAll([CACHE_KEYS.dashboard,CACHE_KEYS.operators,CACHE_KEYS.risks,CACHE_KEYS.master,CACHE_KEYS.units])}catch(e){logError_("invalidateDashboardCache_",e,"")}}
 function cached_(key,builder){var v=cacheGet_(key);if(v)return v;v=builder();cachePut_(key,v);return v}
 
 function doGet(e){
@@ -396,7 +412,7 @@ function doGet(e){
   if(a==="find")return findEdit_(p);
   if(a==="finddprk")return findDprkToken_(p);
   return json_({ok:false,error:"Action tidak dikenali."});
- }catch(err){Logger.log("doGet error: "+err+" | stack: "+(err&&err.stack));return json_({ok:false,error:"Terjadi kesalahan saat membaca data. Coba lagi beberapa saat.",code:"READ_ERROR"})}
+ }catch(err){logError_("doGet",err,a);return json_({ok:false,error:"Terjadi kesalahan saat membaca data. Coba lagi beberapa saat.",code:"READ_ERROR"})}
 }
 // V3.38 — PENILAIAN TERAKHIR PER OPERATOR & UNIT. Setiap unit/stasiun (dan Induk) punya siklus kaji sendiri:
 // yang dihitung hanya matriks periode (bulan+tahun) TERBARU milik unit itu. Matriks periode lama yang sudah
@@ -626,7 +642,7 @@ function doPost(e){
  // V3.34: permintaan BACA data terbatas tidak memakai Script Lock (tidak mengantre di belakang simpan).
  var p0=null;try{p0=JSON.parse((e&&e.postData&&e.postData.contents)||"{}")}catch(x){}
  if(p0&&READ_ACTIONS.indexOf(p0.action)>=0){
-  try{return authRead_(p0,p0.action)}catch(err){Logger.log("authRead_ error: "+err+" | stack: "+(err&&err.stack));return json_({ok:false,error:"Terjadi kesalahan saat membaca data. Coba lagi beberapa saat.",code:"READ_ERROR"})}
+  try{return authRead_(p0,p0.action)}catch(err){logError_("authRead_",err,p0.action);return json_({ok:false,error:"Terjadi kesalahan saat membaca data. Coba lagi beberapa saat.",code:"READ_ERROR"})}
  }
  var lock=LockService.getScriptLock();
  try{
@@ -643,7 +659,7 @@ function doPost(e){
   if(a==="usulLokasi")return usulLokasi_(p);
   if(a==="batalUsulLokasi")return batalUsulLokasi_(p);
   return json_({ok:false,error:"Action POST tidak dikenali."});
- }catch(err){Logger.log("doPost error: "+err+" | stack: "+(err&&err.stack));return json_({ok:false,error:"Terjadi kesalahan saat menyimpan data. Coba lagi beberapa saat.",code:"SERVER_ERROR"})}finally{try{lock.releaseLock()}catch(x){}}
+ }catch(err){logError_("doPost",err,p0&&p0.action);return json_({ok:false,error:"Terjadi kesalahan saat menyimpan data. Coba lagi beberapa saat.",code:"SERVER_ERROR"})}finally{try{lock.releaseLock()}catch(x){}}
 }
 
 // ============================================================
@@ -901,7 +917,9 @@ var BACKUP_KECUALI=["AUTH_SESSION","ACCESS_TOKEN"];
 function backupFolder_(){
  var props=PropertiesService.getScriptProperties(),id=props.getProperty("BACKUP_FOLDER_ID");
  if(id){try{var f=DriveApp.getFolderById(id);if(!f.isTrashed())return f}catch(e){}}
- var it=DriveApp.getFoldersByName(BACKUP_FOLDER),folder=it.hasNext()?it.next():DriveApp.createFolder(BACKUP_FOLDER);
+ // V3.47: spreadsheet STAGING memakai folder backup sendiri agar pembersihan backup lama tidak menyentuh backup produksi.
+ var nm=BACKUP_FOLDER;try{if(/STAGING/i.test(SpreadsheetApp.getActive().getName()))nm=BACKUP_FOLDER+" STAGING"}catch(e){}
+ var it=DriveApp.getFoldersByName(nm),folder=it.hasNext()?it.next():DriveApp.createFolder(nm);
  props.setProperty("BACKUP_FOLDER_ID",folder.getId());return folder;
 }
 function backupHarian(){
@@ -924,7 +942,7 @@ function backupHarian(){
   var msg="Backup "+stamp+" selesai: "+n+" sheet → folder \""+folder.getName()+"\". Salinan lama dipindah ke Sampah: "+dihapus+".";
   Logger.log(msg);return msg;
  }catch(e){
-  var err="Backup GAGAL ("+stamp+"): "+(e&&e.message||e);Logger.log(err);
+  var err="Backup GAGAL ("+stamp+"): "+(e&&e.message||e);logError_("backupHarian",e,"trigger");
   if(dst)try{DriveApp.getFileById(dst.getId()).setTrashed(true)}catch(x){}
   try{var to=Session.getEffectiveUser().getEmail();if(to&&MailApp.getRemainingDailyQuota()>5)MailApp.sendEmail(to,"[SI-RISK] Backup harian gagal",err+"\n\nJalankan backupHarian() dari editor Apps Script untuk mencoba lagi.")}catch(x){}
   throw e;
@@ -956,6 +974,10 @@ function cekIntegritas(){
   if(kodeSaja)out.push("  Info: "+kodeSaja+" skenario berkolom kategori hanya kode (mis. \"01\"). Perhitungan tetap benar; hanya tampilan label.");
   out.push("  RISK_ASSESSMENT: "+x.a.length+" skenario diperiksa.");
  }
+ var el=ss.getSheetByName(ERROR_LOG_SHEET);
+ if(el&&el.getLastRow()>1){var batas=Date.now()-7*86400000,ev=el.getRange(2,1,el.getLastRow()-1,3).getValues().filter(function(r){var t=new Date(r[0]).getTime();return isFinite(t)&&t>=batas}),byT={};
+  ev.forEach(function(r){var k=r[1]+(r[2]?" ("+r[2]+")":"");byT[k]=(byT[k]||0)+1});
+  if(ev.length)out.push("  ERROR_LOG: "+ev.length+" error dalam 7 hari terakhir — "+Object.keys(byT).map(function(k){return k+" ×"+byT[k]}).join(", ")+". Lihat sheet ERROR_LOG.")}
  out.push(masalah?"SELESAI — "+masalah+" temuan perlu dicek.":"SELESAI — tidak ada masalah.");
  var msg=out.join("\n");Logger.log(msg);return msg;
 }

@@ -1,5 +1,5 @@
 // Server tiruan untuk uji UI: menjalankan apps-script/*.gs ASLI (lewat tests/harness/gas.js)
-// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax|simunit|putususul
+// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax|simunit|putususul|xss|beban
 const http = require('http');
 const { fx, newEnv, seedAll } = require('../server/_lib.js');
 let env; const log = [];
@@ -50,10 +50,26 @@ http.createServer((req, res) => {
         const a = u.searchParams.get('a');
         if (a === 'reset') reset();
         if (a === 'simunit') simUnit();
+        if (a === 'beban') { // uji beban browser: data rekaan seukuran peluncuran penuh (apps-script/Staging.gs)
+          const path = require('path'), { FILES, ROOT } = require('../server/_lib.js');
+          env = newEnv({ files: FILES.concat(path.join(ROOT, 'apps-script', 'Staging.gs')), owner: 'admin@dkp.go.id' });
+          env.ctx.SpreadsheetApp.getActive().getName = () => 'SI-RISK STAGING';
+          out = { pesan: env.ctx.buatDataRekaanStaging() }; env.cache.clear();
+        }
         if (a === 'putususul') { // V3.42: Admin memutuskan semua usulan Menunggu lalu menjalankan terapkanUsulanLokasi()
           const sh = env.sheets.USULAN_LOKASI, h = sh._data[0];
           sh._data.slice(1).forEach(r => { if (r[h.indexOf('status')] === 'Menunggu' && !r[h.indexOf('diputuskanAt')]) { r[h.indexOf('status')] = u.searchParams.get('status'); r[h.indexOf('alasan')] = u.searchParams.get('alasan') || ''; } });
           out = { pesan: env.ctx.terapkanUsulanLokasi() };
+        }
+        if (a === 'xss') { // V3.47: isian berbahaya di semua kolom teks yang ditulis operator / pelapor
+          const P = '<img src=x onerror="window.__xss=1">"\'><svg onload=window.__xss=1>';
+          const put = (sheet, match, keys, val) => { const sh = env.sheets[sheet], h = sh._data[0]; sh._data.slice(1).filter(r => match(r, h)).forEach(r => keys.forEach(k => { const i = h.indexOf(k); if (i >= 0) r[i] = val(k); })); };
+          put('RISK_ASSESSMENT', (r, h) => r[h.indexOf('operatorId')] === 'BD-100', ['skenario', 'area', 'langkahSaatIni', 'kerentananSaatIni', 'langkahTambahan', 'pemilikRisiko', 'keterangan', 'namaPengisi', 'jabatanPengisi'], k => P + ' ' + k);
+          put('MASTER_DPRK', (r, h) => r[h.indexOf('operatorId')] === 'BD-100', ['namaPengisi', 'jabatanPengisi', 'emailRiskOwner'], () => P);
+          put('MASTER_DPRK', (r, h) => r[h.indexOf('operatorId')] === 'BD-100', ['linkFileDprk'], () => 'javascript:window.__xss=1');
+          put('USER_ACCESS', (r, h) => r[h.indexOf('email')] === 'budi@juanda.co.id', ['nama', 'jabatan'], () => P);
+          put('LAPORAN_INSIDEN', () => true, ['judul', 'ringkasan', 'sumber', 'namaMedia', 'kronologi', 'tindakan', 'namaPelapor'], () => P);
+          env.cache.clear();
         }
         if (a === 'clearcache') env.cache.clear();
         if (a === 'enforce') env.ctx.aktifkanLoginWajib();

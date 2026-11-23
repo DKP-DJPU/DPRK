@@ -111,7 +111,7 @@ Bila matriks DPRK sudah ada dalam Excel, seluruh skenarionya dapat disimpan seka
 
 1. Lengkapi **Langkah 01**: operator, **Lokasi yang dinilai**, **Bulan Penilaian**, **Tahun**, **Tanggal Pengesahan**, dan **Nama Pengisi**. Semua skenario dari file disimpan untuk lokasi dan periode ini. Untuk matriks stasiun/unit lain, ganti lokasinya lalu impor file stasiun tersebut.
 2. Pada kotak **Impor dari Excel**, klik **Pilih file Excel (.xlsx)**. Yang dibaca hanya sheet **MATRIKS DAFTAR RISIKO** (format Lampiran II, dengan kolom NILAI untuk ancaman, kerentanan, dan konsekuensi). File dibaca di peramban Anda; yang dikirim hanya isi matriksnya.
-3. Periksa pratinjau. Baris **bergalat** (merah), misalnya nilai di luar 1–10 atau skenario kosong, tidak dicentang; perbaiki di Excel lalu pilih file lagi. Baris **dengan catatan** (kuning) tetap dapat disimpan; catatan menjelaskan apa yang perlu diperhatikan, misalnya rating di file yang berbeda dengan hasil hitung.
+3. Periksa pratinjau. Baris **error** (merah), misalnya nilai di luar 1–10 atau skenario kosong, tidak dicentang; perbaiki di Excel lalu pilih file lagi. Baris **dengan catatan** (kuning) tetap dapat disimpan; catatan menjelaskan apa yang perlu diperhatikan, misalnya rating di file yang berbeda dengan hasil hitung.
 4. Bila periode di file berbeda dengan formulir, klik **Pakai periode file**.
 5. Klik **Simpan … skenario**. Nilai risiko dan rating selalu dihitung ulang oleh sistem. Mengirim ulang file yang sama tidak menggandakan data.
 

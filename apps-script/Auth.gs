@@ -123,7 +123,7 @@ function authOnEdit(e) {
           : "Halo " + (o.nama || "") + ",\n\nPendaftaran Anda di SI-RISK AVSEC belum dapat disetujui. Hubungi Direktorat Keamanan Penerbangan untuk informasi lebih lanjut.\n\nDirektorat Keamanan Penerbangan");
     }
   } catch (err) {
-    Logger.log("authOnEdit: " + err);
+    logError_("authOnEdit", err, "");
   }
 }
 
@@ -414,7 +414,7 @@ function authRegister_(p) {
       if (admins.length) cache.put("reg_notify", "1", AUTH_ADMIN_NOTIFY_SEC);
     }
   } catch (x) {
-    Logger.log("Notifikasi admin gagal: " + x);
+    logError_("notifikasiAdmin", x, "authRegister");
   }
   return json_({ ok: true, data: { status: "Menunggu" } });
 }
