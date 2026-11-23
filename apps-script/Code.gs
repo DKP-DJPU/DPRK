@@ -1,4 +1,4 @@
-// DPRK NASIONAL V3.45 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — nilai kategori = skenario tertinggi per operator (V3.45) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
+// DPRK NASIONAL V3.46 HARDENED CORE + LOGIN OTP (lihat Auth.gs) — band risiko & ALARP sesuai PR 16/41 DJPU 2024 — backup harian (V3.35) — edit lewat akun login (V3.36) — usulan lokasi operator + Wilayah.gs (V3.42) — pemetaan wilayah resmi (V3.43) — nilai kategori = skenario tertinggi per operator (V3.45) — perbaikan nomor baris saat edit + cekIntegritas (V3.46) — unit/stasiun + simpan per paket + impor admin (V3.37) — kode produksi, stabilitas GET/POST, retry-safe, dan dukungan EDIT
 /**
  * DASHBOARD MONITORING DPRK KEAMANAN PENERBANGAN NASIONAL — V2
  *
@@ -96,7 +96,7 @@ function revokeApiKey_(operatorId){
  var s=sheet_(SHEETS.ACCESS,H.ACCESS),x=rows_(s),oi=x.h.indexOf("operatorId"),ti=x.h.indexOf("tokenType"),si=x.h.indexOf("status"),ui=x.h.indexOf("updatedAt"),ri=x.h.indexOf("revokedAt"),n=now_(),count=0;
  for(var i=0;i<x.a.length;i++){
   if(String(x.a[i][oi])===String(operatorId)&&String(x.a[i][ti])==="API_KEY"&&String(x.a[i][si])==="active"){
-   s.getRange(i+2,si+1).setValue("revoked");s.getRange(i+2,ui+1).setValue(n);s.getRange(i+2,ri+1).setValue(n);count++;
+   s.getRange(x.r[i],si+1).setValue("revoked");s.getRange(x.r[i],ui+1).setValue(n);s.getRange(x.r[i],ri+1).setValue(n);count++;
   }
  }
  return count+" API key operator "+operatorId+" dicabut.";
@@ -154,9 +154,14 @@ function issueApiKeysForAllOperators(){
     }
   }
   if (anyRevoked && aRows.length) {
-    accessSheet.getRange(2, siIdx + 1, aRows.length, 1).setValues(statusCol);
-    accessSheet.getRange(2, uiIdx + 1, aRows.length, 1).setValues(updatedCol);
-    accessSheet.getRange(2, riIdx + 1, aRows.length, 1).setValues(revokedCol);
+    // V3.46: tulis per baris asli (accessData.r) — blok kontinu mulai baris 2 bergeser bila ada baris kosong.
+    for (var w = 0; w < aRows.length; w++) {
+      if (statusCol[w][0] !== aRows[w][siIdx]) {
+        accessSheet.getRange(accessData.r[w], siIdx + 1).setValue(statusCol[w][0]);
+        accessSheet.getRange(accessData.r[w], uiIdx + 1).setValue(updatedCol[w][0]);
+        accessSheet.getRange(accessData.r[w], riIdx + 1).setValue(revokedCol[w][0]);
+      }
+    }
   }
 
   // 2) Terbitkan API key baru untuk semua operator aktif — dikumpulkan dulu
@@ -216,7 +221,10 @@ function sheet_(name,headers){var s=ss_().getSheetByName(name);if(!s)s=ss_().ins
 function ensureCols_(s,n){var m=s.getMaxColumns();if(n>m)s.insertColumnsAfter(m,n-m)}
 function ensureRows_(s,n){var need=s.getLastRow()+n-s.getMaxRows();if(need>0)s.insertRowsAfter(s.getMaxRows(),need)}
 function ensureHeaders_(s,headers){var cur=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(!cur.length){ensureCols_(s,headers.length);s.getRange(1,1,1,headers.length).setValues([headers]);return headers}var add=headers.filter(function(h){return cur.indexOf(h)<0});if(add.length){ensureCols_(s,cur.length+add.length);s.getRange(1,cur.length+1,1,add.length).setValues([add])}return s.getRange(1,1,1,s.getLastColumn()).getValues()[0]}
-function rows_(s){var h=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(s.getLastRow()<2)return{h:h,a:[]};return{h:h,a:s.getRange(2,1,s.getLastRow()-1,h.length).getValues().filter(function(r){return r.some(function(v){return v!==""})})}}
+// V3.46: baris kosong dilewati, TETAPI nomor baris aslinya disimpan di r[] (r[i] = nomor baris sheet untuk a[i]).
+// Pemanggil yang MENULIS balik wajib memakai x.r[i], bukan i+2 — i+2 bergeser bila ada baris kosong di atasnya
+// (bug 6 Nov 2026: edit skenario menimpa skenario operator lain).
+function rows_(s){var h=s.getLastColumn()?s.getRange(1,1,1,s.getLastColumn()).getValues()[0]:[];if(s.getLastRow()<2)return{h:h,a:[],r:[]};var raw=s.getRange(2,1,s.getLastRow()-1,h.length).getValues(),a=[],r=[];raw.forEach(function(x,i){if(x.some(function(v){return v!==""})){a.push(x);r.push(i+2)}});return{h:h,a:a,r:r}}
 function objs_(s){var x=rows_(s);return x.a.map(function(r){var o={};x.h.forEach(function(h,i){o[h]=r[i]});return o})}
 function sanitizeCell_(v){
  if(v===undefined||v===null)return"";
@@ -569,12 +577,12 @@ function findRiskById_(id){
  for(var i=0;i<x.a.length;i++){
   if(String(x.a[i][ci])===String(id)){
    var o={};x.h.forEach(function(h,j){o[h]=x.a[i][j]});
-   return{row:i+2,obj:o,h:x.h};
+   return{row:x.r[i],obj:o,h:x.h};
   }
  }
  return null;
 }
-function findRiskToken_(id,tok){var s=sheet_(SHEETS.RISK,H.RISK),x=rows_(s),ci=x.h.indexOf("riskId"),ct=x.h.indexOf("editToken");for(var i=0;i<x.a.length;i++)if(String(x.a[i][ci])===id&&tok!==""&&String(x.a[i][ct])===tok){var o={};x.h.forEach(function(h,j){o[h]=x.a[i][j]});return{row:i+2,obj:o,h:x.h}}return null}
+function findRiskToken_(id,tok){var s=sheet_(SHEETS.RISK,H.RISK),x=rows_(s),ci=x.h.indexOf("riskId"),ct=x.h.indexOf("editToken");for(var i=0;i<x.a.length;i++)if(String(x.a[i][ci])===id&&tok!==""&&String(x.a[i][ct])===tok){var o={};x.h.forEach(function(h,j){o[h]=x.a[i][j]});return{row:x.r[i],obj:o,h:x.h}}return null}
 function findEdit_(p){var f=findRiskToken_(String(p.id||""),String(p.token||""));if(!f)return json_({ok:false,error:"Data tidak ditemukan atau kode referensi salah."});var out=redact_(f.obj),d=findCurrentDprkByOperator_(f.obj.operatorId);out.rowVersion=Number(f.obj.rowVersion||1);out.tanggalWajibPembaruan=d?dateOnly_(d.tanggalWajibPembaruan)||addYearsDate_(d.tanggalPengesahan,2):"";return json_({ok:true,data:out})}
 
 // ============================================================
@@ -922,6 +930,35 @@ function backupHarian(){
   throw e;
  }finally{if(locked)try{lock.releaseLock()}catch(x){}}
 }
+// ============================================================
+// V3.46 — cekIntegritas(): jalankan dari editor (Admin) kapan saja. HANYA MEMBACA, tidak mengubah apa pun.
+// Memeriksa: baris kosong di tengah data, riskId ganda, assessmentKey ganda, kolom kategori yang hanya berisi kode.
+// ============================================================
+function cekIntegritas(){
+ var ss=ss_(),out=["CEK INTEGRITAS "+now_()],masalah=0;
+ [SHEETS.RISK,SHEETS.HIST,SHEETS.DPRK,SHEETS.OP,SHEETS.UNIT,SHEETS.USUL,"USER_ACCESS","AUTH_SESSION"].forEach(function(nm){
+  var s=ss.getSheetByName(nm);if(!s||s.getLastRow()<2)return;
+  var raw=s.getRange(2,1,s.getLastRow()-1,Math.max(1,s.getLastColumn())).getValues(),kosong=[];
+  raw.forEach(function(r,i){if(!r.some(function(v){return String(v).trim()!==""}))kosong.push(i+2)});
+  if(kosong.length){masalah++;out.push("  "+nm+": "+kosong.length+" baris kosong di tengah data (baris "+kosong.slice(0,10).join(", ")+(kosong.length>10?", …":"")+"). Aman sejak V3.46, boleh dihapus.")}
+ });
+ var rs=ss.getSheetByName(SHEETS.RISK);
+ if(rs){
+  var x=rows_(rs),ci=x.h.indexOf("riskId"),ck=x.h.indexOf("assessmentKey"),ckat=x.h.indexOf("kategori"),ids={},keys={},kodeSaja=0;
+  x.a.forEach(function(r,i){
+   var id=String(r[ci]||""),k=ck>=0?String(r[ck]||""):"";
+   if(id)(ids[id]=ids[id]||[]).push(x.r[i]);
+   if(k)(keys[k]=keys[k]||[]).push(x.r[i]);
+   if(ckat>=0&&/^\d{1,2}$/.test(String(r[ckat]).trim()))kodeSaja++;
+  });
+  Object.keys(ids).forEach(function(id){if(ids[id].length>1){masalah++;out.push("  RISK_ASSESSMENT: riskId ganda "+id+" di baris "+ids[id].join(", "))}});
+  Object.keys(keys).forEach(function(k){if(keys[k].length>1){masalah++;out.push("  RISK_ASSESSMENT: skenario sama (assessmentKey) di baris "+keys[k].join(", ")+" — "+k.slice(0,80))}});
+  if(kodeSaja)out.push("  Info: "+kodeSaja+" skenario berkolom kategori hanya kode (mis. \"01\"). Perhitungan tetap benar; hanya tampilan label.");
+  out.push("  RISK_ASSESSMENT: "+x.a.length+" skenario diperiksa.");
+ }
+ out.push(masalah?"SELESAI — "+masalah+" temuan perlu dicek.":"SELESAI — tidak ada masalah.");
+ var msg=out.join("\n");Logger.log(msg);return msg;
+}
 function bersihkanBackupLama_(folder){
  var files=[],it=folder.getFiles();
  while(it.hasNext()){var f=it.next();if(String(f.getName()).indexOf(BACKUP_PREFIX)===0&&f.getMimeType()===MimeType.GOOGLE_SHEETS)files.push(f)}
@@ -1199,7 +1236,7 @@ function sameVal_(k,a,b){return k==="aktif"?boolText_(a)===boolText_(b):String(a
 function imporRows_(name){
  var s=ss_().getSheetByName(name);if(!s||s.getLastRow()<2)return null;
  var raw=s.getRange(1,1,s.getLastRow(),s.getLastColumn()).getValues(),h=raw[0].map(function(x){return String(x||"").split("(")[0].replace(/\s+/g,"")}); // "operatorId (induk DPRK)"→operatorId, "Nilai baru"→Nilaibaru
- return raw.slice(1).filter(function(r){return r.some(function(v){return String(v).trim()!==""})}).map(function(r,i){var o={_baris:i+2};h.forEach(function(k,j){if(k&&!(k in o))o[k]=typeof r[j]==="string"?r[j].trim():r[j]});return o});
+ return raw.slice(1).map(function(r,i){return{r:r,n:i+2}}).filter(function(x){return x.r.some(function(v){return String(v).trim()!==""})}).map(function(x){var r=x.r,o={_baris:x.n};h.forEach(function(k,j){if(k&&!(k in o))o[k]=typeof r[j]==="string"?r[j].trim():r[j]});return o});
 }
 function adminActor_(){var e="";try{e=Session.getEffectiveUser().getEmail()}catch(x){}return{_auth:{email:"ADMIN_IMPORT:"+(e||"editor")}}}
 function pemetaanTulis_(sh,key,entityType,list,n){

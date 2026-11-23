@@ -308,12 +308,15 @@ try:
         pg.fill('#opSearch', 'yogyakarta'); pg.wait_for_timeout(300); pg.click('.op-link[data-op-id="LPP-004"]'); pg.wait_for_timeout(1500)
         txt = pg.inner_text('#opDetail')
         T('rekap unit: 9 skenario berlaku (Induk Okt + Cilacap Okt + Solo Jan), bukan 3 atau 12', re.search(r'SKENARIO DINILAI\s*9\b', txt, re.I) is not None, txt[:300])
-        T('rekap unit: rentang periode Oktober 2026 – Januari 2027 & rata-rata 15.9', 'Oktober 2026 – Januari 2027' in txt and '15.9' in txt)
+        T('rekap unit: rentang periode Oktober 2026 – Januari 2027', 'Oktober 2026 – Januari 2027' in txt)
+        # V3.46: nilai operator = rata-rata nilai tertinggi per kategori: 11=24, 15=20, 03=20, 14=13, 04=10, 16=17 → 104/6 = 17.3 (rata-rata semua skenario = 15.9)
+        kv = pg.inner_text('#opDetail .mini-stat:has-text("Nilai Risiko Operator") b')
+        T('nilai risiko operator (V3.46) = 17.3 dari 6 kategori, bukan rata-rata skenario 15.9', '17.3' in kv and '6 kategori' in kv and '15.9' not in txt, kv)
         k15v = pg.inner_text('#opDetail .threat-item:has(.threat-code:text-is("15")) .threat-value').strip(); k15m = pg.inner_text('#opDetail .threat-item:has(.threat-code:text-is("15")) .opd-cat-meta')
         T('profil kategori (V3.45): kategori 15 = nilai tertinggi 20 (bukan rata-rata 16.7) + keterangan skenario tertinggi', k15v == '20' and 'Tertinggi' in k15m, [k15v, k15m])
         row = pg.locator('.opd-table tr:has-text("Cabang Pembantu Solo")').first
         cells = [row.locator('td').nth(i).inner_text().strip() for i in (3, 4)]
-        T('Cakupan Unit: Solo 3 skenario (bukan 6), rata-rata 13.7', cells == ['3', '13.7'], cells)
+        T('Cakupan Unit: Solo 3 skenario (bukan 6), nilai 13.7 (3 kategori berbeda → sama dengan rata-rata)', cells == ['3', '13.7'], cells)
         T('5 Risiko Tertinggi menyebut unit / Induk', pg.locator('.opd-table .risk-unit:has-text("Induk")').count() > 0)
         tab(pg, 'risk'); pg.fill('#riskSearch', 'yogyakarta'); pg.dispatch_event('#riskSearch', 'input'); pg.wait_for_timeout(300)
         T('Monitoring Risiko: default penilaian terkini → 9 baris', pg.locator('#riskTbody tr').count() == 9 and not pg.is_hidden('#riskUnitField'), pg.locator('#riskTbody tr').count())
