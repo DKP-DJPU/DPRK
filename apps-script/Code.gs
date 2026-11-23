@@ -917,7 +917,9 @@ var BACKUP_KECUALI=["AUTH_SESSION","ACCESS_TOKEN"];
 function backupFolder_(){
  var props=PropertiesService.getScriptProperties(),id=props.getProperty("BACKUP_FOLDER_ID");
  if(id){try{var f=DriveApp.getFolderById(id);if(!f.isTrashed())return f}catch(e){}}
- var it=DriveApp.getFoldersByName(BACKUP_FOLDER),folder=it.hasNext()?it.next():DriveApp.createFolder(BACKUP_FOLDER);
+ // V3.47: spreadsheet STAGING memakai folder backup sendiri agar pembersihan backup lama tidak menyentuh backup produksi.
+ var nm=BACKUP_FOLDER;try{if(/STAGING/i.test(SpreadsheetApp.getActive().getName()))nm=BACKUP_FOLDER+" STAGING"}catch(e){}
+ var it=DriveApp.getFoldersByName(nm),folder=it.hasNext()?it.next():DriveApp.createFolder(nm);
  props.setProperty("BACKUP_FOLDER_ID",folder.getId());return folder;
 }
 function backupHarian(){

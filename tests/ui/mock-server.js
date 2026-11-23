@@ -1,5 +1,5 @@
 // Server tiruan untuk uji UI: menjalankan apps-script/*.gs ASLI (lewat tests/harness/gas.js)
-// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax|simunit|putususul|xss
+// dengan data SINTETIS dari tests/fixtures. Endpoint bantu: /__mail?to=, /__ctl?a=reset|clearcache|log|enforce|relax|simunit|putususul|xss|beban
 const http = require('http');
 const { fx, newEnv, seedAll } = require('../server/_lib.js');
 let env; const log = [];
@@ -50,6 +50,12 @@ http.createServer((req, res) => {
         const a = u.searchParams.get('a');
         if (a === 'reset') reset();
         if (a === 'simunit') simUnit();
+        if (a === 'beban') { // uji beban browser: data rekaan seukuran peluncuran penuh (apps-script/Staging.gs)
+          const path = require('path'), { FILES, ROOT } = require('../server/_lib.js');
+          env = newEnv({ files: FILES.concat(path.join(ROOT, 'apps-script', 'Staging.gs')), owner: 'admin@dkp.go.id' });
+          env.ctx.SpreadsheetApp.getActive().getName = () => 'SI-RISK STAGING';
+          out = { pesan: env.ctx.buatDataRekaanStaging() }; env.cache.clear();
+        }
         if (a === 'putususul') { // V3.42: Admin memutuskan semua usulan Menunggu lalu menjalankan terapkanUsulanLokasi()
           const sh = env.sheets.USULAN_LOKASI, h = sh._data[0];
           sh._data.slice(1).forEach(r => { if (r[h.indexOf('status')] === 'Menunggu' && !r[h.indexOf('diputuskanAt')]) { r[h.indexOf('status')] = u.searchParams.get('status'); r[h.indexOf('alasan')] = u.searchParams.get('alasan') || ''; } });

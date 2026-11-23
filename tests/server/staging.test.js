@@ -1,0 +1,27 @@
+// Staging.gs — generator data rekaan + uji beban; WAJIB menolak berjalan di produksi.
+const path = require('path');
+const { tester, newEnv, FILES, ROOT } = require('./_lib.js');
+const T = tester('staging');
+const env = newEnv({ files: FILES.concat(path.join(ROOT, 'apps-script', 'Staging.gs')), owner: 'admin@dkp.go.id' });
+const c = env.ctx, ss = c.SpreadsheetApp.getActive();
+const tolak = () => { try { c.buatDataRekaanStaging({ skala: 0.05, skenarioPerLokasi: 2 }); return false; } catch (e) { return /DITOLAK/.test(e.message); } };
+ss.getName = () => 'DPRK Nasional'; T('menolak spreadsheet yang namanya tanpa "STAGING"', tolak());
+ss.getName = () => 'SI-RISK STAGING'; const id0 = ss.getId; ss.getId = () => c.STAGING_PROD_ID;
+T('menolak spreadsheet produksi walau namanya memuat STAGING', tolak()); ss.getId = id0;
+T('penolakan tidak menulis apa pun', !env.sheets.RISK_ASSESSMENT || env.rows('RISK_ASSESSMENT').length === 0);
+const msg = c.buatDataRekaanStaging({ skala: 0.1, skenarioPerLokasi: 4 });
+const ops = env.rows('MASTER_OPERATOR'), risks = env.rows('RISK_ASSESSMENT'), units = env.rows('MASTER_UNIT');
+T('data rekaan terisi (operator, unit, DPRK, skenario)', ops.length > 30 && units.length > 0 && env.rows('MASTER_DPRK').length === ops.length && risks.length > 100, msg);
+T('semua 4 jenis operator ada', ['Bandar Udara', 'Airlines', 'LPPNPI', 'Regulated Agent'].every(j => ops.some(o => o.jenisOperator === j)));
+T('nilai & rating dihitung dengan aturan resmi', risks.every(r => Number(r.risikoNilai) === Number(r.ancamanNilai) + Number(r.kerentananNilai) + Number(r.konsekuensiNilai) && r.risikoRating === c.ratingTotal_(Number(r.risikoNilai))));
+T('ID katalog tetap teks (01.01, bukan angka 1.01)', risks.every(r => /^\d{2}\.\d{2}$/.test(String(r.idRisikoKatalog))), risks.slice(0, 3).map(r => r.idRisikoKatalog));
+T('tidak ada riskId / assessmentKey ganda', new Set(risks.map(r => r.riskId)).size === risks.length && new Set(risks.map(r => r.assessmentKey)).size === risks.length);
+T('ada histori periode lama (2025) dan periode terkini (2026)', risks.some(r => Number(r.tahun) === 2025) && risks.some(r => Number(r.tahun) === 2026));
+T('isi ulang ditolak bila sudah berisi data', (() => { try { c.buatDataRekaanStaging(); return false; } catch (e) { return /sudah berisi data/.test(e.message); } })());
+const d = env.get({ action: 'dashboard' });
+T('dashboard berjalan di atas data rekaan', d.ok && d.data, d.error);
+const u = c.ujiBebanStaging();
+T('ujiBebanStaging melaporkan semua fungsi tanpa ERROR', /dashboard \(publik\): \d+ ms/.test(u) && /riskData/.test(u) && !/ERROR/.test(u), u);
+T('cekIntegritas bersih di data rekaan', /tidak ada masalah/.test(c.cekIntegritas()), c.cekIntegritas());
+T('backup di STAGING masuk folder terpisah (bukan folder backup produksi)', c.backupFolder_().getName() === 'SI-RISK BACKUP STAGING', c.backupFolder_().getName());
+T.done();
