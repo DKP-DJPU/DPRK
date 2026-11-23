@@ -3,20 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- V3.47: kebijakan keamanan halaman (CSP). Hanya script dari situs ini yang boleh berjalan; data hanya dikirim ke Apps Script. Tambah domain di sini bila memakai layanan luar baru. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://i.ytimg.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="description" content="SI-RISK AVSEC (System Information Risk Assessment Aviation Security): database terpusat dan dashboard risiko keamanan penerbangan nasional untuk monitoring pemenuhan, kondisi risiko, dan kaji ulang DPRK.">
 <title>SI-RISK AVSEC — Dashboard Risiko Keamanan Penerbangan Nasional</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261123a">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261123a">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261123a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=20261123b">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png?v=20261123b">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=20261123b">
 <meta name="theme-color" content="#0f2a45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=20261123a">
-<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261123a">
-<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261123a">
-<link rel="stylesheet" href="assets/css/auth.css?v=20261123a">
-<link rel="stylesheet" href="assets/css/panduan.css?v=20261123a">
+<link rel="stylesheet" href="assets/css/app.css?v=20261123b">
+<link rel="stylesheet" href="assets/css/pelaporan.css?v=20261123b">
+<link rel="stylesheet" href="assets/css/operator-detail.css?v=20261123b">
+<link rel="stylesheet" href="assets/css/auth.css?v=20261123b">
+<link rel="stylesheet" href="assets/css/panduan.css?v=20261123b">
 </head>
 <body>
 <div class="app">
@@ -440,11 +443,11 @@
 </main>
 </div>
 
-<script src="assets/js/app.js?v=20261123a"></script>
-<script src="assets/js/pelaporan.js?v=20261123a"></script>
-<script src="assets/js/operator-detail.js?v=20261123a"></script>
-<script src="assets/js/auth.js?v=20261123a"></script>
-<script src="assets/js/panduan.js?v=20261123a"></script>
-<script src="assets/js/impor-matriks.js?v=20261123a"></script>
+<script src="assets/js/app.js?v=20261123b"></script>
+<script src="assets/js/pelaporan.js?v=20261123b"></script>
+<script src="assets/js/operator-detail.js?v=20261123b"></script>
+<script src="assets/js/auth.js?v=20261123b"></script>
+<script src="assets/js/panduan.js?v=20261123b"></script>
+<script src="assets/js/impor-matriks.js?v=20261123b"></script>
 </body>
 </html>

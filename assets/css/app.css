@@ -3071,3 +3071,6 @@ main {
 #view-dashboard .threat-meta {
   color: var(--dk-muted);
 }
+
+/* V3.47: peringatan khusus Admin bila versi Apps Script ≠ versi website */
+.ver-warn{margin:8px 16px 0;padding:10px 14px;border-radius:10px;border:1px solid #e0a800;background:#fff8e1;color:#5c4400;font-size:13px;line-height:1.45}

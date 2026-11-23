@@ -510,7 +510,7 @@
       '<div class="impor-sum"><div><b>' + esc(st.file.name) + "</b> · sheet " + esc(res.sheet || "") + "</div>" +
       "<div>Di file: " + esc(res.meta.operator || "—") + " · " + esc(((res.meta.bulan || "") + " " + (res.meta.tahun || "")).trim() || "periode tidak tercantum") + "</div>" +
       '<div class="impor-target">Disimpan untuk: <b>' + esc(ctx.nama || "—") + "</b>" + (ctx.lokasi ? " › <b>" + esc(ctx.lokasi) + "</b>" : "") + (ctx.bulan ? " · " + esc(ctx.bulan + " " + ctx.tahun) : "") + "</div></div>" +
-      '<div class="impor-counts"><span class="ic-ok">' + (rows.length - nErr - nWarn) + " siap</span>" + (nWarn ? '<span class="ic-warn">' + nWarn + " dengan catatan</span>" : "") + (nErr ? '<span class="ic-err">' + nErr + " bergalat</span>" : "") + (nKh ? '<span class="ic-kh">' + nKh + " Isi Sendiri</span>" : "") + "</div>" +
+      '<div class="impor-counts"><span class="ic-ok">' + (rows.length - nErr - nWarn) + " siap</span>" + (nWarn ? '<span class="ic-warn">' + nWarn + " dengan catatan</span>" : "") + (nErr ? '<span class="ic-err">' + nErr + " error</span>" : "") + (nKh ? '<span class="ic-kh">' + nKh + " Isi Sendiri</span>" : "") + "</div>" +
       (res.dilewatiKhusus ? '<div class="impor-msg impor-info">' + res.dilewatiKhusus + " baris di bagian <b>Hasil Penilaian Risiko Khusus</b> dilewati (belum diimpor).</div>" : "") +
       issues.map(function (x) { return '<div class="impor-msg impor-' + x[0] + '">' + x[1] + "</div>"; }).join("") +
       '<div class="impor-table-wrap"><table class="impor-table"><thead><tr><th><input type="checkbox" data-imp="all" aria-label="Pilih semua"' + (sel.length === rows.length ? " checked" : "") + '></th><th>ID</th><th>Skenario</th><th title="Ancaman / Kerentanan / Konsekuensi">A · K · K</th><th>Nilai</th><th>Perlakuan / Prioritas</th><th>Kaji ulang</th><th>Catatan</th></tr></thead><tbody>' +
@@ -530,7 +530,7 @@
       "</tbody></table></div>";
     if (st.msg) h += '<div class="impor-msg impor-' + st.msg[0] + '">' + st.msg[1] + "</div>";
     h +=
-      '<div class="impor-act"><span>' + sel.length + " dari " + rows.length + " skenario dipilih" + (selErr ? " — <b>" + selErr + " bergalat</b>: perbaiki di Excel atau hapus centangnya" : "") + "</span>" +
+      '<div class="impor-act"><span>' + sel.length + " dari " + rows.length + " skenario dipilih" + (selErr ? " — <b>" + selErr + " error</b>: perbaiki di Excel atau hapus centangnya" : "") + "</span>" +
       '<button type="button" class="btn secondary" data-imp="batal">Batal</button>' +
       (st.dup ? '<button type="button" class="btn secondary" data-imp="lewati">Lewati yang sudah ada &amp; simpan sisanya</button>' : "") +
       '<button type="button" class="btn primary" data-imp="simpan"' + (block ? " disabled" : "") + ">" + (st.saving ? "Menyimpan…" : "Simpan " + sel.length + " skenario") + "</button></div>";
