@@ -157,7 +157,7 @@ function authFindUser_(email) {
     if (authNormEmail_(x.a[i][ce]) === email) {
       var o = {};
       x.h.forEach(function (k, j) { o[k] = x.a[i][j]; });
-      return { row: i + 2, obj: o, h: x.h, sheet: s };
+      return { row: x.r[i], obj: o, h: x.h, sheet: s };
     }
   }
   return null;
@@ -359,7 +359,7 @@ function authLogout_(p) {
   var h = hashToken_(token), s = sheet_(AUTH_SESSION_SHEET, AUTH_SESSION_H), x = rows_(s);
   var ch = x.h.indexOf("tokenHash"), cs = x.h.indexOf("status");
   for (var i = 0; i < x.a.length; i++) {
-    if (String(x.a[i][ch]) === h) { s.getRange(i + 2, cs + 1).setValue("Keluar"); break; }
+    if (String(x.a[i][ch]) === h) { s.getRange(x.r[i], cs + 1).setValue("Keluar"); break; }
   }
   authCache_().remove("sess:" + h);
   return json_({ ok: true });

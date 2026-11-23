@@ -159,6 +159,27 @@
   function scopeOf(x) {
     return String(x.unitId || "");
   }
+  // V3.46: nilai yang mewakili satu kategori ancaman = skenario dengan nilai risiko tertinggi di kategori itu;
+  // nilai risiko operator / unit / satu periode tren = rata-rata nilai wakil tiap kategori (bukan rata-rata semua skenario).
+  function katKode(x) {
+    var k = String(x.kategoriKode || String(x.kategori || "").split(" - ")[0]).trim();
+    if (/^\d$/.test(k)) k = "0" + k;
+    return /^\d{2}$/.test(k) ? k : "";
+  }
+  function nilaiWakil(list) {
+    var mx = {};
+    (list || []).forEach(function (x, i) {
+      var k = katKode(x) || "?" + i,
+        v = Number(x.risikoNilai) || 0;
+      if (!(k in mx) || v > mx[k]) mx[k] = v;
+    });
+    var ks = Object.keys(mx),
+      t = 0;
+    ks.forEach(function (k) {
+      t += mx[k];
+    });
+    return { avg: ks.length ? t / ks.length : 0, nk: ks.length };
+  }
   function summarize(rows) {
     var byScope = {};
     rows.forEach(function (x) {
@@ -231,11 +252,8 @@
           });
           if (best !== null) a = a.concat(byScope[s][best]);
         });
-      var t = 0;
-      a.forEach(function (x) {
-        t += Number(x.risikoNilai) || 0;
-      });
-      return { key: k, n: a.length, avg: a.length ? t / a.length : 0, high: a.filter(isHigh).length };
+      var w = nilaiWakil(a);
+      return { key: k, n: a.length, nk: w.nk, avg: w.avg, high: a.filter(isHigh).length };
     });
     var top = latest
       .slice()
@@ -255,7 +273,8 @@
       mixed: firstKey !== latestKey,
       latest: latest,
       dist: dist,
-      avg: latest.length ? sum / latest.length : 0,
+      avg: nilaiWakil(latest).avg,
+      nk: nilaiWakil(latest).nk,
       cats: cats,
       trend: trend,
       top: top,
@@ -357,11 +376,13 @@
         trend.length +
         " periode penilaian. Tren akan tampil setelah operator mengisi DPRK di periode berikutnya.</div>" +
         (trend.length
-          ? '<div class="opd-trend-single">Rata-rata nilai risiko <b>' +
+          ? '<div class="opd-trend-single">Nilai risiko operator <b>' +
             trend[0].avg.toFixed(1) +
-            "</b> dari " +
+            "</b> — rata-rata nilai tertinggi dari " +
+            trend[0].nk +
+            " kategori ancaman (" +
             trend[0].n +
-            " skenario (" +
+            " skenario, " +
             esc(periodLabel(trend[0].key)) +
             ").</div>"
           : "")
@@ -376,8 +397,13 @@
           return (
             '<div class="opd-trend-col" title="' +
             esc(periodLabel(t.key)) +
-            ": rata-rata " +
+            ": nilai risiko " +
             t.avg.toFixed(1) +
+            " (rata-rata nilai tertinggi " +
+            t.nk +
+            " kategori, " +
+            t.n +
+            " skenario)" +
             '"><span class="opd-trend-val">' +
             t.avg.toFixed(1) +
             '</span><i style="height:' +
@@ -431,7 +457,7 @@
     rows.forEach(function (r) {
       var k = String(r.unitId || "");
       if (!k) return;
-      (by[k] = by[k] || []).push(Number(r.risikoNilai) || 0);
+      (by[k] = by[k] || []).push(r);
     });
     var done = list.filter(function (u) {
       return by[u.unitId];
@@ -448,15 +474,11 @@
       Math.round((done / list.length) * 100) +
       '% UNIT</div></div><div class="opd-unit-bar"><i style="width:' +
       Math.round((done / list.length) * 100) +
-      '%"></i></div><div class="tablewrap opd-table"><table><thead><tr><th>Unit / Stasiun</th><th>Jenis</th><th>Kab/Kota</th><th>Skenario</th><th>Rata-rata</th></tr></thead><tbody>' +
+      '%"></i></div><div class="tablewrap opd-table"><table><thead><tr><th>Unit / Stasiun</th><th>Jenis</th><th>Kab/Kota</th><th>Skenario</th><th title="Rata-rata nilai tertinggi tiap kategori ancaman di unit ini">Nilai Risiko</th></tr></thead><tbody>' +
       list
         .map(function (u) {
           var v = by[u.unitId] || [],
-            avg = v.length
-              ? v.reduce(function (a, b) {
-                  return a + b;
-                }, 0) / v.length
-              : 0;
+            avg = nilaiWakil(v).avg;
           return (
             "<tr><td><b>" +
             esc(u.namaUnit) +
@@ -560,9 +582,9 @@
       '<div class="mini-stat"><span>Skenario Dinilai</span><b>' +
       sm.latest.length +
       "</b></div>" +
-      '<div class="mini-stat"><span>Rata-rata Nilai Risiko</span><b>' +
+      '<div class="mini-stat" title="Rata-rata nilai tertinggi tiap kategori ancaman (nilai kategori = skenario dengan risiko tertinggi)"><span>Nilai Risiko Operator</span><b>' +
       (sm.latest.length
-        ? sm.avg.toFixed(1) + '<small class="opd-of"> / 30</small>'
+        ? sm.avg.toFixed(1) + '<small class="opd-of"> / 30 · ' + sm.nk + " kategori</small>"
         : "—") +
       "</b></div>" +
       '<div class="mini-stat"><span>Tinggi & Menengah-Tinggi</span><b>' +
